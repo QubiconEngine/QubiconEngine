@@ -1,0 +1,8 @@
+[package]
+name = "q_rendering_server"
+version = "0.0.0"
+edition = "2021"
+
+
+[dependencies.qubicon_vulkan]
+path = "../qubicon_vulkan"

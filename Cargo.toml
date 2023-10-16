@@ -1,0 +1,11 @@
+[workspace]
+resolver = "1"
+members = [
+    "core/qubicon_audio_server",
+    "core/qubicon_input_server",
+    
+    "core/rendering/qubicon_vulkan",
+    "core/rendering/qubicon_windowing",
+    "core/rendering/qubicon_rendering_server",
+]
+

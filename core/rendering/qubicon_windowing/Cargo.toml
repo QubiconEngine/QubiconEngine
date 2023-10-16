@@ -1,0 +1,4 @@
+[package]
+name = "qubicon_windowing"
+version = "0.0.0"
+edition = "2021"
