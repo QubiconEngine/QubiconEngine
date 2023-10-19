@@ -23,9 +23,11 @@ impl Instance {
         let inner = Arc::clone(&self.inner);
         let iter = unsafe { self.inner.enumerate_physical_devices()? }
             .into_iter()
-            .map(move | dev | PhysicalDevice {
-                instance: Arc::clone(&inner),
-                dev
+            .map(move | dev | unsafe {
+                PhysicalDevice::from_instance_and_raw_physical_device(
+                    Arc::clone(&inner),
+                    dev
+                )
             });
 
         Ok(iter)

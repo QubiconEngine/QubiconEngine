@@ -7,9 +7,17 @@ fn main() {
         .expect("Failed to enumerate devices");
 
     for device in devices {
-        let features = device.get_features();
         let props = device.get_properties();
+        println!("{}:", props.device_name);
 
-        println!("{}:{:?}\n", props.device_name, features);
+        for queue in device.get_queue_family_infos() {
+            println!(
+                "Queue family have {} queues with {:?}",
+                queue.queue_count,
+                queue.capabilities
+            )
+        }
+
+        println!();
     }
 }

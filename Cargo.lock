@@ -199,6 +199,7 @@ name = "qubicon_vulkan"
 version = "0.0.0"
 dependencies = [
  "ash",
+ "bitflags 2.4.1",
  "smallstr",
  "smallvec",
  "thiserror",

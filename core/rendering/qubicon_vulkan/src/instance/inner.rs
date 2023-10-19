@@ -10,7 +10,7 @@ use ash::{
 use ash::extensions::khr::Surface;
 
 pub(crate) struct InstanceInner {
-    pub(crate) entry: Entry,
+    pub(crate) _entry: Entry,
     pub(crate) instance: Instance,
 
     #[cfg(feature = "windowing")]
@@ -18,7 +18,8 @@ pub(crate) struct InstanceInner {
 }
 
 impl InstanceInner {
-    pub(crate) fn load(info: &super::creation_info::InstanceCreateInfo) -> Result<Self, super::error::InstanceError> {
+    // TODO: Use creation info
+    pub(crate) fn load(_info: &super::creation_info::InstanceCreateInfo) -> Result<Self, super::error::InstanceError> {
         unsafe {
             let entry = Entry::load()?;
             let instance = entry.create_instance(
@@ -44,7 +45,7 @@ impl InstanceInner {
 
             Ok(
                 Self {
-                    entry,
+                    _entry: entry,
                     instance,
 
                     #[cfg(feature = "windowing")]
