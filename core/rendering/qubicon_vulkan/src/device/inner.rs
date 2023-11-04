@@ -77,7 +77,14 @@ impl DeviceInner {
 
     #[inline]
     pub(crate) fn get_queue_usage(&self) -> &[super::create_info::QueueFamilyUsage] {
-        unsafe { &self.queue_usage.get().unwrap_unchecked() }
+        unsafe { self.queue_usage.get().unwrap_unchecked() }
+    }
+}
+
+impl PartialEq for DeviceInner {
+    fn eq(&self, other: &Self) -> bool {
+        self.physical_device == other.physical_device &&
+        self.device.handle() == other.device.handle()
     }
 }
 

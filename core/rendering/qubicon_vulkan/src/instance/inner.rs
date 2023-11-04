@@ -56,6 +56,12 @@ impl InstanceInner {
     }
 }
 
+impl PartialEq for InstanceInner {
+    fn eq(&self, other: &Self) -> bool {
+        self.instance.handle() == other.instance.handle()
+    }
+}
+
 impl Deref for InstanceInner {
     type Target = Instance;
 

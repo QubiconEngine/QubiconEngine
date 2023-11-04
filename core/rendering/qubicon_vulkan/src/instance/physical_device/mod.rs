@@ -70,3 +70,10 @@ impl PhysicalDevice {
         crate::device::Device::create_from_physical_device(create_info, self)
     }
 }
+
+impl PartialEq for PhysicalDevice {
+    fn eq(&self, other: &Self) -> bool {
+        self.instance == other.instance &&
+        self.dev == other.dev
+    }
+}

@@ -1,4 +1,4 @@
-use smallstr::SmallString;
+use arrayvec::ArrayString;
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,7 +16,7 @@ pub struct DeviceProperties {
     pub vendor_id: u32,
     pub device_id: u32,
     pub device_type: DeviceType,
-    pub device_name: SmallString<[u8; ash::vk::MAX_PHYSICAL_DEVICE_NAME_SIZE]>,
+    pub device_name: ArrayString<256>,
     pub pipeline_chache_uuid: [u8; ash::vk::UUID_SIZE],
 
     // TODO: limits
@@ -31,7 +31,7 @@ impl From<ash::vk::PhysicalDeviceProperties> for DeviceProperties {
             vendor_id: value.vendor_id,
             device_id: value.device_id,
             device_type: value.device_type.into(),
-            device_name: SmallString::from_buf(unsafe {core::mem::transmute(value.device_name)}).unwrap(),
+            device_name: ArrayString::from_byte_string(unsafe { core::mem::transmute(&value.device_name) }).unwrap(),
             pipeline_chache_uuid: value.pipeline_cache_uuid
         }
     }

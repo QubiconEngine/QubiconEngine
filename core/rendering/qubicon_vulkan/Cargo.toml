@@ -8,7 +8,7 @@ windowing = []
 
 [dependencies]
 ash = "0.37"
+bitvec = "1.0"
 bitflags = "2.4"
-smallstr = "0.3"
-smallvec = "1.11"
+arrayvec = "0.7"
 thiserror = "1.0"
