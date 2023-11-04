@@ -18,15 +18,15 @@ fn main() {
         .create_logical_device(Default::default())
         .expect("Failed to create logical device");
 
-    let buffer = unsafe {
-        device.allocate_buffer(
+    let _buffer = unsafe {
+        device.create_buffer(
             MemoryTypeProperties::HOST_VISIBLE,
-            BufferCreateInfo {
+            &BufferCreateInfo {
             create_flags:   BufferCreateFlags::empty(),
             usage_flags:    BufferUsageFlags::STORAGE_BUFFER,
 
                 size: 1024
             }
         )
-    };
+    }.expect("Buffer creation failed");
 }
