@@ -1,5 +1,6 @@
 use qubicon_vulkan::{
     Instance,
+    device::create_info::QueueFamilyUsage,
     instance::physical_device::memory_properties::MemoryTypeProperties,
     memory::resources::buffer::{
         BufferCreateInfo,
@@ -15,18 +16,15 @@ fn main() {
         .expect("Failed to enumerate devices")
         .next()
         .expect("No devices found")
-        .create_logical_device(Default::default())
+        .create_logical_device::<[QueueFamilyUsage; 0]>(Default::default())
         .expect("Failed to create logical device");
 
-    let _buffer = unsafe {
-        device.create_buffer(
-            MemoryTypeProperties::HOST_VISIBLE,
-            &BufferCreateInfo {
+    let _buffer = device.create_buffer(
+        MemoryTypeProperties::HOST_VISIBLE,
+        &BufferCreateInfo {
             create_flags:   BufferCreateFlags::empty(),
             usage_flags:    BufferUsageFlags::STORAGE_BUFFER,
-
-                size: 1024
-            }
-        )
-    }.expect("Buffer creation failed");
+            size: 1024
+        }
+    ).expect("Buffer creation failed");
 }

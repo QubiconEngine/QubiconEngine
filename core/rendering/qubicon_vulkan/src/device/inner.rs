@@ -1,7 +1,4 @@
-use std::{
-    ops::Deref,
-    sync::OnceLock
-};
+use std::ops::Deref;
 use ash::{
     Device,
     prelude::VkResult,
@@ -14,12 +11,14 @@ use crate::instance::physical_device::{
     memory_properties::DeviceMemoryProperties
 };
 
+use super::create_info::QueueFamilyUsage;
+
 pub(crate) struct DeviceInner {
     pub(crate) features: DeviceFeatures,
     pub(crate) properties: DeviceProperties,
     pub(crate) memory_properties: DeviceMemoryProperties,
 
-    pub(crate) queue_usage: OnceLock<Vec<super::create_info::QueueFamilyUsage>>,
+    pub(crate) queue_usage: Box<[QueueFamilyUsage]>,
 
     //pub(crate) memory_allocator: (),
 
@@ -28,13 +27,15 @@ pub(crate) struct DeviceInner {
 }
 
 impl DeviceInner {
-    pub(crate) fn create_from_physical_device(
-        create_info: super::create_info::DeviceCreateInfo,
+    pub(crate) fn create_from_physical_device<T: Into<Box<[QueueFamilyUsage]>>>(
+        create_info: super::create_info::DeviceCreateInfo<T>,
         physical_device: PhysicalDevice
     ) -> VkResult<Self> {
+        let queue_usage: Box<[QueueFamilyUsage]> = create_info.queues.into();
+        
         unsafe {
             let vk_features = create_info.features.into();
-            let vk_queues_info: Vec<_> = create_info.queues
+            let vk_queues_info: Vec<_> = queue_usage
                 .iter()
                 .copied()
                 .map(Into::into)
@@ -65,7 +66,7 @@ impl DeviceInner {
                     properties,
                     memory_properties,
 
-                    queue_usage: OnceLock::from(create_info.queues),
+                    queue_usage,
                     //memory_allocator: (),
 
                     physical_device,
@@ -77,7 +78,7 @@ impl DeviceInner {
 
     #[inline]
     pub(crate) fn get_queue_usage(&self) -> &[super::create_info::QueueFamilyUsage] {
-        unsafe { self.queue_usage.get().unwrap_unchecked() }
+        &self.queue_usage
     }
 }
 

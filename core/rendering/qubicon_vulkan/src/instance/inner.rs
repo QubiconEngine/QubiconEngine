@@ -17,18 +17,20 @@ pub(crate) struct InstanceInner {
     pub(crate) surface: Option<Surface>
 }
 
+const _TMP_LAYER: &str = "VK_LAYER_KHRONOS_validation\0";
+
 impl InstanceInner {
     // TODO: Use creation info
-    pub(crate) fn load(_info: &super::creation_info::InstanceCreateInfo) -> Result<Self, super::error::InstanceError> {
+    pub(crate) fn create(_info: &super::creation_info::InstanceCreateInfo) -> Result<Self, super::error::InstanceError> {
         unsafe {
             let entry = Entry::load()?;
             let instance = entry.create_instance(
                 &InstanceCreateInfo {
                     //p_application_info: (),
-                    //enabled_layer_count: (),
-                    //pp_enabled_layer_names: (),
-                    //enabled_extension_count: (),
-                    //pp_enabled_extension_names: (),
+                    enabled_layer_count: 1,
+                    pp_enabled_layer_names: core::mem::transmute(&_TMP_LAYER),
+                    //enabled_extension_count: 1,
+                    //pp_enabled_extension_names: core::mem::transmute(&_TMP_EXT),
 
                     ..Default::default()
                 },

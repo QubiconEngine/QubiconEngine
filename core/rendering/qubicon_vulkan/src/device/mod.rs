@@ -6,16 +6,48 @@ use std::{
 use crate::{
     memory::{
         alloc::Allocator,
-        resources::{buffer::{
-            Buffer,
-            RawBuffer,
-            BufferCreateInfo,
-            BufferCreationError,
-            RawBufferCreationError
-        }, image::{ImageCreateInfo, RawImage, RawImageCreationError, ImageCreationError, Image}}
+        resources::{
+            buffer::{
+                Buffer,
+                RawBuffer,
+                BufferCreateInfo,
+                BufferCreationError,
+                RawBufferCreationError
+            },
+            image::{
+                Image,
+                RawImage,
+                ImageCreateInfo,
+                ImageCreationError,
+                RawImageCreationError
+            }
+        }
+    },
+    shaders::{
+        shader_module::{
+            ShaderModule,
+            ShaderModuleCreationError
+        },
+        compute::{
+            ComputePipeline,
+            ComputePipelineCreateInfo
+        },
+        PipelineCreationError, pipeline_layout::{PipelineLayout, PipelineLayoutCreationError}
+    },
+    descriptors::{
+        DescriptorPool,
+        DescriptorSetLayout,
+        DescriptorPoolCreateInfo,
+        DescriptorSetLayoutCreateInfo,
+        alloc::DescriptorPoolSize,
+        layout::DescriptorBinding
     },
     instance::physical_device::memory_properties::MemoryTypeProperties
 };
+
+use self::create_info::QueueFamilyUsage;
+
+
 
 pub mod error;
 pub mod create_info;
@@ -27,8 +59,8 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn create_from_physical_device(
-        create_info: create_info::DeviceCreateInfo,
+    pub fn create_from_physical_device<T: Into<Box<[QueueFamilyUsage]>>>(
+        create_info: create_info::DeviceCreateInfo<T>,
         physical_device: crate::instance::physical_device::PhysicalDevice
     ) -> VkResult<Self> {
         let inner = Arc::new(
@@ -99,6 +131,27 @@ impl Device {
         }
     }
 
+    pub fn create_descriptor_pool<T: Into<Vec<DescriptorPoolSize>>>(&self, create_info: DescriptorPoolCreateInfo<T>) -> DescriptorPool {
+        DescriptorPool::new(
+            Arc::clone(&self.inner),
+            create_info
+        )
+    }
+
+    pub fn create_descriptor_set_layout<T: Into<Vec<DescriptorBinding>>>(&self, create_info: DescriptorSetLayoutCreateInfo<T>) -> Arc<DescriptorSetLayout> {
+        DescriptorSetLayout::create(
+            Arc::clone(&self.inner),
+            create_info
+        )
+    }
+
+    pub fn create_pipeline_layout(&self, descriptor_sets: impl Into<Box<[Arc<DescriptorSetLayout>]>>) -> Result<Arc<PipelineLayout>, PipelineLayoutCreationError> {
+        PipelineLayout::create(
+            Arc::clone(&self.inner),
+            descriptor_sets
+        )
+    }
+
     pub fn create_raw_buffer(&self, create_info: &BufferCreateInfo) -> Result<Arc<RawBuffer>, RawBufferCreationError> {
         RawBuffer::create(
             Arc::clone(&self.inner),
@@ -128,6 +181,22 @@ impl Device {
             memory_properties,
             create_info
         ).map(Arc::new)
+    }
+
+    pub fn create_shader_module(&self, binary: &[u32]) -> Result<ShaderModule, ShaderModuleCreationError> {
+        ShaderModule::from_binary(
+            Arc::clone(&self.inner),
+            binary
+        )
+    }
+
+    pub fn create_compute_pipeline(&self, create_info: ComputePipelineCreateInfo) -> Result<Arc<ComputePipeline>, PipelineCreationError> {
+        unsafe {
+            ComputePipeline::create_unchecked(
+                Arc::clone(&self.inner),
+                create_info
+            )
+        }
     }
 }
 

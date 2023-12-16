@@ -5,6 +5,8 @@ use std::sync::{
     OnceLock
 };
 
+use crate::device::create_info::QueueFamilyUsage;
+
 pub mod features;
 pub mod properties;
 pub mod queue_info;
@@ -63,9 +65,9 @@ impl PhysicalDevice {
 
     /// Shortcut
     #[inline]
-    pub fn create_logical_device(
+    pub fn create_logical_device<T: Into<Box<[QueueFamilyUsage]>>>(
         self,
-        create_info: crate::device::create_info::DeviceCreateInfo
+        create_info: crate::device::create_info::DeviceCreateInfo<T>
     ) -> VkResult<crate::device::Device> {
         crate::device::Device::create_from_physical_device(create_info, self)
     }

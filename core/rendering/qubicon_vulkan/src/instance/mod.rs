@@ -14,7 +14,7 @@ impl Instance {
     pub fn create(create_info: &creation_info::InstanceCreateInfo) -> Result<Self, error::InstanceError> {
         Ok(
             Self {
-                inner: Arc::new(inner::InstanceInner::load(create_info)?)
+                inner: Arc::new(inner::InstanceInner::create(create_info)?)
             }
         )
     }

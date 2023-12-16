@@ -20,8 +20,8 @@ impl From<QueueFamilyUsage> for VkDeviceQueueCreateInfo {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct DeviceCreateInfo {
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DeviceCreateInfo<T: Into<Box<[QueueFamilyUsage]>> = Vec<QueueFamilyUsage>> {
     pub features: DeviceFeatures,
-    pub queues: Vec<QueueFamilyUsage>
+    pub queues: T
 }

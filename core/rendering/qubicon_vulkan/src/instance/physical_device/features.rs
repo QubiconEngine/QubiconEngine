@@ -1,4 +1,4 @@
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DeviceFeatures {
     pub robust_buffer_access: bool,
     pub full_draw_index_uint32: bool,
