@@ -1,4 +1,3 @@
-use ash::prelude::VkResult;
 use std::{
     sync::Arc,
     fmt::Debug
@@ -24,15 +23,12 @@ use crate::{
         }
     },
     shaders::{
-        shader_module::{
-            ShaderModule,
-            ShaderModuleCreationError
-        },
         compute::{
             ComputePipeline,
             ComputePipelineCreateInfo
         },
-        PipelineCreationError, pipeline_layout::{PipelineLayout, PipelineLayoutCreationError}
+        shader_module::ShaderModule,
+        pipeline_layout::PipelineLayout,
     },
     descriptors::{
         DescriptorPool,
@@ -42,6 +38,8 @@ use crate::{
         alloc::DescriptorPoolSize,
         layout::DescriptorBinding
     },
+    Error,
+    error::VkError,
     instance::physical_device::memory_properties::MemoryTypeProperties
 };
 
@@ -62,7 +60,7 @@ impl Device {
     pub fn create_from_physical_device<T: Into<Box<[QueueFamilyUsage]>>>(
         create_info: create_info::DeviceCreateInfo<T>,
         physical_device: crate::instance::physical_device::PhysicalDevice
-    ) -> VkResult<Self> {
+    ) -> Result<Self, Error> {
         let inner = Arc::new(
             inner::DeviceInner::create_from_physical_device(
                 create_info,
@@ -145,7 +143,7 @@ impl Device {
         )
     }
 
-    pub fn create_pipeline_layout(&self, descriptor_sets: impl Into<Box<[Arc<DescriptorSetLayout>]>>) -> Result<Arc<PipelineLayout>, PipelineLayoutCreationError> {
+    pub fn create_pipeline_layout(&self, descriptor_sets: impl Into<Box<[Arc<DescriptorSetLayout>]>>) -> Result<Arc<PipelineLayout>, Error> {
         PipelineLayout::create(
             Arc::clone(&self.inner),
             descriptor_sets
@@ -183,20 +181,33 @@ impl Device {
         ).map(Arc::new)
     }
 
-    pub fn create_shader_module(&self, binary: &[u32]) -> Result<ShaderModule, ShaderModuleCreationError> {
-        ShaderModule::from_binary(
+
+    /// # Safety
+    /// binary slice should contain valid **SPIR-V** binary
+    pub unsafe fn create_shader_module_from_binayr(&self, binary: &[u32]) -> Result<ShaderModule, Error> {
+        ShaderModule::create_from_binary(
             Arc::clone(&self.inner),
             binary
         )
     }
 
-    pub fn create_compute_pipeline(&self, create_info: ComputePipelineCreateInfo) -> Result<Arc<ComputePipeline>, PipelineCreationError> {
-        unsafe {
-            ComputePipeline::create_unchecked(
-                Arc::clone(&self.inner),
-                create_info
-            )
-        }
+    /// # Safety
+    /// descriptor sets should be owned by this device
+    pub unsafe fn create_pipeline_layout_unchecked(&self, descriptor_sets: impl Into<Box<[Arc<DescriptorSetLayout>]>>) -> Result<Arc<PipelineLayout>, Error> {
+        PipelineLayout::create_unchecked(
+            Arc::clone(&self.inner),
+            descriptor_sets
+        )
+    }
+
+    /// # Safety
+    /// * layout and shader module should be owned by this device
+    /// * shader module should contain entry with *entry_name*
+    pub unsafe fn create_compute_pipeline_unchecked(&self, create_info: ComputePipelineCreateInfo) -> Result<Arc<ComputePipeline>, Error> {
+        ComputePipeline::create_unchecked(
+            Arc::clone(&self.inner),
+            create_info
+        )
     }
 }
 

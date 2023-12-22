@@ -6,6 +6,7 @@ use ash::vk::{
     CommandBufferLevel as VkCommandBufferLevel,
     CommandBufferAllocateInfo as VkCommandBufferAllocateInfo
 };
+use crate::Error;
 
 pub mod command_buffers;
 pub(crate) mod command_pool_inner;
@@ -30,7 +31,7 @@ impl From<Arc<CommandPoolInner>> for CommandPool {
 }
 
 impl CommandPool {
-    pub fn create_primary_command_buffer(&self, usage: CommandBufferUsageFlags) -> CommandBufferBuilder<levels::Primary> {
+    pub fn create_primary_command_buffer(&self, usage: CommandBufferUsageFlags) -> Result<CommandBufferBuilder<levels::Primary>, Error> {
         let lock = self.inner.lock.lock().unwrap();
         
         unsafe {
@@ -42,18 +43,20 @@ impl CommandPool {
                     
                     ..Default::default()
                 }
-            ).unwrap()[0];
+            ).map_err(| e | crate::error::VkError::try_from(e).unwrap_unchecked())?[0];
 
-            CommandBufferBuilder::new_primary(
-                Arc::clone(&self.inner),
-                buffer,
-                usage,
-                lock
+            Ok(
+                CommandBufferBuilder::new_primary(
+                    Arc::clone(&self.inner),
+                    buffer,
+                    usage,
+                    lock
+                )?
             )
         }
     }
 
-    pub fn create_secondary_command_buffer(&self, usage: CommandBufferUsageFlags) -> CommandBufferBuilder<levels::Secondary> {
+    pub fn create_secondary_command_buffer(&self, usage: CommandBufferUsageFlags) -> Result<CommandBufferBuilder<levels::Secondary>, Error> {
         let lock = self.inner.lock.lock().unwrap();
         
         unsafe {
@@ -65,13 +68,15 @@ impl CommandPool {
 
                     ..Default::default()
                 }
-            ).unwrap()[0];
+            ).map_err(| e | crate::error::VkError::try_from(e).unwrap_unchecked())?[0];
             
-            CommandBufferBuilder::new_secondary(
-                Arc::clone(&self.inner),
-                buffer,
-                usage,
-                lock
+            Ok(
+                CommandBufferBuilder::new_secondary(
+                    Arc::clone(&self.inner),
+                    buffer,
+                    usage,
+                    lock
+                )?
             )
         }
     }

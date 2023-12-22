@@ -1,3 +1,4 @@
+pub use error::Error;
 pub use instance::Instance;
 
 pub mod queue;

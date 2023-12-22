@@ -1,14 +1,17 @@
 use std::ops::Deref;
 use ash::{
     Device,
-    prelude::VkResult,
     vk::DeviceCreateInfo
 };
-use crate::instance::physical_device::{
-    PhysicalDevice,
-    features::DeviceFeatures,
-    properties::DeviceProperties,
-    memory_properties::DeviceMemoryProperties
+use crate::{
+    instance::physical_device::{
+        PhysicalDevice,
+        features::DeviceFeatures,
+        properties::DeviceProperties,
+        memory_properties::DeviceMemoryProperties
+    },
+    Error,
+    error::VkError
 };
 
 use super::create_info::QueueFamilyUsage;
@@ -30,7 +33,7 @@ impl DeviceInner {
     pub(crate) fn create_from_physical_device<T: Into<Box<[QueueFamilyUsage]>>>(
         create_info: super::create_info::DeviceCreateInfo<T>,
         physical_device: PhysicalDevice
-    ) -> VkResult<Self> {
+    ) -> Result<Self, Error> {
         let queue_usage: Box<[QueueFamilyUsage]> = create_info.queues.into();
         
         unsafe {
@@ -55,7 +58,7 @@ impl DeviceInner {
                     ..Default::default()
                 },
                 None
-            )?;
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
             let properties = physical_device.get_properties();
             let memory_properties = physical_device.get_memory_properties();

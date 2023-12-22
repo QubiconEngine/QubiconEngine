@@ -1,7 +1,11 @@
 use std::sync::Arc;
 use smallstr::SmallString;
-use crate::device::inner::DeviceInner;
 use super::pipeline_layout::PipelineLayout;
+use crate::{
+    Error,
+    error::VkError,
+    device::inner::DeviceInner
+};
 use ash::vk::{
     Pipeline as VkPipeline,
     ComputePipelineCreateInfo as VkComputePipelineCreateInfo,
@@ -28,16 +32,19 @@ pub struct ComputePipeline {
 }
 
 impl ComputePipeline {
+    /// # Safety
+    /// * layout and shader module should be owned by given device
+    /// * entry with *entry_name* must be located in shader module
     pub(crate) unsafe fn create_unchecked(
         device: Arc<DeviceInner>,
         create_info: ComputePipelineCreateInfo
-    ) -> Result<Arc<Self>, super::PipelineCreationError> {
+    ) -> Result<Arc<Self>, Error> {
         // Convert Rust str to C str
-        let mut p_name = SmallString::<[u8; 64]>::from_str(
+        let mut entry_name = SmallString::<[u8; 64]>::from_str(
             create_info.stage.entry_name
         );
 
-        p_name.push('\0');
+        entry_name.push('\0');
 
         let raw_create_info = VkComputePipelineCreateInfo {
             flags: create_info.create_flags.into(),
@@ -51,7 +58,7 @@ impl ComputePipeline {
                 // flags
                 stage: create_info.stage.stage.into(),
                 module: create_info.stage.module.shader_module,
-                p_name: p_name.as_ptr().cast(),
+                p_name: entry_name.as_ptr().cast(),
                 //p_Specialization
 
                 ..Default::default()
@@ -67,7 +74,7 @@ impl ComputePipeline {
                 None
             )
                 .map(| v | v[0])
-                .map_err(| (_, r) | r)?;
+                .map_err(| (_, r) | VkError::try_from(r).unwrap_unchecked())?;
 
             Ok(
                 Arc::new(

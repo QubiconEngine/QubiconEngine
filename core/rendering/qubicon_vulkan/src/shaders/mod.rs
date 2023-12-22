@@ -1,7 +1,5 @@
-use thiserror::Error;
 use bitflags::bitflags;
 use ash::vk::{
-    Result as VkResult,
     ShaderStageFlags as VkShaderStageFlags,
     PipelineCreateFlags as VkPipelineCreateFlags
 };
@@ -73,27 +71,5 @@ impl<'a> std::fmt::Debug for PipelineShaderStageCreateInfo<'a> {
             .field("stage", &self.stage)
             .field("entry_name", &self.entry_name)
             .finish()
-    }
-}
-
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PipelineCreationError {
-    #[error("out of host memory")]
-    OutOfHostMemory,
-    #[error("out of device memory")]
-    OutOfDeviceMemory,
-    #[error("invalid shader")]
-    InvalidShader
-}
-
-impl From<VkResult> for PipelineCreationError {
-    fn from(value: VkResult) -> Self {
-        match value {
-            VkResult::ERROR_OUT_OF_HOST_MEMORY => Self::OutOfHostMemory,
-            VkResult::ERROR_OUT_OF_DEVICE_MEMORY => Self::OutOfDeviceMemory,
-            VkResult::ERROR_INVALID_SHADER_NV => Self::InvalidShader,
-
-            _ => unreachable!()
-        }
     }
 }

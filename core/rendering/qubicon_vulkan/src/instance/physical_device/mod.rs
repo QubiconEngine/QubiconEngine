@@ -1,11 +1,12 @@
-use ash::prelude::VkResult;
 use ash::vk::PhysicalDevice as VkPhysicalDevice;
 use std::sync::{
     Arc,
     OnceLock
 };
-
-use crate::device::create_info::QueueFamilyUsage;
+use crate::{
+    Error,
+    device::create_info::QueueFamilyUsage
+};
 
 pub mod features;
 pub mod properties;
@@ -68,7 +69,7 @@ impl PhysicalDevice {
     pub fn create_logical_device<T: Into<Box<[QueueFamilyUsage]>>>(
         self,
         create_info: crate::device::create_info::DeviceCreateInfo<T>
-    ) -> VkResult<crate::device::Device> {
+    ) -> Result<crate::device::Device, Error> {
         crate::device::Device::create_from_physical_device(create_info, self)
     }
 }

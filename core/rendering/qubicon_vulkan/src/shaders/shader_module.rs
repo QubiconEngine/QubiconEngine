@@ -1,33 +1,13 @@
 use std::sync::Arc;
-use thiserror::Error;
-use crate::device::inner::DeviceInner;
+use crate::{
+    Error,
+    error::VkError,
+    device::inner::DeviceInner
+};
 use ash::vk::{
-    Result as VkResult,
     ShaderModule as VkShaderModule,
     ShaderModuleCreateInfo as VkShaderModuleCreateInfo
 };
-
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ShaderModuleCreationError {
-    #[error("out of host memory")]
-    OutOfHostMemory,
-    #[error("out of device memory")]
-    OutOfDeviceMemory,
-    #[error("invalid shader")]
-    InvalidShader
-}
-
-impl From<VkResult> for ShaderModuleCreationError {
-    fn from(value: VkResult) -> Self {
-        match value {
-            VkResult::ERROR_OUT_OF_HOST_MEMORY => Self::OutOfHostMemory,
-            VkResult::ERROR_OUT_OF_DEVICE_MEMORY => Self::OutOfDeviceMemory,
-            VkResult::ERROR_INVALID_SHADER_NV => Self::InvalidShader,
-
-            _ => unreachable!()
-        }
-    }
-}
 
 pub struct ShaderModule {
     pub(crate) device: Arc<DeviceInner>,
@@ -35,25 +15,39 @@ pub struct ShaderModule {
 }
 
 impl ShaderModule {
-    pub(crate) fn from_binary(device: Arc<DeviceInner>, binary: &[u32]) -> Result<Self, ShaderModuleCreationError> {
-        unsafe {
-            let shader_module = device.create_shader_module(
-                &VkShaderModuleCreateInfo {
-                    code_size: core::mem::size_of_val(binary),
-                    p_code: binary.as_ptr(),
-
-                    ..Default::default()
-                },
-                None
-            )?;
-
-            Ok(
-                Self {
-                    device,
-                    shader_module
-                }
+    /// # Safety
+    /// Shader binary should contain valid **SPIR-V** binary
+    pub(crate) unsafe fn create_from_binary(device: Arc<DeviceInner>, shader_binary: &[u32]) -> Result<Self, Error> {
+        Self::create_from_binary(
+            device,
+            core::slice::from_raw_parts(
+                shader_binary.as_ptr().cast(),
+                shader_binary.len() * 4
             )
-        }
+        )
+    }
+
+    // TODO: Add GLSL support
+}
+
+impl ShaderModule {
+    unsafe fn create(device: Arc<DeviceInner>, sources: &[u8]) -> Result<Self, Error> {
+        let shader_module = device.create_shader_module(
+            &VkShaderModuleCreateInfo {
+                code_size: core::mem::size_of_val(sources),
+                p_code: sources.as_ptr().cast(),
+
+                ..Default::default()
+            },
+            None
+        ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
+
+        Ok(
+            Self {
+                device,
+                shader_module
+            }
+        )
     }
 }
 

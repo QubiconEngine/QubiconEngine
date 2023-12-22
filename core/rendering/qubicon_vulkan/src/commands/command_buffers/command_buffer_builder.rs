@@ -2,12 +2,6 @@ use std::{
     sync::{Arc, MutexGuard},
     marker::PhantomData
 };
-use super::{
-    levels,
-    CommandBufferUsageFlags,
-    super::CommandPoolInner,
-    command_buffer::CommandBuffer
-};
 use ash::vk::{
     CommandBuffer as VkCommandBuffer,
     CommandBufferBeginInfo as VkCommandBufferBeginInfo,
@@ -15,7 +9,18 @@ use ash::vk::{
     IndexType as VkIndexType,
     PipelineBindPoint as VkPipelineBindPoint
 };
-use crate::{shaders::compute::ComputePipeline, memory::resources::buffer::Buffer};
+use super::{
+    levels,
+    CommandBufferUsageFlags,
+    super::CommandPoolInner,
+    command_buffer::CommandBuffer
+};
+use crate::{
+    Error,
+    error::VkError,
+    shaders::compute::ComputePipeline,
+    memory::resources::buffer::Buffer
+};
 
 
 
@@ -37,7 +42,7 @@ impl<'a> CommandBufferBuilder<'a, levels::Primary> {
         command_buffer: VkCommandBuffer,
         usage: CommandBufferUsageFlags,
         lock: MutexGuard<'a, ()>
-    ) -> Self {
+    ) -> Result<Self, Error> {
         command_pool.device.begin_command_buffer(
             command_buffer,
             &VkCommandBufferBeginInfo {
@@ -46,19 +51,21 @@ impl<'a> CommandBufferBuilder<'a, levels::Primary> {
 
                 ..Default::default()
             }
-        ).unwrap();
+        ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
-        Self {
-            command_pool: Some(command_pool),
-            command_buffer,
+        Ok(
+            Self {
+                command_pool: Some(command_pool),
+                command_buffer,
 
-            usage,
+                usage,
             
-            _lock: lock,
+                _lock: lock,
 
-            _ph: Default::default(),
-            _ph2: Default::default()
-        }
+                _ph: Default::default(),
+                _ph2: Default::default()
+            }
+        )
     }
 }
 
@@ -68,7 +75,7 @@ impl<'a> CommandBufferBuilder<'a, levels::Secondary> {
         command_buffer: VkCommandBuffer,
         usage: CommandBufferUsageFlags,
         lock: MutexGuard<'a, ()>
-    ) -> Self {
+    ) -> Result<Self, Error> {
         command_pool.device.begin_command_buffer(
             command_buffer,
             &VkCommandBufferBeginInfo {
@@ -77,36 +84,41 @@ impl<'a> CommandBufferBuilder<'a, levels::Secondary> {
 
                 ..Default::default()
             }
-        ).unwrap();
+        ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
-        Self {
-            command_pool: Some(command_pool),
-            command_buffer,
+        Ok(
+            Self {
+                command_pool: Some(command_pool),
+                command_buffer,
 
-            usage,
+                usage,
 
-            _lock: lock,
+                _lock: lock,
 
-            _ph: Default::default(),
-            _ph2: Default::default()
-        }
+                _ph: Default::default(),
+                _ph2: Default::default()
+            }
+        )
     }
 }
 
 impl<'a, L: levels::CommandBufferLevel> CommandBufferBuilder<'a, L> {
-    pub fn build(mut self) -> CommandBuffer<L> {
+    pub fn build(mut self) -> Result<CommandBuffer<L>, Error> {
         unsafe {
             self.command_pool.as_ref().unwrap_unchecked()
-                .device.end_command_buffer(self.command_buffer).unwrap();
+                .device.end_command_buffer(self.command_buffer)
+                .map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
-            CommandBuffer {
-                command_pool: self.command_pool.take().unwrap_unchecked(),
-                command_buffer: self.command_buffer,
+            Ok(
+                CommandBuffer {
+                    command_pool: self.command_pool.take().unwrap_unchecked(),
+                    command_buffer: self.command_buffer,
 
-                usage: self.usage,
+                    usage: self.usage,
 
-                _level: Default::default()
-            }
+                    _level: Default::default()
+                }
+            )
         }
     }
 }

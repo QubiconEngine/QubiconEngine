@@ -5,6 +5,8 @@ use std::{
     ops::Deref
 };
 use crate::{
+    Error,
+    error::VkError,
     device::inner::DeviceInner,
     memory::alloc::{device_memory::AllocatedMemory, Allocator, error::AllocationError}, instance::physical_device::memory_properties::MemoryTypeProperties
 };
@@ -64,28 +66,6 @@ impl From<BufferCreateFlags> for VkBufferCreateFlags {
     }
 }
 
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RawBufferCreationError {
-    #[error("out of host memory")]
-    OutOfHostMemory,
-    #[error("out of device memory")]
-    OutOfDeviceMemory,
-    #[error("invalid opaque capture address")]
-    InvalidOpaqueCaptureAddress
-}
-
-impl From<ash::vk::Result> for RawBufferCreationError {
-    fn from(value: ash::vk::Result) -> Self {
-        match value {
-            ash::vk::Result::ERROR_OUT_OF_HOST_MEMORY => Self::OutOfHostMemory,
-            ash::vk::Result::ERROR_OUT_OF_DEVICE_MEMORY => Self::OutOfDeviceMemory,
-            ash::vk::Result::ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS => Self::InvalidOpaqueCaptureAddress,
-
-            _ => unreachable!()
-        }
-    }
-}
-
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BufferCreateInfo {
     pub usage_flags: BufferUsageFlags,
@@ -108,7 +88,7 @@ impl RawBuffer {
     pub(crate) fn create(
         device: Arc<DeviceInner>,
         create_info: &BufferCreateInfo
-    ) -> Result<Self, RawBufferCreationError> {
+    ) -> Result<Self, Error> {
         if !create_info.create_flags.is_empty() {
             unimplemented!()
         }
@@ -123,7 +103,7 @@ impl RawBuffer {
                     ..Default::default()
                 },
                 None
-            ).map_err(RawBufferCreationError::from)?;
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
             Ok(
                 Self {

@@ -1,7 +1,11 @@
 use std::sync::Arc;
-use thiserror::Error;
 use smallvec::SmallVec;
 use crate::{
+    error::{
+        VkError,
+        ValidationError
+    },
+    Error,
     device::inner::DeviceInner,
     descriptors::DescriptorSetLayout
 };
@@ -10,16 +14,6 @@ use ash::vk::{
     DescriptorSetLayout as VkDescriptorSetLayout,
     PipelineLayoutCreateInfo as VkPipelineLayoutCreateInfo
 };
-
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PipelineLayoutCreationError {
-    #[error("out of host memory")]
-    OutOfHostMemory,
-    #[error("out of device memory")]
-    OutOfDeviceMemory,
-    #[error("device in descriptor sets dont match")]
-    InvalidDevice
-}
 
 pub struct PipelineLayout {
     pub(crate) device: Arc<DeviceInner>,
@@ -34,14 +28,14 @@ impl PipelineLayout {
     pub(crate) unsafe fn create_unchecked(
         device: Arc<DeviceInner>,
         descriptor_sets: impl Into<Box<[Arc<DescriptorSetLayout>]>>
-    ) -> Result<Arc<Self>, PipelineLayoutCreationError> {
+    ) -> Result<Arc<Self>, Error> {
         Self::create_unchecked_with_vec_descriptor_sets(device, descriptor_sets.into())
     }
 
     pub(crate) fn create(
         device: Arc<DeviceInner>,
         descriptor_sets: impl Into<Box<[Arc<DescriptorSetLayout>]>>
-    ) -> Result<Arc<Self>, PipelineLayoutCreationError> {
+    ) -> Result<Arc<Self>, Error> {
         Self::create_with_vec_descriptor_sets(device, descriptor_sets.into())
     }
 
@@ -54,23 +48,25 @@ impl PipelineLayout {
     fn create_with_vec_descriptor_sets(
         device: Arc<DeviceInner>,
         descriptor_sets: Box<[Arc<DescriptorSetLayout>]>
-    ) -> Result<Arc<Self>, PipelineLayoutCreationError> {
+    ) -> Result<Arc<Self>, Error> {
         let is_valid = descriptor_sets
             .iter()
             .all(| s | s.device == device);
 
         match is_valid {
-            false => Err(PipelineLayoutCreationError::InvalidDevice),
+            false => Err(ValidationError::InvalidDevice.into()),
             true => unsafe {
                 Self::create_unchecked_with_vec_descriptor_sets(device, descriptor_sets)
             }
         }
     }
 
+    /// # Safety
+    /// Descruptor sets should be owned by given device
     unsafe fn create_unchecked_with_vec_descriptor_sets(
         device: Arc<DeviceInner>,
         descriptor_sets: Box<[Arc<DescriptorSetLayout>]>
-    ) -> Result<Arc<Self>, PipelineLayoutCreationError> {
+    ) -> Result<Arc<Self>, Error> {
         let raw_descriptor_sets: SmallVec<[VkDescriptorSetLayout; 4]> = descriptor_sets.iter()
             .map(| s | s.descriptor_set_layout)
             .collect();
@@ -85,7 +81,7 @@ impl PipelineLayout {
                 ..Default::default()
             },
             None
-        ).unwrap();
+        ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
         Ok(
             Arc::new(

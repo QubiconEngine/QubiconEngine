@@ -56,8 +56,8 @@ impl Allocator {
 
     pub(crate) unsafe fn deallocate(
         &self,
-        allocated_memory: &device_memory::AllocatedMemory
+        _allocated_memory: &device_memory::AllocatedMemory
     ) {
-        core::mem::drop(allocated_memory);
+        //core::mem::drop(allocated_memory);
     }
 }

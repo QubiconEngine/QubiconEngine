@@ -5,6 +5,8 @@ use crate::{
         CommandPool,
         command_pool_inner::CommandPoolInner
     },
+    Error,
+    error::VkError,
     instance::physical_device::queue_info::QueueFamilyCapabilities
 };
 
@@ -32,7 +34,7 @@ impl Queue {
         self.inner.capabilities
     }
 
-    pub fn create_command_pool(&self) -> CommandPool {
+    pub fn create_command_pool(&self) -> Result<CommandPool, Error> {
         unsafe {
             let command_pool = self.inner.device.create_command_pool(
                 &VkCommandPoolCreateInfo {
@@ -40,15 +42,17 @@ impl Queue {
                     ..Default::default()
                 },
                 None
-            ).unwrap();
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
-            Arc::new(
-                CommandPoolInner::new(
-                    Arc::clone(&self.inner.device),
-                    Arc::clone(&self.inner),
-                    command_pool
-                )
-            ).into()
+            Ok(
+                Arc::new(
+                    CommandPoolInner::new(
+                        Arc::clone(&self.inner.device),
+                        Arc::clone(&self.inner),
+                        command_pool
+                    )
+                ).into()
+            )
         }
     }
 }

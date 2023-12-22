@@ -5,6 +5,10 @@ use ash::{
     
     vk::InstanceCreateInfo
 };
+use crate::{
+    Error,
+    error::VkError
+};
 
 #[cfg(feature = "windowing")]
 use ash::extensions::khr::Surface;
@@ -35,7 +39,8 @@ impl InstanceInner {
                     ..Default::default()
                 },
                 None
-            )?;
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())
+             .map_err(Error::from)?;
 
             // TODO: Normal surface ext init
             #[cfg(feature = "windowing")]
