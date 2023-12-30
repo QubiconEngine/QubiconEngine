@@ -1,6 +1,8 @@
 use std::sync::Arc;
 use smallvec::SmallVec;
 use crate::{
+    Error,
+    error::VkError,
     device::inner::DeviceInner,
     shaders::PipelineShaderStageFlags
 };
@@ -34,7 +36,7 @@ impl DescriptorBinding {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DescriptorSetLayoutCreateInfo<T: Into<Vec<DescriptorBinding>> = Vec<DescriptorBinding>> {
+pub struct DescriptorSetLayoutCreateInfo<T: Into<Box<[DescriptorBinding]>> = Vec<DescriptorBinding>> {
     pub bindings: T
 }
 
@@ -42,16 +44,16 @@ pub struct DescriptorSetLayout {
     pub(crate) device: Arc<DeviceInner>,
     pub(crate) descriptor_set_layout: VkDescriptorSetLayout,
 
-    pub(crate) bindings: Vec<DescriptorBinding>
+    pub(crate) bindings: Box<[DescriptorBinding]>
 }
 
 impl DescriptorSetLayout {
     // Wrapper for better ergonomics and smaller binary
-    pub(crate) fn create<T: Into<Vec<DescriptorBinding>>>(
+    pub(crate) unsafe fn create_unchecked<T: Into<Box<[DescriptorBinding]>>>(
         device: Arc<DeviceInner>,
         create_info: DescriptorSetLayoutCreateInfo<T>
-    ) -> Arc<Self> {
-        Self::create_with_vec_bindings(device, create_info.bindings.into())
+    ) -> Result<Arc<Self>, Error> {
+        Self::create_with_vec_bindings_unchecked(device, create_info.bindings.into())
     }
 
     pub fn get_bindings(&self) -> &[DescriptorBinding] {
@@ -61,10 +63,12 @@ impl DescriptorSetLayout {
 
 impl DescriptorSetLayout {
     // TODO: Validation with device limits
-    fn create_with_vec_bindings(
+    /// # Safety
+    /// All descriptor bindings should match device limits
+    unsafe fn create_with_vec_bindings_unchecked(
         device: Arc<DeviceInner>,
-        bindings: Vec<DescriptorBinding>
-    ) -> Arc<Self> {
+        bindings: Box<[DescriptorBinding]>
+    ) -> Result<Arc<Self>, Error> {
         unsafe {
             let raw_bindings: SmallVec<[VkDescriptorSetLayoutBinding; 16]> = bindings.iter()
                 .copied()
@@ -80,15 +84,17 @@ impl DescriptorSetLayout {
                     ..Default::default()
                 },
                 None
-            ).unwrap();
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
-            Arc::new(
-                Self {
-                    device,
-                    descriptor_set_layout,
+            Ok(
+                Arc::new(
+                    Self {
+                        device,
+                        descriptor_set_layout,
 
-                    bindings
-                }
+                        bindings
+                    }
+                )
             )
         }
     }

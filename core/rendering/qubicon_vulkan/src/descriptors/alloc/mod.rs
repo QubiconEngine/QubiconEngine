@@ -1,8 +1,7 @@
 use smallvec::SmallVec;
 use std::sync::{
     Arc,
-    Mutex,
-    OnceLock
+    Mutex
 };
 use ash::vk::{
     DescriptorPoolSize as VkDescriptorPoolSize,
@@ -14,7 +13,11 @@ use ash::vk::{
 pub mod descriptor_set;
 pub(crate) mod descriptor_pool_inner;
 
-use crate::device::inner::DeviceInner;
+use crate::{
+    Error,
+    error::VkError,
+    device::inner::DeviceInner
+};
 use super::{DescriptorType, DescriptorSetLayout};
 use descriptor_set::DescriptorSet;
 use descriptor_pool_inner::DescriptorPoolInner;
@@ -44,7 +47,7 @@ impl Into<VkDescriptorPoolSize> for DescriptorPoolSize {
 
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct DescriptorPoolCreateInfo<T: Into<Vec<DescriptorPoolSize>> = Vec<DescriptorPoolSize>> {
+pub struct DescriptorPoolCreateInfo<T: Into<Box<[DescriptorPoolSize]>> = Vec<DescriptorPoolSize>> {
     pub max_sets: u32,
     pub pool_sizes: T
 }
@@ -56,14 +59,14 @@ pub struct DescriptorPool {
 
 impl DescriptorPool {
     // TODO: Result
-    pub(crate) fn new<T: Into<Vec<DescriptorPoolSize>>>(
+    pub(crate) fn new<T: Into<Box<[DescriptorPoolSize]>>>(
         device: Arc<DeviceInner>,
         create_info: DescriptorPoolCreateInfo<T>
-    ) -> Self {
+    ) -> Result<Self, Error> {
         Self::new_with_vec_sizes(device, create_info.max_sets, create_info.pool_sizes.into())
     }
 
-    pub unsafe fn allocate_descriptor_set_unchecked(&self, layout: Arc<DescriptorSetLayout>) -> Arc<DescriptorSet> {
+    pub unsafe fn allocate_descriptor_set_unchecked(&self, layout: Arc<DescriptorSetLayout>) -> Result<Arc<DescriptorSet>, Error> {
         let _lock = self.inner.tracker.lock().unwrap();
         
         unsafe {
@@ -75,12 +78,14 @@ impl DescriptorPool {
 
                     ..Default::default()
                 }
-            ).unwrap()[0];
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?[0];
 
-            DescriptorSet::new(
-                Arc::clone(&self.inner),
-                descriptor_set,
-                layout
+            Ok(
+                DescriptorSet::new(
+                    Arc::clone(&self.inner),
+                    descriptor_set,
+                    layout
+                )
             )
         }
     }
@@ -98,10 +103,10 @@ impl DescriptorPool {
     fn new_with_vec_sizes(
         device: Arc<DeviceInner>,
         max_sets: u32,
-        pl_sizes: Vec<DescriptorPoolSize>
-    ) -> Self {
+        pool_sizes: Box<[DescriptorPoolSize]>
+    ) -> Result<Self, Error> {
         unsafe {
-            let raw_sizes: SmallVec<[VkDescriptorPoolSize; 11]> = pl_sizes.iter()
+            let raw_sizes: SmallVec<[VkDescriptorPoolSize; 11]> = pool_sizes.iter()
                 .copied()
                 .map(Into::into)
                 .collect();
@@ -117,29 +122,28 @@ impl DescriptorPool {
                     ..Default::default()
                 },
                 None
-            ).unwrap();
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
             let tracker = descriptor_pool_inner::Tracker {
                 sets_tracker: 0,
-                pool_sizes_tracker: pl_sizes.iter().map(| s | s.count).collect()
+                pool_sizes_tracker: pool_sizes.iter().map(| s | s.count).collect()
             };
 
-            let pool_sizes = OnceLock::new();
-            pool_sizes.set(pl_sizes).unwrap_unchecked();
+            Ok(
+                Self {
+                    inner: Arc::new(
+                        DescriptorPoolInner {
+                            device,
+                            descriptor_pool,
 
-            Self {
-                inner: Arc::new(
-                    DescriptorPoolInner {
-                        device,
-                        descriptor_pool,
+                            max_sets,
+                            pool_sizes,
 
-                        max_sets,
-                        pool_sizes,
-
-                        tracker: Mutex::new(tracker)
-                    }
-                )
-            }
+                            tracker: Mutex::new(tracker)
+                        }
+                    )
+                }
+            )
         }
     }
 }

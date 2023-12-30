@@ -117,15 +117,8 @@ impl Device {
         }
     }
 
-    pub fn create_descriptor_pool<T: Into<Vec<DescriptorPoolSize>>>(&self, create_info: DescriptorPoolCreateInfo<T>) -> DescriptorPool {
+    pub fn create_descriptor_pool<T: Into<Box<[DescriptorPoolSize]>>>(&self, create_info: DescriptorPoolCreateInfo<T>) -> Result<DescriptorPool, Error> {
         DescriptorPool::new(
-            Arc::clone(&self.inner),
-            create_info
-        )
-    }
-
-    pub fn create_descriptor_set_layout<T: Into<Vec<DescriptorBinding>>>(&self, create_info: DescriptorSetLayoutCreateInfo<T>) -> Arc<DescriptorSetLayout> {
-        DescriptorSetLayout::create(
             Arc::clone(&self.inner),
             create_info
         )
@@ -172,7 +165,7 @@ impl Device {
 
 
     /// # Safety
-    /// binary slice should contain valid **SPIR-V** binary
+    /// Binary slice should contain valid **SPIR-V** binary
     pub unsafe fn create_shader_module_from_binary(&self, binary: &[u32]) -> Result<ShaderModule, Error> {
         ShaderModule::create_from_binary(
             Arc::clone(&self.inner),
@@ -181,7 +174,16 @@ impl Device {
     }
 
     /// # Safety
-    /// descriptor sets should be owned by this device
+    /// All bindings should match device limits
+    pub unsafe fn create_descriptor_set_layout_unchecked<T: Into<Box<[DescriptorBinding]>>>(&self, create_info: DescriptorSetLayoutCreateInfo<T>) -> Result<Arc<DescriptorSetLayout>, Error> {
+        DescriptorSetLayout::create_unchecked(
+            Arc::clone(&self.inner),
+            create_info
+        )
+    }
+
+    /// # Safety
+    /// Descriptor sets should be owned by this device
     pub unsafe fn create_pipeline_layout_unchecked(&self, descriptor_sets: impl Into<Box<[Arc<DescriptorSetLayout>]>>) -> Result<Arc<PipelineLayout>, Error> {
         PipelineLayout::create_unchecked(
             Arc::clone(&self.inner),
@@ -190,8 +192,8 @@ impl Device {
     }
 
     /// # Safety
-    /// * layout and shader module should be owned by this device
-    /// * shader module should contain entry with *entry_name*
+    /// * Layout and shader module should be owned by this device
+    /// * Shader module should contain entry with *entry_name*
     pub unsafe fn create_compute_pipeline_unchecked(&self, create_info: ComputePipelineCreateInfo) -> Result<Arc<ComputePipeline>, Error> {
         ComputePipeline::create_unchecked(
             Arc::clone(&self.inner),

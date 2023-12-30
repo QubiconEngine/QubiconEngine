@@ -28,20 +28,22 @@ fn main() {
     let device = device.create_logical_device::<[QueueFamilyUsage; 0]>(Default::default()).unwrap();
     let allocator = StandartMemoryAllocator::new(&device);
 
-    let desc_layout = device.create_descriptor_set_layout(DescriptorSetLayoutCreateInfo {
-        bindings: [
-            DescriptorBinding {
-                shader_stage_flags: PipelineShaderStageFlags::COMPUTE,
-                r#type: qubicon_vulkan::descriptors::DescriptorType::StorageBuffer,
-                count: 1
-            },
-            DescriptorBinding {
-                shader_stage_flags: PipelineShaderStageFlags::COMPUTE,
-                r#type: qubicon_vulkan::descriptors::DescriptorType::StorageBuffer,
-                count: 1
-            }
-        ]
-    })/*.unwrap()*/;
+    let desc_layout = unsafe {
+        device.create_descriptor_set_layout_unchecked(DescriptorSetLayoutCreateInfo {
+            bindings: [
+                DescriptorBinding {
+                    shader_stage_flags: PipelineShaderStageFlags::COMPUTE,
+                    r#type: qubicon_vulkan::descriptors::DescriptorType::StorageBuffer,
+                    count: 1
+                },
+                DescriptorBinding {
+                    shader_stage_flags: PipelineShaderStageFlags::COMPUTE,
+                    r#type: qubicon_vulkan::descriptors::DescriptorType::StorageBuffer,
+                    count: 1
+                }
+            ]
+        })
+    }.unwrap();
 
     let pool = device.create_descriptor_pool(
         DescriptorPoolCreateInfo {
@@ -53,11 +55,11 @@ fn main() {
                 }
             ]
         }
-    )/*.unwrap()*/;
+    ).unwrap();
 
     let (set1, set2) = unsafe {
-        let set1 = pool.allocate_descriptor_set_unchecked(Arc::clone(&desc_layout))/*.unwrap()*/;
-        let set2 = pool.allocate_descriptor_set_unchecked(Arc::clone(&desc_layout))/*.unwrap()*/;
+        let set1 = pool.allocate_descriptor_set_unchecked(Arc::clone(&desc_layout)).unwrap();
+        let set2 = pool.allocate_descriptor_set_unchecked(Arc::clone(&desc_layout)).unwrap();
 
         (set1, set2)
     };
