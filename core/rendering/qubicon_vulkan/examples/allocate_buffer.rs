@@ -1,12 +1,13 @@
+use std::sync::Arc;
 use qubicon_vulkan::{
     Instance,
     device::create_info::QueueFamilyUsage,
     instance::physical_device::memory_properties::MemoryTypeProperties,
-    memory::resources::buffer::{
+    memory::{resources::buffer::{
         BufferCreateInfo,
         BufferCreateFlags,
         BufferUsageFlags
-    }
+    }, alloc::standart_device_memory_allocator::StandartMemoryAllocator}
 };
 
 fn main() {
@@ -19,7 +20,10 @@ fn main() {
         .create_logical_device::<[QueueFamilyUsage; 0]>(Default::default())
         .expect("Failed to create logical device");
 
+    let allocator = StandartMemoryAllocator::new(&device);
+
     let _buffer = device.create_buffer(
+        Arc::clone(&allocator),
         MemoryTypeProperties::HOST_VISIBLE,
         &BufferCreateInfo {
             create_flags:   BufferCreateFlags::empty(),

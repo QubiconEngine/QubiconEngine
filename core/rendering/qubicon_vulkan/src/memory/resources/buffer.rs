@@ -1,14 +1,16 @@
-use thiserror::Error;
 use bitflags::bitflags;
+use super::ResourceCreationError;
 use std::{
     sync::Arc,
-    ops::Deref
+    ops::Deref,
+    mem::MaybeUninit
 };
 use crate::{
     Error,
-    error::VkError,
     device::inner::DeviceInner,
-    memory::alloc::{device_memory::AllocatedMemory, Allocator, error::AllocationError}, instance::physical_device::memory_properties::MemoryTypeProperties
+    error::{VkError, ValidationError},
+    memory::alloc::{DeviceMemoryAllocator, AllocatedDeviceMemoryFragment},
+    instance::physical_device::memory_properties::MemoryTypeProperties,
 };
 use ash::vk::{
     Buffer as VkBuffer,
@@ -145,53 +147,33 @@ impl Drop for RawBuffer {
     }
 }
 
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum BufferCreationError {
-    #[error("error during raw buffer creation")]
-    RawBufferError(#[from] RawBufferCreationError),
-    #[error("error during memory allocation")]
-    AllocationError(#[from] AllocationError),
-    #[error("device dont have memory type with given flags what support given buffer")]
-    NoValidMemoryTypeFound,
-    #[error("binding memory to buffer failed")]
-    MemoryBindError,
-    #[error("buffer device and allocator device dont match")]
-    InvalidDevice
-}
-
 /// Wrapper for raw buffer what contains allocated memory
-pub struct Buffer {
+pub struct Buffer<A: DeviceMemoryAllocator> {
     pub(crate) raw: RawBuffer,
 
-    pub(crate) allocator: Arc<Allocator>,
-    pub(crate) memory: AllocatedMemory,
+    pub(crate) allocator: Arc<A>,
+    pub(crate) memory: MaybeUninit<A::MemoryFragmentType>,
 }
 
-impl Buffer {
+impl<A: DeviceMemoryAllocator> Buffer<A> {
     pub(crate) fn create_and_allocate(
         device: Arc<DeviceInner>,
-        allocator: Arc<Allocator>,
+        allocator: Arc<A>,
         memory_properties: MemoryTypeProperties,
         create_info: &BufferCreateInfo
-    ) -> Result<Self, BufferCreationError> {
-        Ok(
-            Self::from_raw(
-                RawBuffer::create(device, create_info)?,
-                allocator,
-                memory_properties
-            )?
+    ) -> Result<Self, ResourceCreationError<A::AllocError>> {
+        Self::from_raw(
+            RawBuffer::create(device, create_info).map_err(ResourceCreationError::from_creation_error)?,
+            allocator,
+            memory_properties
         )
     }
 
     pub fn from_raw(
         raw: RawBuffer,
-        allocator: Arc<Allocator>,
+        allocator: Arc<A>,
         memory_properties: MemoryTypeProperties
-    ) -> Result<Self, BufferCreationError> {
-        if allocator.get_device().ne(&raw.device) {
-            return Err(BufferCreationError::InvalidDevice)
-        }
-
+    ) -> Result<Self, ResourceCreationError<A::AllocError>> {
         unsafe {
             let requirement = raw.device.get_buffer_memory_requirements(raw.buffer);
             let memory_type_index = bitvec::array::BitArray::<u32, bitvec::order::Lsb0>::from(requirement.memory_type_bits)
@@ -202,36 +184,58 @@ impl Buffer {
                 .filter(| i | raw.device.memory_properties.memory_types[*i].properties.contains(memory_properties))
                 .map(| i | i as u32)
                 .next()
-                .ok_or(BufferCreationError::NoValidMemoryTypeFound)?;
+                .ok_or(ValidationError::NoValidMemoryTypeFound.into())
+                .map_err(ResourceCreationError::from_creation_error)?;
 
-            let memory = allocator.allocate(
+            let memory = allocator.alloc(
                 memory_type_index,
                 requirement.size,
                 requirement.alignment
-            )?;
+            ).map_err(ResourceCreationError::from_allocation_error)?;
+
+            let (raw_memory, offset) = memory.as_memory_object_and_offset();
+
+            if raw_memory.dev != raw.device {
+                return Err(ResourceCreationError::from_creation_error(ValidationError::InvalidDevice.into()));
+            }
 
             raw.device.bind_buffer_memory(
                 raw.buffer,
-                memory.memory.device_memory,
-                memory.offset
-            ).map_err(|_| BufferCreationError::MemoryBindError)?;
+                raw_memory.device_memory,
+                offset
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked().into())
+             .map_err(ResourceCreationError::from_creation_error)?;
 
             Ok(
                 Self {
                     raw,
 
                     allocator,
-                    memory
+                    memory: MaybeUninit::new(memory)
                 }
             )
         }
     }
 }
 
-impl Deref for Buffer {
+impl<A: DeviceMemoryAllocator> Deref for Buffer<A> {
     type Target = RawBuffer;
 
     fn deref(&self) -> &Self::Target {
         &self.raw
     }
 }
+
+// TODO: deallocate memory fragment
+impl<A: DeviceMemoryAllocator> Drop for Buffer<A> {
+    fn drop(&mut self) {
+        unsafe {
+            let memory = core::mem::replace(
+                &mut self.memory,
+                MaybeUninit::uninit()
+            ).assume_init();
+
+            self.allocator.dealloc(memory);
+        };
+    }
+} 

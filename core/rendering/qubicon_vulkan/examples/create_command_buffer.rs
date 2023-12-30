@@ -31,11 +31,12 @@ fn main() {
     ).unwrap();
 
     let queue = device.get_queue(0, 0).unwrap();
-    let command_pool = queue.create_command_pool()/*.unwrap()*/;
+    let command_pool = queue.create_command_pool().unwrap();
 
     println!("{:?}", queue.get_capabilities());
 
     let _command_buffer = command_pool
         .create_primary_command_buffer(CommandBufferUsageFlags::SIMULTANEOUS_USE)
-        .build()/*.unwrap()*/;
+        .unwrap()
+        .build().unwrap();
 }

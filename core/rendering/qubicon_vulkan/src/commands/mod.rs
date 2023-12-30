@@ -45,13 +45,11 @@ impl CommandPool {
                 }
             ).map_err(| e | crate::error::VkError::try_from(e).unwrap_unchecked())?[0];
 
-            Ok(
-                CommandBufferBuilder::new_primary(
-                    Arc::clone(&self.inner),
-                    buffer,
-                    usage,
-                    lock
-                )?
+            CommandBufferBuilder::new_primary(
+                Arc::clone(&self.inner),
+                buffer,
+                usage,
+                lock
             )
         }
     }
@@ -70,13 +68,11 @@ impl CommandPool {
                 }
             ).map_err(| e | crate::error::VkError::try_from(e).unwrap_unchecked())?[0];
             
-            Ok(
-                CommandBufferBuilder::new_secondary(
-                    Arc::clone(&self.inner),
-                    buffer,
-                    usage,
-                    lock
-                )?
+            CommandBufferBuilder::new_secondary(
+                Arc::clone(&self.inner),
+                buffer,
+                usage,
+                lock
             )
         }
     }

@@ -2,8 +2,6 @@ use std::sync::Arc;
 use crate::device::inner::DeviceInner;
 use ash::vk::DeviceMemory as VkDeviceMemory;
 
-use super::Allocator;
-
 pub struct DeviceMemoryObject {
     pub(crate) dev: Arc<DeviceInner>,
     pub(crate) device_memory: VkDeviceMemory,
@@ -19,23 +17,6 @@ impl Drop for DeviceMemoryObject {
                 self.device_memory,
                 None
             )
-        }
-    }
-}
-
-// TODO: Automatic memory deallocation
-pub struct AllocatedMemory {
-    pub(crate) allocator: Arc<Allocator>,
-    pub(crate) memory: Arc<DeviceMemoryObject>,
-    pub(crate) offset: u64, // TODO: DeviceAddress
-    pub(crate) size: u64,
-    pub(crate) allocation_index: u64
-}
-
-impl Drop for AllocatedMemory {
-    fn drop(&mut self) {
-        unsafe {
-            self.allocator.deallocate(&self);
         }
     }
 }

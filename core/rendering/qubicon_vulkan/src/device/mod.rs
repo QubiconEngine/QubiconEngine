@@ -4,23 +4,20 @@ use std::{
 };
 use crate::{
     memory::{
-        alloc::Allocator,
         resources::{
             buffer::{
                 Buffer,
                 RawBuffer,
-                BufferCreateInfo,
-                BufferCreationError,
-                RawBufferCreationError
+                BufferCreateInfo
             },
             image::{
                 Image,
                 RawImage,
-                ImageCreateInfo,
-                ImageCreationError,
-                RawImageCreationError
-            }
-        }
+                ImageCreateInfo
+            },
+            ResourceCreationError
+        },
+        alloc::DeviceMemoryAllocator
     },
     shaders::{
         compute::{
@@ -52,8 +49,7 @@ pub mod create_info;
 pub(crate) mod inner;
 
 pub struct Device {
-    inner: Arc<inner::DeviceInner>,
-    allocator: Arc<Allocator>
+    pub(crate) inner: Arc<inner::DeviceInner>
 }
 
 impl Device {
@@ -67,16 +63,8 @@ impl Device {
                 physical_device
             )?
         );
-        let allocator = Arc::new(
-            Allocator::new(Arc::clone(&inner))
-        );
 
-        Ok(
-            Self {
-                inner,
-                allocator
-            }
-        )
+        Ok( Self { inner } )
     }
 
     #[inline]
@@ -150,32 +138,33 @@ impl Device {
         )
     }
 
-    pub fn create_raw_buffer(&self, create_info: &BufferCreateInfo) -> Result<Arc<RawBuffer>, RawBufferCreationError> {
+    pub fn create_raw_buffer(&self, create_info: &BufferCreateInfo) -> Result<Arc<RawBuffer>, Error> {
         RawBuffer::create(
             Arc::clone(&self.inner),
             create_info
         ).map(Arc::new)
     }
-    pub fn create_buffer(&self, memory_properties: MemoryTypeProperties, create_info: &BufferCreateInfo) -> Result<Arc<Buffer>, BufferCreationError> {
+
+    pub fn create_buffer<A: DeviceMemoryAllocator>(&self, allocator: Arc<A>, memory_properties: MemoryTypeProperties, create_info: &BufferCreateInfo) -> Result<Arc<Buffer<A>>, ResourceCreationError<A::AllocError>> {
         Buffer::create_and_allocate(
             Arc::clone(&self.inner),
-            Arc::clone(&self.allocator),
+            allocator,
             memory_properties,
             create_info
         ).map(Arc::new)
     }
 
-    pub fn create_raw_image(&self, create_info: &ImageCreateInfo) -> Result<Arc<RawImage>, RawImageCreationError> {
+    pub fn create_raw_image(&self, create_info: &ImageCreateInfo) -> Result<Arc<RawImage>, Error> {
         RawImage::create(
             Arc::clone(&self.inner),
             create_info
         ).map(Arc::new)
     }
 
-    pub fn create_image(&self, memory_properties: MemoryTypeProperties, create_info: ImageCreateInfo) -> Result<Arc<Image>, ImageCreationError> {
+    pub fn create_image<A: DeviceMemoryAllocator>(&self, allocator: Arc<A>, memory_properties: MemoryTypeProperties, create_info: ImageCreateInfo) -> Result<Arc<Image<A>>, ResourceCreationError<A::AllocError>> {
         Image::create_and_allocate(
             Arc::clone(&self.inner),
-            Arc::clone(&self.allocator),
+            allocator,
             memory_properties,
             create_info
         ).map(Arc::new)
@@ -184,7 +173,7 @@ impl Device {
 
     /// # Safety
     /// binary slice should contain valid **SPIR-V** binary
-    pub unsafe fn create_shader_module_from_binayr(&self, binary: &[u32]) -> Result<ShaderModule, Error> {
+    pub unsafe fn create_shader_module_from_binary(&self, binary: &[u32]) -> Result<ShaderModule, Error> {
         ShaderModule::create_from_binary(
             Arc::clone(&self.inner),
             binary

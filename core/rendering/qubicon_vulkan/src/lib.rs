@@ -1,3 +1,5 @@
+#![allow(clippy::from_over_into)]
+
 pub use error::Error;
 pub use instance::Instance;
 

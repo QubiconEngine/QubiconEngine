@@ -5,7 +5,7 @@ use ash::vk::{
     DescriptorBufferInfo as VkDescriptorBufferInfo
 };
 
-use crate::memory::resources::buffer::Buffer;
+use crate::memory::{resources::buffer::Buffer, alloc::DeviceMemoryAllocator};
 
 use super::{
     super::layout::DescriptorSetLayout,
@@ -31,14 +31,23 @@ use super::{
 //     }
 // }
 
-#[derive(Clone)]
-pub struct BufferWriteInfo {
-    pub buffer: Arc<Buffer>,
+pub struct BufferWriteInfo<A: DeviceMemoryAllocator> {
+    pub buffer: Arc<Buffer<A>>,
     pub offset: u64,
     pub len: u64
 }
 
-impl Debug for BufferWriteInfo {
+impl<A: DeviceMemoryAllocator> Clone for BufferWriteInfo<A> {
+    fn clone(&self) -> Self {
+        Self {
+            buffer: Arc::clone(&self.buffer),
+            offset: self.offset,
+            len: self.len
+        }
+    }
+}
+
+impl<A: DeviceMemoryAllocator> Debug for BufferWriteInfo<A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("BufferWriteInfo")
             .field("offset", &self.offset)
@@ -60,7 +69,7 @@ mod write_info_sealed {
         unsafe fn update_raw_descriptor_write_unchecked(dst: &mut VkWriteDescriptorSet, src: &Self::VkInfo);
     }
 
-    impl WriteInfoSealed for BufferWriteInfo {
+    impl<A: DeviceMemoryAllocator> WriteInfoSealed for BufferWriteInfo<A> {
         type VkInfo = VkDescriptorBufferInfo;
 
         unsafe fn construct_info(&self) -> Self::VkInfo {

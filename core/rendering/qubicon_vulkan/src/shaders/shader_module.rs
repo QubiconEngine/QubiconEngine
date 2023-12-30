@@ -18,7 +18,7 @@ impl ShaderModule {
     /// # Safety
     /// Shader binary should contain valid **SPIR-V** binary
     pub(crate) unsafe fn create_from_binary(device: Arc<DeviceInner>, shader_binary: &[u32]) -> Result<Self, Error> {
-        Self::create_from_binary(
+        Self::create(
             device,
             core::slice::from_raw_parts(
                 shader_binary.as_ptr().cast(),

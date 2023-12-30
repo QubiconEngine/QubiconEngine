@@ -1,11 +1,17 @@
 use std::sync::Arc;
 use qubicon_vulkan::{
-    Instance,
     shaders::{
         PipelineShaderStageFlags,
         PipelineShaderStageCreateInfo,
         compute::ComputePipelineCreateInfo
-    }, device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::physical_device::queue_info::QueueFamilyCapabilities, commands::command_buffers::{command_buffer, CommandBufferUsageFlags}
+    },
+    device::create_info::{
+        DeviceCreateInfo,
+        QueueFamilyUsage
+    },
+    Instance,
+    commands::command_buffers::CommandBufferUsageFlags,
+    instance::physical_device::queue_info::QueueFamilyCapabilities
 };
 
 const SHADER: &[u8] = include_bytes!("shader.spv");
@@ -41,26 +47,29 @@ fn main() {
     }
     
     let pipeline_layout = device.create_pipeline_layout([]).unwrap();
-    let shader_module = device.create_shader_module(&shader_sources).unwrap();
+    let shader_module = unsafe { device.create_shader_module_from_binary(&shader_sources) }.unwrap();
 
-    let shader = device.create_compute_pipeline(
-        ComputePipelineCreateInfo {
-            create_flags: Default::default(),
-            stage: PipelineShaderStageCreateInfo {
-                stage: PipelineShaderStageFlags::COMPUTE,
-                module: &shader_module,
-                entry_name: "main"
-            },
-            layout: Arc::clone(&pipeline_layout),
-            base_pipeline: None
-        }
-    ).unwrap();
+    let shader = unsafe {
+        device.create_compute_pipeline_unchecked(
+            ComputePipelineCreateInfo {
+                create_flags: Default::default(),
+                stage: PipelineShaderStageCreateInfo {
+                    stage: PipelineShaderStageFlags::COMPUTE,
+                    module: &shader_module,
+                    entry_name: "main"
+                },
+                layout: Arc::clone(&pipeline_layout),
+                base_pipeline: None
+            }
+        )
+    }.unwrap();
 
     let queue = device.get_queue(compute_family_idx, 0)
         .unwrap();
-    let command_pool = queue.create_command_pool();
+    let command_pool = queue.create_command_pool().unwrap();
     let command_buffer = unsafe {
         command_pool.create_primary_command_buffer(CommandBufferUsageFlags::ONE_TIME_SUBMIT)
+            .unwrap()
             .cmd_bind_compute_pipeline_unchecked(&shader)
             .cmd_dispatch_unchecked(100, 100, 100)
             .build()

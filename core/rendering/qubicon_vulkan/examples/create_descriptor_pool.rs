@@ -7,10 +7,10 @@ use qubicon_vulkan::{
         alloc::{DescriptorPoolSize, descriptor_set::{DescriptorWrite, BufferWriteInfo}},
         DescriptorSetLayoutCreateInfo
     },
-    memory::resources::buffer::{
+    memory::{resources::buffer::{
         BufferCreateInfo,
         BufferUsageFlags
-    },
+    }, alloc::standart_device_memory_allocator::StandartMemoryAllocator},
     shaders::PipelineShaderStageFlags,
     device::create_info::QueueFamilyUsage,
     instance::physical_device::memory_properties::MemoryTypeProperties,
@@ -26,6 +26,7 @@ fn main() {
     println!("{}", device.get_properties().device_name);
 
     let device = device.create_logical_device::<[QueueFamilyUsage; 0]>(Default::default()).unwrap();
+    let allocator = StandartMemoryAllocator::new(&device);
 
     let desc_layout = device.create_descriptor_set_layout(DescriptorSetLayoutCreateInfo {
         bindings: [
@@ -62,6 +63,7 @@ fn main() {
     };
 
     let buffer = device.create_buffer(
+        Arc::clone(&allocator),
         MemoryTypeProperties::HOST_VISIBLE,
         &BufferCreateInfo {
             usage_flags: BufferUsageFlags::STORAGE_BUFFER,

@@ -19,7 +19,10 @@ use crate::{
     Error,
     error::VkError,
     shaders::compute::ComputePipeline,
-    memory::resources::buffer::Buffer
+    memory::{
+        alloc::DeviceMemoryAllocator,
+        resources::buffer::Buffer
+    }
 };
 
 
@@ -203,7 +206,7 @@ impl<'a, L: levels::CommandBufferLevel> CommandBufferBuilder<'a, L> {
 
     //unsafe fn cmd_bind_graphics_pipeline_unchecked(self)
 
-    pub unsafe fn cmd_bind_vertex_buffer_unchecked(self, binding_idx: u32, buffer: &Buffer, offset: u64) -> Self {
+    pub unsafe fn cmd_bind_vertex_buffer_unchecked(self, binding_idx: u32, buffer: &Buffer<impl DeviceMemoryAllocator>, offset: u64) -> Self {
         self.command_pool.as_ref().unwrap_unchecked().device
             .cmd_bind_vertex_buffers(
                 self.command_buffer,
@@ -215,7 +218,7 @@ impl<'a, L: levels::CommandBufferLevel> CommandBufferBuilder<'a, L> {
         self
     }
 
-    pub unsafe fn cmd_bind_index_buffer_unchecked(self, buffer: &Buffer, offset: u64, index_type: IndexType) -> Self {
+    pub unsafe fn cmd_bind_index_buffer_unchecked(self, buffer: &Buffer<impl DeviceMemoryAllocator>, offset: u64, index_type: IndexType) -> Self {
         self.command_pool.as_ref().unwrap_unchecked().device
             .cmd_bind_index_buffer(
                 self.command_buffer,

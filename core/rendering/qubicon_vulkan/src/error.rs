@@ -79,7 +79,9 @@ impl TryFrom<VkResult> for VkError {
 #[derive(Error, Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ValidationError {
     #[error("objects owned by different devices")]
-    InvalidDevice
+    InvalidDevice,
+    #[error("device dont have memory type with given flags what support this type of resource")]
+    NoValidMemoryTypeFound
 }
 
 #[derive(Error, Debug, PartialEq, Eq, Hash, Clone, Copy)]

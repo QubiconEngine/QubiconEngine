@@ -1,16 +1,16 @@
-use thiserror::Error;
 use bitflags::bitflags;
+use super::ResourceCreationError;
 use std::{
     sync::Arc,
-    ops::Deref
+    ops::Deref,
+    mem::MaybeUninit
 };
 use crate::{
+    Error,
     device::inner::DeviceInner,
-    memory::alloc::{
-        Allocator,
-        device_memory::AllocatedMemory, error::AllocationError
-    },
-    instance::physical_device::memory_properties::MemoryTypeProperties
+    error::{VkError, ValidationError},
+    instance::physical_device::memory_properties::MemoryTypeProperties,
+    memory::alloc::{DeviceMemoryAllocator, AllocatedDeviceMemoryFragment}
 };
 use ash::vk::{
     Image as VkImage,
@@ -168,28 +168,6 @@ pub struct ImageCreateInfo {
     pub mipmaps_enabled: bool
 }
 
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RawImageCreationError {
-    #[error("no more memory on host")]
-    OutOfHostMemory,
-    #[error("no more memory on device")]
-    OutOfDeviceMemory,
-    #[error("invalid opaque capture address")]
-    InvalidOpaqueCaptureAddress
-}
-
-impl From<ash::vk::Result> for RawImageCreationError {
-    fn from(value: ash::vk::Result) -> Self {
-        match value {
-            ash::vk::Result::ERROR_OUT_OF_HOST_MEMORY => Self::OutOfHostMemory,
-            ash::vk::Result::ERROR_OUT_OF_DEVICE_MEMORY => Self::OutOfDeviceMemory,
-            ash::vk::Result::ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS => Self::InvalidOpaqueCaptureAddress,
-
-            _ => unreachable!()
-        }
-    }
-}
-
 pub struct RawImage {
     pub(crate) device: Arc<DeviceInner>,
     pub(crate) image: VkImage,
@@ -210,7 +188,7 @@ impl RawImage {
     pub(crate) fn create(
         device: Arc<DeviceInner>,
         create_info: &ImageCreateInfo
-    ) -> Result<Self, RawImageCreationError> {
+    ) -> Result<Self, Error> {
         if !create_info.create_flags.difference(ImageCreateFlags::CUBE_COMPATIBLE).is_empty() {
             unimplemented!()
         }
@@ -249,7 +227,7 @@ impl RawImage {
                     ..Default::default()
                 },
                 None
-            ).map_err(RawImageCreationError::from)?;
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
             Ok(
                 Self {
@@ -283,35 +261,21 @@ impl Drop for RawImage {
     }
 }
 
-#[derive(Error, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ImageCreationError {
-    #[error("error during raw image creation")]
-    RawImageError(#[from] RawImageCreationError),
-    #[error("error during memory allocation")]
-    AllocationError(#[from] AllocationError),
-    #[error("device dont have memory type with given flags what support given image")]
-    NoValidMemoryTypeFound,
-    #[error("memory bind error")]
-    MemoryBindError,
-    #[error("device in raw image and allocator device dont match")]
-    InvalidDevice
-}
-
-pub struct Image {
+pub struct Image<A: DeviceMemoryAllocator> {
     pub(crate) raw: RawImage,
-    pub(crate) allocator: Arc<Allocator>,
-    pub(crate) memory: AllocatedMemory
+    pub(crate) allocator: Arc<A>,
+    pub(crate) memory: MaybeUninit<A::MemoryFragmentType>
 }
 
-impl Image {
+impl<A: DeviceMemoryAllocator> Image<A> {
     pub(crate) fn create_and_allocate(
         device: Arc<DeviceInner>,
-        allocator: Arc<Allocator>,
+        allocator: Arc<A>,
         memory_properties: MemoryTypeProperties,
         create_info: ImageCreateInfo
-    ) -> Result<Self, ImageCreationError> {
+    ) -> Result<Self, ResourceCreationError<A::AllocError>> {
         Self::from_raw(
-            RawImage::create(device, &create_info)?,
+            RawImage::create(device, &create_info).map_err(ResourceCreationError::from_creation_error)?,
             allocator,
             memory_properties
         )
@@ -319,13 +283,9 @@ impl Image {
     
     pub fn from_raw(
         raw: RawImage,
-        allocator: Arc<Allocator>,
+        allocator: Arc<A>,
         memory_properties: MemoryTypeProperties
-    ) -> Result<Self, ImageCreationError> {
-        if allocator.get_device().ne(&raw.device) {
-            return Result::Err(ImageCreationError::InvalidDevice)
-        }
-
+    ) -> Result<Self, ResourceCreationError<A::AllocError>> {
         unsafe {
             let requirements = raw.device.get_image_memory_requirements(raw.image);
             let memory_type_index = bitvec::array::BitArray::<u32, bitvec::order::Lsb0>::from(requirements.memory_type_bits)
@@ -336,32 +296,40 @@ impl Image {
                 .filter(| i | raw.device.memory_properties.memory_types[*i].properties.contains(memory_properties))
                 .map(| i | i as u32)
                 .next()
-                .ok_or(ImageCreationError::NoValidMemoryTypeFound)?;
+                .ok_or(ValidationError::NoValidMemoryTypeFound.into())
+                .map_err(ResourceCreationError::from_creation_error)?;
 
-            let memory = allocator.allocate(
+            let memory = allocator.alloc(
                 memory_type_index,
                 requirements.size,
                 requirements.alignment
-            )?;
+            ).map_err(ResourceCreationError::from_allocation_error)?;
+
+            let (raw_memory, offset) = memory.as_memory_object_and_offset();
+
+            if raw_memory.dev != raw.device {
+                return Err(ResourceCreationError::from_creation_error(ValidationError::InvalidDevice.into()));
+            }
 
             raw.device.bind_image_memory(
                 raw.image,
-                memory.memory.device_memory,
-                memory.offset
-            ).map_err(|_| ImageCreationError::MemoryBindError)?;
+                raw_memory.device_memory,
+                offset
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked().into())
+             .map_err(ResourceCreationError::from_creation_error)?;
 
             Ok(
                 Self {
                     raw,
                     allocator,
-                    memory
+                    memory: MaybeUninit::new(memory)
                 }
             )
         }
     }
 }
 
-impl Deref for Image {
+impl<A: DeviceMemoryAllocator> Deref for Image<A> {
     type Target = RawImage;
 
     fn deref(&self) -> &Self::Target {
@@ -369,8 +337,22 @@ impl Deref for Image {
     }
 }
 
+impl<A: DeviceMemoryAllocator> Drop for Image<A> {
+    fn drop(&mut self) {
+        unsafe {
+            let memory = core::mem::replace(
+                &mut self.memory,
+                MaybeUninit::uninit()
+            ).assume_init();
+
+            self.allocator.dealloc(memory);
+        }
+    }
+}
+
 
 // Helper function
+#[inline]
 pub(crate) fn calc_mip_levels_for_resolution(width: u32, height: u32) -> u32 {
     (width.max(height) as f32).log2().floor() as u32 + 1
 }

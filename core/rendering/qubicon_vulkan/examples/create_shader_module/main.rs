@@ -13,7 +13,17 @@ fn main() {
     let device = device.create_logical_device::<[QueueFamilyUsage; 0]>(Default::default())
         .expect("Failed to create logical device");
 
-    let _shader_module = device.create_shader_module(
-        unsafe { core::mem::transmute(SHADER) }
-    ).expect("Failed to create shader module");
+    let mut shader_binary = Vec::<u32>::with_capacity(SHADER.len() / 4);
+
+    unsafe {
+        core::ptr::copy_nonoverlapping(SHADER.as_ptr(), shader_binary.as_mut_ptr().cast(), SHADER.len());
+
+        shader_binary.set_len(shader_binary.len() / 4);
+    }
+
+    let _shader_module = unsafe {
+        device.create_shader_module_from_binary(
+            &shader_binary
+        )
+    }.expect("Failed to create shader module");
 }
