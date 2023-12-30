@@ -35,6 +35,14 @@ use crate::{
         alloc::DescriptorPoolSize,
         layout::DescriptorBinding
     },
+    sync::{
+        semaphore_types,
+
+        Fence,
+        FenceCreateInfo,
+        Event,
+        Semaphore
+    },
     Error,
     error::VkError,
     instance::physical_device::memory_properties::MemoryTypeProperties
@@ -161,6 +169,22 @@ impl Device {
             memory_properties,
             create_info
         ).map(Arc::new)
+    }
+
+    
+    pub fn create_fence(&self, create_info: FenceCreateInfo) -> Result<Fence, Error> {
+        Fence::create(
+            Arc::clone(&self.inner),
+            create_info
+        )
+    }
+
+    pub fn create_event(&self) -> Result<Event, Error> {
+        Event::create(Arc::clone(&self.inner))
+    }
+
+    pub fn create_semaphore<Type: semaphore_types::SemaphoreType>(&self) -> Result<Semaphore<Type>, Error> {
+        Semaphore::create(Arc::clone(&self.inner))
     }
 
 

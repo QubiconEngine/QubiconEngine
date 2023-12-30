@@ -11,3 +11,4 @@ pub mod instance;
 pub mod commands;
 pub mod shaders;
 pub mod error;
+pub mod sync;
