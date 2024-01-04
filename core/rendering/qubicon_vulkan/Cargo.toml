@@ -10,6 +10,9 @@ default = ["validation"]
 windowing = []
 validation = []
 
+[dependencies.qubicon_vulkan_internal_macro]
+path = "_inner_macro"
+
 [dependencies]
 ash = "0.37"
 bitvec = "1.0"
