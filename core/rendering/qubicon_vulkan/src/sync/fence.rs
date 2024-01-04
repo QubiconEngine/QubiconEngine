@@ -35,7 +35,7 @@ impl From<VkFenceCreateFlags> for FenceCreateFlags {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FenceCreateInfo {
     flags: FenceCreateFlags
 }
@@ -85,6 +85,11 @@ impl Fence {
             }
         )
     }
+
+    pub(crate) unsafe fn as_raw(&self) -> VkFence {
+        self.fence
+    }
+
 
     pub fn signaled(&self) -> Result<bool, VkError> {
         unsafe {

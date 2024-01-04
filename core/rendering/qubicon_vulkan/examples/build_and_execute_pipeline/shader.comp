@@ -1,3 +1,16 @@
-#version 440
+#version 450
 
-void main() {}
+layout(set = 0, binding = 0) buffer src_t {
+    float src[ ];
+};
+layout(set = 0, binding = 1) buffer dst_t {
+    float dst[ ];
+};
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    float num = src[gl_GlobalInvocationID.x];
+
+    dst[gl_GlobalInvocationID.x] = sqrt(num);
+}

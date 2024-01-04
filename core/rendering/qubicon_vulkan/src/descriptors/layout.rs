@@ -3,8 +3,8 @@ use smallvec::SmallVec;
 use crate::{
     Error,
     error::VkError,
-    device::inner::DeviceInner,
-    shaders::PipelineShaderStageFlags
+    shaders::ShaderStageFlags,
+    device::inner::DeviceInner
 };
 use ash::vk::{
     DescriptorSetLayout as VkDescriptorSetLayout,
@@ -16,7 +16,7 @@ use super::DescriptorType;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DescriptorBinding {
-    pub shader_stage_flags: PipelineShaderStageFlags,
+    pub shader_stage_flags: ShaderStageFlags,
     pub r#type: DescriptorType,
     pub count: u32,
     // TODO: ImmutableSamplers

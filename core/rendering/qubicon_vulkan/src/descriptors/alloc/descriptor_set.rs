@@ -116,9 +116,14 @@ impl DescriptorSet {
         )
     }
 
+    pub(crate) unsafe fn as_raw(&self) -> VkDescriptorSet {
+        self.descriptor_set
+    }
+
     /// # Safety
     /// * All usage parameters should match with descriptor types. Binding and index must be a valid indexes
     /// * Resources provided in writes must stay allive until revriten in descriptor set, or descriptor set is dropped.
+    // TODO: Rework
     pub unsafe fn update_unchecked<I: WriteInfo>(&self, writes: &[DescriptorWrite<I>]) {
         let raw_type_write_infos: Vec<_> = writes.iter()
             .map(| write | write.write_info.construct_info())

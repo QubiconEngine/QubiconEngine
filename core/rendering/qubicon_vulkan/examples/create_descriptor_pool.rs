@@ -11,7 +11,7 @@ use qubicon_vulkan::{
         BufferCreateInfo,
         BufferUsageFlags
     }, alloc::standart_device_memory_allocator::StandartMemoryAllocator},
-    shaders::PipelineShaderStageFlags,
+    shaders::ShaderStageFlags,
     device::create_info::QueueFamilyUsage,
     instance::physical_device::memory_properties::MemoryTypeProperties,
 };
@@ -32,12 +32,12 @@ fn main() {
         device.create_descriptor_set_layout_unchecked(DescriptorSetLayoutCreateInfo {
             bindings: [
                 DescriptorBinding {
-                    shader_stage_flags: PipelineShaderStageFlags::COMPUTE,
+                    shader_stage_flags: ShaderStageFlags::COMPUTE,
                     r#type: qubicon_vulkan::descriptors::DescriptorType::StorageBuffer,
                     count: 1
                 },
                 DescriptorBinding {
-                    shader_stage_flags: PipelineShaderStageFlags::COMPUTE,
+                    shader_stage_flags: ShaderStageFlags::COMPUTE,
                     r#type: qubicon_vulkan::descriptors::DescriptorType::StorageBuffer,
                     count: 1
                 }

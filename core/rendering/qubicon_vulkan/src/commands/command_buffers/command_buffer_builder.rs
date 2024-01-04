@@ -18,11 +18,11 @@ use super::{
 use crate::{
     Error,
     error::VkError,
-    shaders::compute::ComputePipeline,
+    shaders::{compute::ComputePipeline, pipeline_layout::{self, PipelineLayout}},
     memory::{
         alloc::DeviceMemoryAllocator,
         resources::buffer::Buffer
-    }
+    }, descriptors::alloc::descriptor_set::DescriptorSet
 };
 
 
@@ -181,6 +181,20 @@ impl Into<VkIndexType> for IndexType {
 
 // Unvalidated commands
 impl<'a, L: levels::CommandBufferLevel> CommandBufferBuilder<'a, L> {
+    pub unsafe fn cmd_bind_descriptor_set_unchecked(self, bind_point: PipelineBindPoint, set_id: u32, layout: &PipelineLayout, descriptor_set: &DescriptorSet) -> Self {
+        self.command_pool.as_ref().unwrap_unchecked().device
+            .cmd_bind_descriptor_sets(
+                self.command_buffer,
+                bind_point.into(),
+                layout.pipeline_layout,
+                set_id,
+                &[descriptor_set.as_raw()],
+                &[]
+            );
+
+        self
+    }
+
     pub unsafe fn cmd_bind_compute_pipeline_unchecked(self, pipeline: &ComputePipeline) -> Self {
         self.command_pool.as_ref().unwrap_unchecked().device
             .cmd_bind_pipeline(
