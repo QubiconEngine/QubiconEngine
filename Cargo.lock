@@ -170,16 +170,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
 
 [[package]]
-name = "proc"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7374c47d163806e1e2f12b63e5f2a6d6093e351a91a088b00fc654a354a5a332"
-
-[[package]]
 name = "proc-macro2"
-version = "1.0.75"
+version = "1.0.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "907a61bd0f64c2f29cd1cf1dc34d05176426a3f504a78010f08416ddb7b13708"
+checksum = "95fc56cda0b5c3325f5fbbd7ff9fda9e02bb00bb3dac51252d2f1bfa1cb8cc8c"
 dependencies = [
  "unicode-ident",
 ]
@@ -224,7 +218,9 @@ dependencies = [
 name = "qubicon_vulkan_internal_macro"
 version = "0.0.0"
 dependencies = [
- "proc",
+ "arrayvec",
+ "proc-macro2",
+ "quote",
  "syn 2.0.47",
 ]
 

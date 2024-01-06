@@ -8,8 +8,11 @@ pub enum SharingMode<'a> {
     Concurent { queue_families: &'a [u32] }
 }
 
+pub mod format;
 pub mod image;
 pub mod buffer;
+pub mod image_view;
+pub mod buffer_view;
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResourceCreationError<AllocError: Error> {
