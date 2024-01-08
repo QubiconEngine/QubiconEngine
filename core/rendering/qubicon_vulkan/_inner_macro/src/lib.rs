@@ -1,7 +1,7 @@
 use std::{str::FromStr, fmt::Display};
 use arrayvec::ArrayVec;
 
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::{ItemEnum, Expr, ExprLit, Ident};
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
@@ -44,6 +44,7 @@ impl Display for Pack {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Space {
     Unorm,
@@ -197,7 +198,7 @@ impl Display for Channels {
 }
 
 
-// TODO: Add support for more components
+// TODO: Add support for more formats(formats with compression for example)
 #[derive(Clone)]
 struct Format {
     format_id: ExprLit,
@@ -243,7 +244,7 @@ impl Format {
         let structure_name = TokenStream2::from_str(&self.to_string())
             .unwrap();
 
-        let fields = if let Some(pack) = self.pack {
+        let field_type = if let Some(pack) = self.pack {
             let ty = match pack {
                 Pack::P8 => "u8",
                 Pack::P16 => "u16",
@@ -251,29 +252,21 @@ impl Format {
                 Pack::Block => ""
             };
 
-            let ty = TokenStream2::from_str(ty)
-                .unwrap();
-
-            quote! {
-                pub data: #ty
-            }
+            TokenStream2::from_str(ty)
+                .unwrap()
         } else {
             let total_bits = self.channels.channels.iter()
                 .fold(0u16, | a, &(_, c) | a + c as u16);
 
             let total_bytes = (total_bits / 8) as usize;
             
-            quote! {
-                pub data: [u8; #total_bytes]
-            }
+            quote! { [u8; #total_bytes] }
         };
         
 
         quote! {
             #[repr(C)]
-            pub struct #structure_name {
-                #fields
-            }
+            pub struct #structure_name(pub #field_type);
         }
     }
 
@@ -291,7 +284,7 @@ impl Format {
 }
 
 #[proc_macro_attribute]
-pub fn vk_format_generate(_attr: TokenStream, mut input: TokenStream) -> TokenStream {
+pub fn vk_format_generate(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let format_enum: ItemEnum = syn::parse(input.clone()).unwrap();
     let formats: Vec<_> = format_enum.variants.iter()
         .filter_map(| v | {
@@ -312,8 +305,10 @@ pub fn vk_format_generate(_attr: TokenStream, mut input: TokenStream) -> TokenSt
         .map(| f | f.generate_format_trait_implementation_code(&format_enum_name));
 
     let tokens = quote! {
-        pub mod formats {
+        pub mod formats_representation {
             pub trait Format: sealed::FormatSealed {}
+
+            impl<T: sealed::FormatSealed> Format for T {}
 
             mod sealed {
                 use super::*;

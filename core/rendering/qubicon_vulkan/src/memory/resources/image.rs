@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use super::ResourceCreationError;
+use super::{ResourceCreationError, format::Format, image_view::{ImageView, ImageViewCreateInfo}};
 use std::{
     sync::Arc,
     ops::Deref,
@@ -165,7 +165,8 @@ pub struct ImageCreateInfo {
     pub image_type: ImageType,
     
     pub array_layers: u32,
-    pub mipmaps_enabled: bool
+    pub mipmaps_enabled: bool,
+    pub format: Format
 }
 
 pub struct RawImage {
@@ -181,7 +182,8 @@ pub struct RawImage {
     pub(crate) image_type: ImageType,
 
     pub(crate) array_layers: u32,
-    pub(crate) mip_levels: u32
+    pub(crate) mip_levels: u32,
+    pub(crate) format: Format
 }
 
 impl RawImage {
@@ -221,7 +223,7 @@ impl RawImage {
                     array_layers: create_info.array_layers,
                     mip_levels,
 
-                    //format: _,
+                    format: create_info.format.into(),
                     extent,
 
                     ..Default::default()
@@ -243,10 +245,43 @@ impl RawImage {
                     image_type: create_info.image_type,
 
                     array_layers: create_info.array_layers,
-                    mip_levels
+                    mip_levels,
+                    format: create_info.format
                 }
             )
         }
+    }
+
+    pub fn usage_flags(&self) -> ImageUsageFlags {
+        self.usage_flags
+    }
+
+    pub fn create_flags(&self) -> ImageCreateFlags {
+        self.create_flags
+    }
+
+    pub fn sample_count_flags(&self) -> ImageSampleCountFlags {
+        self.sample_count_flags
+    }
+
+    pub fn tiling(&self) -> ImageTiling {
+        self.image_tiling
+    }
+
+    pub fn r#type(&self) -> ImageType {
+        self.image_type
+    }
+
+    pub fn array_layers_count(&self) -> u32 {
+        self.array_layers
+    }
+
+    pub fn mip_levels_count(&self) -> u32 {
+        self.mip_levels
+    }
+
+    pub fn format(&self) -> Format {
+        self.format
     }
 }
 
@@ -326,6 +361,16 @@ impl<A: DeviceMemoryAllocator> Image<A> {
                 }
             )
         }
+    }
+
+    /// # Safety
+    /// * Format size of image view should match format size of original image
+    /// * If view type is Cube, then original image should be created with cube compatiple flag
+    pub unsafe fn create_image_view_unchecked(
+        self: &Arc<Self>,
+        create_info: &ImageViewCreateInfo
+    ) -> Result<Arc<ImageView<A>>, Error> {
+        ImageView::create_unchecked(Arc::clone(self), create_info)
     }
 }
 

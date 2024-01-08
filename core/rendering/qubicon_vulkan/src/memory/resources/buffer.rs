@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use super::ResourceCreationError;
+use super::{ResourceCreationError, buffer_view::{BufferView, BufferViewCreateInfo}};
 use std::{
     sync::Arc,
     ops::Deref,
@@ -215,6 +215,16 @@ impl<A: DeviceMemoryAllocator> Buffer<A> {
                 }
             )
         }
+    }
+
+    /// # Safety
+    /// * Range should be in bounds of buffer, be multiple of format size and countain at least one element
+    /// * Buffer should have one of Texel usage flags
+    pub unsafe fn create_buffer_view_unchecked(
+        self: &Arc<Self>,
+        create_info: &BufferViewCreateInfo
+    ) -> Result<Arc<BufferView<A>>, Error> {
+        BufferView::create_unchecked(Arc::clone(self), create_info)
     }
 }
 

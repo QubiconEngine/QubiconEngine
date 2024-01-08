@@ -1,9 +1,13 @@
+use ash::vk::Format as VkFormat;
 use qubicon_vulkan_internal_macro::vk_format_generate;
 
+// TODO: Add more formats
 #[repr(u8)]
 #[vk_format_generate]
 #[allow(non_camel_case_types)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Format {
+    #[default]
     UNDEFINED = 0,
     R4G4_UNORM_PACK8 = 1,
     R4G4B4A4_UNORM_PACK16 = 2,
@@ -194,5 +198,20 @@ pub enum Format {
 impl Format {
     pub(crate) const unsafe fn from_raw(desc: u8) -> Self {
         core::mem::transmute_copy(&desc)
+    }
+}
+
+impl Into<VkFormat> for Format {
+    fn into(self) -> VkFormat {
+        let desc: u8 = unsafe { core::mem::transmute(self) };
+
+        VkFormat::from_raw(desc as i32)
+    }
+}
+impl From<VkFormat> for Format {
+    fn from(value: VkFormat) -> Self {
+        let desc = value.as_raw() as u8;
+
+        unsafe { core::mem::transmute(desc) }
     }
 }
