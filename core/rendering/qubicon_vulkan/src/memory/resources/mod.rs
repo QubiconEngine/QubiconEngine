@@ -13,6 +13,7 @@ pub mod image;
 pub mod buffer;
 pub mod image_view;
 pub mod buffer_view;
+pub mod mapped_resource;
 
 #[derive(Error, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResourceCreationError<AllocError: Error> {

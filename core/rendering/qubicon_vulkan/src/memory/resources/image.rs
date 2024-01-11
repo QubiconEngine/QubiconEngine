@@ -1,16 +1,18 @@
 use bitflags::bitflags;
-use super::{ResourceCreationError, format::Format, image_view::{ImageView, ImageViewCreateInfo}};
+use thiserror::Error as ErrorDerive;
+use super::{ResourceCreationError, format::{Format, formats_representation::Format as FormatTrait}, image_view::{ImageView, ImageViewCreateInfo}, mapped_resource::{MappableType, MappedResource}};
 use std::{
     sync::Arc,
     ops::Deref,
-    mem::MaybeUninit
+    mem::MaybeUninit,
+    error::Error as ErrorTrait
 };
 use crate::{
     Error,
     device::inner::DeviceInner,
     error::{VkError, ValidationError},
     instance::physical_device::memory_properties::MemoryTypeProperties,
-    memory::alloc::{DeviceMemoryAllocator, AllocatedDeviceMemoryFragment}
+    memory::alloc::{DeviceMemoryAllocator, AllocatedDeviceMemoryFragment, MappableAllocatedDeviceMemoryFragment}
 };
 use ash::vk::{
     Image as VkImage,
@@ -329,7 +331,7 @@ impl<A: DeviceMemoryAllocator> Image<A> {
                 .filter(| (_, t) | *t)
                 .map(| (i, _) | i)
                 .filter(| i | raw.device.memory_properties.memory_types[*i].properties.contains(memory_properties))
-                .map(| i | i as u32)
+                .map(| i | i as u8)
                 .next()
                 .ok_or(ValidationError::NoValidMemoryTypeFound.into())
                 .map_err(ResourceCreationError::from_creation_error)?;
@@ -342,7 +344,7 @@ impl<A: DeviceMemoryAllocator> Image<A> {
 
             let (raw_memory, offset) = memory.as_memory_object_and_offset();
 
-            if raw_memory.dev != raw.device {
+            if raw_memory.device != raw.device {
                 return Err(ResourceCreationError::from_creation_error(ValidationError::InvalidDevice.into()));
             }
 
@@ -374,6 +376,36 @@ impl<A: DeviceMemoryAllocator> Image<A> {
     }
 }
 
+impl<'a, A: DeviceMemoryAllocator> Image<A>
+    where A::MemoryFragmentType: MappableAllocatedDeviceMemoryFragment<'a>
+{
+    pub fn map<T: MappableType + FormatTrait>(&'a self) ->
+        Result<MappedResource<'a, T, A>, ImageMapError<<A::MemoryFragmentType as MappableAllocatedDeviceMemoryFragment<'a>>::MapError>>
+    {
+        if T::FORMAT_ENUM != self.format {
+            Err(ImageMapError::FormatMismatch)?
+        }
+        if self.tiling() != ImageTiling::Linear {
+            Err(ImageMapError::NotLinearLayout)?
+        }
+
+        let len = match self.image_type {
+            ImageType::Type1D { width } => width as usize,
+            ImageType::Type2D { width, height, .. } => width as usize * height as usize,
+            ImageType::Type3D { width, height, depth } => width as usize * height as usize * depth as usize
+        };
+
+        unsafe {
+            Ok(
+                MappedResource::new(
+                    self.memory.assume_init_ref().map()?,
+                    len
+                )
+            )
+        }
+    }
+}
+
 impl<A: DeviceMemoryAllocator> Deref for Image<A> {
     type Target = RawImage;
 
@@ -393,6 +425,16 @@ impl<A: DeviceMemoryAllocator> Drop for Image<A> {
             self.allocator.dealloc(memory);
         }
     }
+}
+
+#[derive(ErrorDerive, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ImageMapError<E: ErrorTrait> {
+    #[error("image format dont match required map format")]
+    FormatMismatch,
+    #[error("image is not in linear layout")]
+    NotLinearLayout,
+    #[error("error ocurred during memory mapping")]
+    MappingError(#[from] E)
 }
 
 

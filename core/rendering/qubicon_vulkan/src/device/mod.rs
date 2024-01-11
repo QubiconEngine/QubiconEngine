@@ -17,7 +17,7 @@ use crate::{
             },
             ResourceCreationError
         },
-        alloc::DeviceMemoryAllocator
+        alloc::{DeviceMemoryAllocator, DeviceMemoryObject}
     },
     shaders::{
         compute::{
@@ -125,6 +125,10 @@ impl Device {
         }
     }
 
+    pub fn allocate_memory(&self, memory_type_index: u8, size: u64) -> Result<Arc<DeviceMemoryObject>, Error> {
+        DeviceMemoryObject::allocate(Arc::clone(&self.inner), memory_type_index, size)
+    }
+
     pub fn create_descriptor_pool<T: Into<Box<[DescriptorPoolSize]>>>(&self, create_info: DescriptorPoolCreateInfo<T>) -> Result<DescriptorPool, Error> {
         DescriptorPool::new(
             Arc::clone(&self.inner),
@@ -187,6 +191,12 @@ impl Device {
         Semaphore::create(Arc::clone(&self.inner))
     }
 
+    /// # Safety
+    /// * size must be not equal to 0 and be less than heap size and total device memory size
+    /// * type index must be less than device memory type count
+    pub unsafe fn allocate_memory_unchecked(&self, memory_type_index: u8, size: u64) -> Result<Arc<DeviceMemoryObject>, Error> {
+        DeviceMemoryObject::allocate_unchecked(Arc::clone(&self.inner), memory_type_index, size)
+    }
 
     /// # Safety
     /// Binary slice should contain valid **SPIR-V** binary

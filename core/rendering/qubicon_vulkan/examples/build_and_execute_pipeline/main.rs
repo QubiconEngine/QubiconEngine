@@ -14,6 +14,7 @@ use qubicon_vulkan::{
     instance::physical_device::{queue_info::QueueFamilyCapabilities, memory_properties::MemoryTypeProperties}, sync::semaphore_types::Binary, descriptors::{DescriptorSetLayoutCreateInfo, DescriptorBinding, DescriptorType, DescriptorPoolCreateInfo, alloc::{DescriptorPoolSize, descriptor_set::{DescriptorWrite, BufferWriteInfo}}}, memory::{alloc::standart_device_memory_allocator::StandartMemoryAllocator, resources::buffer::{BufferCreateInfo, BufferUsageFlags}}
 };
 
+const BUFFER_LEN: usize = 10000;
 const SHADER: &[u8] = include_bytes!("shader.spv");
 
 fn main() {
@@ -108,7 +109,7 @@ fn main() {
         MemoryTypeProperties::HOST_VISIBLE,
         &BufferCreateInfo {
             usage_flags: BufferUsageFlags::STORAGE_BUFFER,
-            size: 1024 * 4,
+            size: BUFFER_LEN as u64 * 4,
 
             ..Default::default()
         }
@@ -118,10 +119,14 @@ fn main() {
         MemoryTypeProperties::HOST_VISIBLE,
         &BufferCreateInfo {
             usage_flags: BufferUsageFlags::STORAGE_BUFFER,
-            size: 1024 * 4,
+            size: BUFFER_LEN as u64 * 4,
             ..Default::default()
         }
     ).unwrap();
+
+    unsafe { src_buffer.map::<f32>() }.unwrap().iter_mut()
+        .enumerate()
+        .for_each(| (i, n) | {let _ = n.write(i as f32);});
 
     unsafe {
         descriptor_set.update_unchecked(&[
@@ -131,7 +136,7 @@ fn main() {
                 write_info: BufferWriteInfo {
                     buffer: Arc::clone(&src_buffer),
                     offset: 0,
-                    len: 1024 * 4
+                    len: BUFFER_LEN as u64 * 4
                 }
             },
             DescriptorWrite {
@@ -140,7 +145,7 @@ fn main() {
                 write_info: BufferWriteInfo {
                     buffer: Arc::clone(&dst_buffer),
                     offset: 0,
-                    len: 1024 * 4
+                    len: BUFFER_LEN as u64 * 4
                 }
             }
         ])
@@ -155,13 +160,20 @@ fn main() {
             .unwrap()
             .cmd_bind_descriptor_set_unchecked(PipelineBindPoint::Compute, 0, &pipeline_layout, &descriptor_set)
             .cmd_bind_compute_pipeline_unchecked(&shader)
-            .cmd_dispatch_unchecked(1024, 1, 1)
+            .cmd_dispatch_unchecked(BUFFER_LEN as u32, 1, 1)
             .build()
     }.unwrap();
 
-    let _submit = queue.submit::<Binary, Binary>(
+    let submit = queue.submit::<Binary, Binary>(
         [],
         [],
         [command_buffer]
     ).unwrap();
+
+    // wating till operation end
+    core::mem::drop(submit);
+
+    for num in unsafe { dst_buffer.map::<f32>() }.unwrap().iter() {
+        println!("{}", unsafe { num.assume_init_ref() });
+    }
 }

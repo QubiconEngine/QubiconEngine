@@ -80,8 +80,12 @@ impl TryFrom<VkResult> for VkError {
 pub enum ValidationError {
     #[error("objects owned by different devices")]
     InvalidDevice,
-    #[error("device dont have memory type with given flags what support this type of resource")]
-    NoValidMemoryTypeFound
+    #[error("device dont have requested memory type")]
+    NoValidMemoryTypeFound,
+    #[error("size of allocation is zero or greater than heap size")]
+    InvalidAllocationSize,
+    #[error("memory object dont support mapping")]
+    MemoryMappingNotSupported
 }
 
 #[derive(Error, Debug, PartialEq, Eq, Hash, Clone, Copy)]

@@ -1,6 +1,9 @@
 use ash::vk::Format as VkFormat;
 use qubicon_vulkan_internal_macro::vk_format_generate;
 
+// Used in macro
+pub(crate) use super::mapped_resource::MappableType;
+
 // TODO: Add more formats
 #[repr(u8)]
 #[vk_format_generate]

@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use super::{ResourceCreationError, buffer_view::{BufferView, BufferViewCreateInfo}};
+use super::{ResourceCreationError, buffer_view::{BufferView, BufferViewCreateInfo}, mapped_resource::{MappedResource, MappableType}};
 use std::{
     sync::Arc,
     ops::Deref,
@@ -9,7 +9,7 @@ use crate::{
     Error,
     device::inner::DeviceInner,
     error::{VkError, ValidationError},
-    memory::alloc::{DeviceMemoryAllocator, AllocatedDeviceMemoryFragment},
+    memory::alloc::{DeviceMemoryAllocator, AllocatedDeviceMemoryFragment, MappableAllocatedDeviceMemoryFragment},
     instance::physical_device::memory_properties::MemoryTypeProperties,
 };
 use ash::vk::{
@@ -182,7 +182,7 @@ impl<A: DeviceMemoryAllocator> Buffer<A> {
                 .filter(| (_, t) | *t)
                 .map(| (i, _) | i)
                 .filter(| i | raw.device.memory_properties.memory_types[*i].properties.contains(memory_properties))
-                .map(| i | i as u32)
+                .map(| i | i as u8)
                 .next()
                 .ok_or(ValidationError::NoValidMemoryTypeFound.into())
                 .map_err(ResourceCreationError::from_creation_error)?;
@@ -195,7 +195,7 @@ impl<A: DeviceMemoryAllocator> Buffer<A> {
 
             let (raw_memory, offset) = memory.as_memory_object_and_offset();
 
-            if raw_memory.dev != raw.device {
+            if raw_memory.device != raw.device {
                 return Err(ResourceCreationError::from_creation_error(ValidationError::InvalidDevice.into()));
             }
 
@@ -225,6 +225,25 @@ impl<A: DeviceMemoryAllocator> Buffer<A> {
         create_info: &BufferViewCreateInfo
     ) -> Result<Arc<BufferView<A>>, Error> {
         BufferView::create_unchecked(Arc::clone(self), create_info)
+    }
+}
+
+impl<'a, A: DeviceMemoryAllocator> Buffer<A>
+    where A::MemoryFragmentType: MappableAllocatedDeviceMemoryFragment<'a>
+{
+    /// # Safety
+    /// Buffer content is unknown. Cast types on your own risk!
+    pub unsafe fn map<T: MappableType>(&'a self) -> Result<MappedResource<'a, T, A>, <A::MemoryFragmentType as MappableAllocatedDeviceMemoryFragment<'a>>::MapError> {
+        if self.size() as usize % core::mem::size_of::<T>() != 0 {
+            panic!("Buffer size is not multiple of type size!");
+        }
+
+        Ok(
+            MappedResource::new(
+                self.memory.assume_init_ref().map()?,
+                self.size as usize / core::mem::size_of::<T>()
+            )
+        )
     }
 }
 

@@ -266,6 +266,7 @@ impl Format {
 
         quote! {
             #[repr(C)]
+            #[derive(Clone, Copy, PartialEq, Eq, Hash)]
             pub struct #structure_name(pub #field_type);
         }
     }

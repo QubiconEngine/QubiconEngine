@@ -1,9 +1,7 @@
 use std::sync::Arc;
-use ash::vk::MemoryAllocateInfo as VkMemoryAllocateInfo;
 
 use crate::{
     Error,
-    error::VkError,
     device::{
         Device,
         inner::DeviceInner
@@ -12,7 +10,7 @@ use crate::{
 use super::{
     DeviceMemoryObject,
     DeviceMemoryAllocator,
-    AllocatedDeviceMemoryFragment
+    AllocatedDeviceMemoryFragment, MapGuard, MappableAllocatedDeviceMemoryFragment
 };
 
 pub struct StandartMemoryAllocator {
@@ -29,27 +27,18 @@ impl StandartMemoryAllocator {
     }
 }
 
-impl DeviceMemoryAllocator for StandartMemoryAllocator {
+unsafe impl DeviceMemoryAllocator for StandartMemoryAllocator {
     type AllocError = Error;
     type MemoryFragmentType = StandartDeviceMemoryFragment;
     
-    unsafe fn alloc(&self, memory_type_index: u32, size: u64, _align: u64) -> Result<Self::MemoryFragmentType, Self::AllocError> {
-        let memory = self.device.allocate_memory(
-            &VkMemoryAllocateInfo {
-                memory_type_index,
-                allocation_size: size,
-
-                ..Default::default()
-            },
-            None
-        ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
-
-        let memory = DeviceMemoryObject {
-            dev: Arc::clone(&self.device),
-            device_memory: memory,
+    unsafe fn alloc(&self, memory_type_index: u8, size: u64, _align: u64) -> Result<Self::MemoryFragmentType, Self::AllocError> {
+        let memory = DeviceMemoryObject::allocate(
+            Arc::clone(&self.device),
             memory_type_index,
             size
-        };
+        )?;
+        let memory = Arc::into_inner(memory)
+            .unwrap_unchecked();
 
         Ok(
             StandartDeviceMemoryFragment {
@@ -67,8 +56,44 @@ pub struct StandartDeviceMemoryFragment {
     memory: DeviceMemoryObject
 }
 
-impl AllocatedDeviceMemoryFragment for StandartDeviceMemoryFragment {
+unsafe impl AllocatedDeviceMemoryFragment for StandartDeviceMemoryFragment {
     unsafe fn as_memory_object_and_offset(&self) -> (&DeviceMemoryObject, u64) {
         (&self.memory, 0)
+    }
+}
+
+unsafe impl<'a> MappableAllocatedDeviceMemoryFragment<'a> for StandartDeviceMemoryFragment {
+    type MapError = Error;
+    type MapGuard = StandartMapGuard<'a>;
+
+    fn map(&'a self) -> Result<Self::MapGuard, Self::MapError> {
+        Ok(
+            StandartMapGuard {
+                fragment: self,
+                ptr: unsafe { self.memory.map() }?
+            }
+        )
+    }
+}
+
+
+pub struct StandartMapGuard<'a> {
+    fragment: &'a StandartDeviceMemoryFragment,
+    ptr: *mut ()
+}
+
+unsafe impl<'a> MapGuard<'a> for StandartMapGuard<'a> {
+    unsafe fn as_ptr(&self) -> *const () {
+        self.ptr
+    }
+
+    unsafe fn as_mut_ptr(&mut self) -> *mut () {
+        self.ptr
+    }
+}
+
+impl<'a> Drop for StandartMapGuard<'a> {
+    fn drop(&mut self) {
+        unsafe { self.fragment.memory.unmap() }
     }
 }
