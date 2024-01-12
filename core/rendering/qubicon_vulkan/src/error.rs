@@ -85,7 +85,9 @@ pub enum ValidationError {
     #[error("size of allocation is zero or greater than heap size")]
     InvalidAllocationSize,
     #[error("memory object dont support mapping")]
-    MemoryMappingNotSupported
+    MemoryMappingNotSupported,
+    #[error("provided invalid queue family index")]
+    InvalidQueueFamilyIndex
 }
 
 #[derive(Error, Debug, PartialEq, Eq, Hash, Clone, Copy)]

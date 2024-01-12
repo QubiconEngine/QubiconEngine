@@ -23,5 +23,8 @@ impl From<QueueFamilyUsage> for VkDeviceQueueCreateInfo {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DeviceCreateInfo<T: Into<Box<[QueueFamilyUsage]>> = Vec<QueueFamilyUsage>> {
     pub features: DeviceFeatures,
-    pub queues: T
+    pub queues: T,
+
+    #[cfg(feature = "windowing")]
+    pub enable_swapchain: bool
 }

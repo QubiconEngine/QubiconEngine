@@ -25,7 +25,7 @@ const _TMP_LAYER: &str = "VK_LAYER_KHRONOS_validation\0";
 
 impl InstanceInner {
     // TODO: Use creation info
-    pub(crate) fn create(_info: &super::creation_info::InstanceCreateInfo) -> Result<Self, super::error::InstanceError> {
+    pub(crate) fn create(info: &super::creation_info::InstanceCreateInfo) -> Result<Self, super::error::InstanceError> {
         unsafe {
             let entry = Entry::load()?;
             let instance = entry.create_instance(

@@ -51,9 +51,7 @@ bitflags! {
         const TRANSIENT_ATTACHMENT = 0b100_0000;
         const INPUT_ATTACHMENT = 0b1000_0000;
     }
-}
 
-bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct ImageSampleCountFlags: u32 {
         const TYPE_1 = 0b1;
@@ -72,6 +70,11 @@ impl Into<VkImageCreateFlags> for ImageCreateFlags {
     }
 }
 
+impl From<VkImageUsageFlags> for ImageUsageFlags {
+    fn from(value: VkImageUsageFlags) -> Self {
+        Self::from_bits_truncate(value.as_raw())
+    }
+}
 impl Into<VkImageUsageFlags> for ImageUsageFlags {
     fn into(self) -> VkImageUsageFlags {
         VkImageUsageFlags::from_raw(self.bits())

@@ -12,3 +12,8 @@ pub mod commands;
 pub mod shaders;
 pub mod error;
 pub mod sync;
+
+#[cfg(feature = "windowing")]
+pub mod swapchain;
+#[cfg(feature = "windowing")]
+pub mod surface;

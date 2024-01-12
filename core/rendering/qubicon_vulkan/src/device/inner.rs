@@ -1,7 +1,9 @@
 use std::ops::Deref;
+use arrayvec::ArrayVec;
 use ash::{
     Device,
-    vk::DeviceCreateInfo
+    vk::DeviceCreateInfo,
+    extensions::khr::Swapchain
 };
 use crate::{
     instance::physical_device::{
@@ -23,7 +25,8 @@ pub(crate) struct DeviceInner {
 
     pub(crate) queue_usage: Box<[QueueFamilyUsage]>,
 
-    //pub(crate) memory_allocator: (),
+    #[cfg(feature = "windowing")]
+    pub(crate) swapchain: Option<Swapchain>,
 
     pub(crate) physical_device: PhysicalDevice,
     pub(crate) device: Device
@@ -35,6 +38,13 @@ impl DeviceInner {
         physical_device: PhysicalDevice
     ) -> Result<Self, Error> {
         let queue_usage: Box<[QueueFamilyUsage]> = create_info.queues.into();
+
+        let mut enabled_extensions: ArrayVec<_, 4> = ArrayVec::new();
+
+        #[cfg(feature = "windowing")]
+        if create_info.enable_swapchain {
+            enabled_extensions.push("VK_KHR_swapchain\0".as_ptr());
+        }
         
         unsafe {
             let vk_features = create_info.features.into();
@@ -51,8 +61,8 @@ impl DeviceInner {
                     p_queue_create_infos: vk_queues_info.as_ptr(),
                     //enabled_layer_count: (),
                     //pp_enabled_layer_names: (),
-                    //enabled_extension_count: (),
-                    //pp_enabled_extension_names: (),
+                    enabled_extension_count: enabled_extensions.len() as u32,
+                    pp_enabled_extension_names: enabled_extensions.as_ptr().cast(),
                     p_enabled_features: &vk_features,
 
                     ..Default::default()
@@ -63,6 +73,12 @@ impl DeviceInner {
             let properties = physical_device.get_properties();
             let memory_properties = physical_device.get_memory_properties();
 
+            #[cfg(feature = "windowing")]
+            let swapchain = match create_info.enable_swapchain {
+                true => Some(Swapchain::new(&physical_device.instance, &device)),
+                false => None
+            };
+
             Ok(
                 Self {
                     features: create_info.features,
@@ -70,7 +86,8 @@ impl DeviceInner {
                     memory_properties,
 
                     queue_usage,
-                    //memory_allocator: (),
+                    #[cfg(feature = "windowing")]
+                    swapchain,
 
                     physical_device,
                     device

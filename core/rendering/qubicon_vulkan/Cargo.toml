@@ -5,7 +5,7 @@ version = "0.0.0"
 edition = "2021"
 
 [features]
-default = ["validation"]
+default = ["validation", "windowing"]
 
 windowing = []
 validation = []
