@@ -41,7 +41,17 @@ pub enum VkError {
     Unknown,
 
     #[error("invalid shader")]
-    InvalidShader
+    InvalidShader,
+
+    #[cfg(feature = "windowing")]
+    #[error("surface is changed in a way what it is no longer compatible with swapchain")]
+    OutOfDate,
+    #[cfg(feature = "windowing")]
+    #[error("surface is no longer available")]
+    SurfaceLost,
+    #[cfg(feature = "windowing")]
+    #[error("operation in a full-screen swapchain falied(implementation dependent)")]
+    FullScreenExclusiveModeLost
 }
 
 impl TryFrom<VkResult> for VkError {
@@ -70,6 +80,14 @@ impl TryFrom<VkResult> for VkError {
                 VkResult::ERROR_UNKNOWN => Self::Unknown,
 
 
+                #[cfg(feature = "windowing")]
+                VkResult::ERROR_OUT_OF_DATE_KHR => Self::OutOfDate,
+                #[cfg(feature = "windowing")]
+                VkResult::ERROR_SURFACE_LOST_KHR => Self::SurfaceLost,
+                #[cfg(feature = "windowing")]
+                VkResult::ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT => Self::FullScreenExclusiveModeLost,
+
+
                 _ => return Err(())
             }
         )
@@ -87,7 +105,11 @@ pub enum ValidationError {
     #[error("memory object dont support mapping")]
     MemoryMappingNotSupported,
     #[error("provided invalid queue family index")]
-    InvalidQueueFamilyIndex
+    InvalidQueueFamilyIndex,
+    #[error("windowing is not enabled on instance or device")]
+    NoWindowingEnabled,
+    #[error("this object is currently in use")]
+    ObjectInUse
 }
 
 #[derive(Error, Debug, PartialEq, Eq, Hash, Clone, Copy)]

@@ -74,6 +74,13 @@ impl From<VkColorSpace> for ColorSpace {
         }
     }
 }
+impl Into<VkColorSpace> for ColorSpace {
+    fn into(self) -> VkColorSpace {
+        match self {
+            Self::SRGB_Nonlinear => VkColorSpace::SRGB_NONLINEAR
+        }
+    }
+}
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SurfaceFormat {
@@ -109,6 +116,16 @@ impl From<VkPresentMode> for PresentMode {
             VkPresentMode::FIFO_RELAXED => Self::FIFORelaxed,
 
             _ => unreachable!()
+        }
+    }
+}
+impl Into<VkPresentMode> for PresentMode {
+    fn into(self) -> VkPresentMode {
+        match self {
+            Self::Immediate => VkPresentMode::IMMEDIATE,
+            Self::Mailbox => VkPresentMode::MAILBOX,
+            Self::FIFO => VkPresentMode::FIFO,
+            Self::FIFORelaxed => VkPresentMode::FIFO_RELAXED
         }
     }
 }
@@ -157,6 +174,10 @@ pub struct Surface {
 }
 
 impl Surface {
+    pub(crate) unsafe fn as_raw(&self) -> VkSurface {
+        self.surface
+    }
+
     pub fn get_physical_device_surface_capabilities(&self, device: &PhysicalDevice) -> Result<PhysicalDeviceSurfaceCapabilities, Error> {
         unsafe {
             self.instance.surface.as_ref().unwrap_unchecked().get_physical_device_surface_capabilities(device.dev, self.surface)

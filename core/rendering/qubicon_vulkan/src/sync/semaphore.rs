@@ -42,7 +42,7 @@ pub mod types {
 }
 
 
-pub struct Semaphore<Type: types::SemaphoreType> {
+pub struct Semaphore<Type: types::SemaphoreType = types::Binary> {
     device: Arc<DeviceInner>,
     semaphore: VkSemaphore,
 

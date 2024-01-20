@@ -48,6 +48,15 @@ use crate::{
     instance::physical_device::memory_properties::MemoryTypeProperties
 };
 
+#[cfg(feature = "windowing")]
+use crate::{
+    surface::Surface,
+    swapchain::{
+        Swapchain,
+        SwapchainCreationInfo
+    }
+};
+
 use self::create_info::QueueFamilyUsage;
 
 
@@ -189,6 +198,13 @@ impl Device {
 
     pub fn create_semaphore<Type: semaphore_types::SemaphoreType>(&self) -> Result<Semaphore<Type>, Error> {
         Semaphore::create(Arc::clone(&self.inner))
+    }
+
+    #[cfg(feature = "windowing")]
+    /// # Safety
+    /// * *surface* must be a valid Vulkan surface
+    pub unsafe fn create_swapchain_unchecked(&self, surface: Surface, create_info: &SwapchainCreationInfo) -> Result<Swapchain, Error> {
+        Swapchain::create_unchecked(Arc::clone(&self.inner), surface, create_info)
     }
 
     /// # Safety
