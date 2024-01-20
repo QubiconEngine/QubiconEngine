@@ -189,6 +189,7 @@ dependencies = [
 name = "q_input_server"
 version = "0.0.0"
 dependencies = [
+ "arrayvec",
  "evdev",
  "nix 0.27.1",
 ]
