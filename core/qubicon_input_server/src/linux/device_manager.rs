@@ -58,6 +58,12 @@ impl DeviceManager {
         }
     }
 
+    pub fn update_devices_state(&mut self) {
+        for device in self.devices.values_mut() {
+            device.update_state()
+        }
+    }
+
     pub fn update_device_list(&mut self) {
         self.update_event_files_in_init_process();
 

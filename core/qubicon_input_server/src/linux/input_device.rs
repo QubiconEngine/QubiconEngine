@@ -1,4 +1,4 @@
-use evdev::Device;
+use evdev::{Device, DeviceState};
 use std::{io::Result, path::Path};
 
 pub struct InputDevice {
@@ -10,6 +10,15 @@ impl InputDevice {
         let device = Device::open(path)?;
 
         Ok( Self { device } )
+    }
+
+    // TODO: Error handling
+    pub fn update_state(&mut self) {
+        self.device.fetch_events().unwrap();
+    }
+
+    pub fn state(&self) -> &DeviceState {
+        self.device.cached_state()
     }
 
     pub fn name(&self) -> Option<&str> {
