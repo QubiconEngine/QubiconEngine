@@ -1,7 +1,7 @@
 use crate::consts::*;
 
-#[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Relative {
     Reserved = REL_RESERVED,
 
@@ -20,7 +20,20 @@ pub enum Relative {
 
     Dial = REL_DIAL,
     Misc = REL_MISC,
+}
 
-    Max = REL_MAX,
-    Cnt = REL_CNT
+impl Relative {
+    pub const MAX: u16 = REL_MAX;
+
+    /// # Safety
+    /// *value* muse be valid abs value presentable via this enum
+    pub unsafe fn from_raw(value: u16) -> Self {
+        core::mem::transmute(value)
+    }
+}
+
+impl Into<u16> for Relative {
+    fn into(self) -> u16 {
+        unsafe { core::mem::transmute(self) }
+    }
 }

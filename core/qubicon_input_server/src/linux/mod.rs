@@ -1,3 +1,4 @@
+use keymaps::{Abs, Key};
 use std::collections::HashMap;
 
 use self::{device_manager::DeviceManager, input_device::InputDevice};
@@ -10,8 +11,8 @@ mod tests;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventType {
-    Key(evdev::Key),
-    Abs(evdev::AbsoluteAxisType),
+    Key(Key),
+    Abs(Abs),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -47,6 +48,10 @@ impl LinuxInputServer {
         self.device_manager.update_devices_state();
 
         for (_action_name, action_state) in self.input_actions.iter_mut() {
+            // Action force may be not zero from previous update
+            // so we need to reset it. Otherwise action will be always enabled
+            action_state.action_force = 0.0;
+
             for event in action_state.input_events.iter() {
                 let devices: &mut dyn Iterator<Item = &InputDevice>;
 
@@ -56,41 +61,40 @@ impl LinuxInputServer {
 
                 match event.device_id {
                     Some(id) => {
-                        _all_devices = core::iter::once(&self.device_manager[&id]);
+                        _single_device = core::iter::once(&self.device_manager[&id]);
 
-                        devices = &mut _all_devices;
+                        devices = &mut _single_device;
                     },
                     None => {
-                        _single_device = self.device_manager.values();
+                        _all_devices = self.device_manager.values();
 
-                        devices = &mut _single_device
+                        devices = &mut _all_devices
                     }
                 }
 
 
                 for device in devices {
-                    let state = device.state();
+                    let state = device.current_state().unwrap();
 
                     match event.r#type {
-                        EventType::Abs(ty) => {
-                            if let Some(abs) = state.abs_vals() {
-                                let value = abs[ty.0 as usize];
+                        EventType::Abs(_ty) => {
+                            // if let Some(abs) = state.abs_vals() {
+                            //     let value = abs[ty.0 as usize];
 
-                                let max = value.maximum - value.minimum;
-                                let val = value.value - value.minimum;
+                            //     let max = value.maximum - value.minimum;
+                            //     let val = value.value - value.minimum;
 
-                                let value = max as f32 / val as f32;
+                            //     let value = max as f32 / val as f32;
 
-                                if value > event.activation_value {
-                                    action_state.action_force = value;
-                                }
-                            }
+                            //     if value > event.activation_value {
+                            //         action_state.action_force = value;
+                            //     }
+                            // }
                         },
                         EventType::Key(ke) => {
-                            if let Some(key) = state.key_vals() {
-                                action_state.action_force = match key.contains(ke) {
-                                    true => 1.0,
-                                    false => 0.0
+                            if let Some(key_state) = state.key_state() {
+                                if key_state[Into::<u16>::into(ke) as usize] {
+                                    action_state.action_force = 1.0;
                                 }
                             }
                         },

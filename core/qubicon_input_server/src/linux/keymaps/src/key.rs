@@ -1,8 +1,8 @@
 use super::consts::*;
 
-#[repr(u32)]
-#[derive(Debug, Copy, Clone)]
-pub enum KeyboardKey {
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Key {
     Reserved = KEY_RESERVED,
 
     Esc = KEY_ESC,
@@ -229,4 +229,20 @@ pub enum KeyboardKey {
     B = KEY_B,
     N = KEY_N,
     M = KEY_M
+}
+
+impl Key {
+    pub const MAX: u16 = KEY_MAX;
+
+    /// # Safety
+    /// *value* muse be valid abs value presentable via this enum
+    pub unsafe fn from_raw(value: u16) -> Self {
+        core::mem::transmute(value)
+    }
+}
+
+impl Into<u16> for Key {
+    fn into(self) -> u16 {
+        unsafe { core::mem::transmute(self) }
+    }
 }

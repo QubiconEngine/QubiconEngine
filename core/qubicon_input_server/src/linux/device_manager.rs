@@ -60,7 +60,7 @@ impl DeviceManager {
 
     pub fn update_devices_state(&mut self) {
         for device in self.devices.values_mut() {
-            device.update_state()
+            device.update_state().unwrap();
         }
     }
 

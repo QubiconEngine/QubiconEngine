@@ -1,31 +1,22 @@
-#![allow(unused)]
+#![allow(unused, clippy::from_over_into)]
 mod consts;
 
-pub use keyboard_key::KeyboardKey;
+pub use key::Key;
 pub use rel::Relative;
 pub use btn::Button;
 pub use abs::Abs;
+pub use ev::Ev;
 
 use consts::*;
 
-pub mod keyboard_key;
-pub mod btn;
-pub mod abs;
-pub mod rel;
+mod key;
+mod btn;
+mod abs;
+mod rel;
+mod ev;
 
-#[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum State {
     Release = 0,
     Pressed = 1
-}
-
-#[repr(u32)]
-#[derive(Debug, Copy, Clone)]
-pub enum MouseKey {
-    Left = BTN_LEFT,
-    Right = BTN_RIGHT,
-    Middle = BTN_MIDDLE,
-    Side = BTN_SIDE,
-    Extra = BTN_EXTRA
 }

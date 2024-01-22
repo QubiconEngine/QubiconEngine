@@ -1,7 +1,7 @@
 use super::consts::*;
 
-#[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Button {
     Btn0 = BTN_0,
     Btn1 = BTN_1,
@@ -102,4 +102,18 @@ pub enum Button {
     TriggerHappy38 = BTN_TRIGGER_HAPPY38,
     TriggerHappy39 = BTN_TRIGGER_HAPPY39,
     TriggerHappy40 = BTN_TRIGGER_HAPPY40
+}
+
+impl Button {
+    /// # Safety
+    /// *value* muse be valid abs value presentable via this enum
+    pub unsafe fn from_raw(value: u16) -> Self {
+        core::mem::transmute(value)
+    }
+}
+
+impl Into<u16> for Button {
+    fn into(self) -> u16 {
+        unsafe { core::mem::transmute(self) }
+    }
 }

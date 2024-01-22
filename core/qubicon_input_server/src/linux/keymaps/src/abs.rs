@@ -1,7 +1,7 @@
 use super::consts::*;
 
-#[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Abs {
     Reserved = ABS_RESERVED,
 
@@ -50,8 +50,21 @@ pub enum Abs {
     MtPressure = ABS_MT_PRESSURE,
     MtDistance = ABS_MT_DISTANCE,
     MtToolX = ABS_MT_TOOL_X,
-    MtToolY = ABS_MT_TOOL_Y,
+    MtToolY = ABS_MT_TOOL_Y
+}
 
-    Max = ABS_MAX,
-    Cnt = ABS_CNT
+impl Abs {
+    pub const MAX: u16 = ABS_MAX;
+
+    /// # Safety
+    /// *value* muse be valid abs value presentable via this enum
+    pub unsafe fn from_raw(value: u16) -> Self {
+        core::mem::transmute(value)
+    }
+}
+
+impl Into<u16> for Abs {
+    fn into(self) -> u16 {
+        unsafe { core::mem::transmute(self) }
+    }
 }
