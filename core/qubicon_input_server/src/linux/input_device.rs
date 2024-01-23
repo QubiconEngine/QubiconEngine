@@ -94,7 +94,16 @@ mod ioctl {
     }
 }
 
-
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+// pub enum DeviceProperty {
+//     Pointer = 0x00,
+//     Direct = 0x01,
+//     ButtonPad = 0x02,
+//     SemiMT = 0x03,
+//     TopButtonPad = 0x04,
+//     PointingStick = 0x05,
+//     Accelerometer = 0x06
+// }
 
 #[derive(Default, Clone, PartialEq, Eq)]
 pub struct DeviceState {
@@ -111,6 +120,8 @@ impl DeviceState {
         self.abs_state.as_ref()
     }
 }
+
+const EVENT_BUF_CAPACITY: u8 = 16;
 
 // TODO: Add device type from constants
 /// Input device and also an endless iterator over input events!
@@ -130,6 +141,8 @@ pub struct InputDevice {
     supported_rel: Option<BitArr!(for Relative::MAX as usize)>,
 
     current_state: Option<DeviceState>,
+    event_buf: Vec<libc::input_event>,
+    current_event_idx: u8,
 
     grabed: bool
 }
@@ -255,9 +268,18 @@ impl InputDevice {
             None
         };
 
+        // TODO: Delete this shit. This piece of code is here only for one reason: filter out
+        // devices what not a keyboard, gamepad or mouse
+        if supported_abs.is_none() && supported_keys.is_none() && supported_rel.is_none() {
+            // I dont realy care what to return, just filter this shit out
+            return Err(nix::Error::EINVAL)
+        }
+
 
         // All operations are success ! No need for closing file
         core::mem::forget(_final);
+
+        println!("{}", name.as_deref().unwrap());
 
         Ok(
             Self {
@@ -275,10 +297,28 @@ impl InputDevice {
                 supported_rel,
 
                 current_state: None,
+                event_buf: Vec::with_capacity(EVENT_BUF_CAPACITY as usize),
+                current_event_idx: 0,
 
                 grabed: false
             }
         )
+    }
+
+    /// May result in EAGAIN. this signals about what no more events left
+    pub fn next_event(&mut self) -> Result<libc::input_event> {
+        if self.current_event_idx as usize == self.event_buf.len() {
+            self.update_event_buf()?;
+            self.current_event_idx = 0;
+        }
+
+        let event = self.event_buf.get(self.current_event_idx as usize)
+            .copied()
+            .unwrap();
+
+        self.current_event_idx += 1;
+
+        Ok(event)
     }
 
     pub fn update_state(&mut self) -> Result<()> {
@@ -305,6 +345,21 @@ impl InputDevice {
 }
 
 impl InputDevice {
+    fn update_event_buf(&mut self) -> Result<()> {
+        unsafe {
+            let buf = core::slice::from_raw_parts_mut(
+                self.event_buf.as_mut_ptr().cast(),
+                EVENT_BUF_CAPACITY as usize * core::mem::size_of::<libc::input_event>()
+            );
+
+            let len = unistd::read(self.fd, buf)?;
+
+            self.event_buf.set_len(len / core::mem::size_of::<libc::input_event>());
+        }
+
+        Ok(())
+    }
+
     fn construct_state(&self) -> Result<DeviceState> {
         let mut state = DeviceState::default();
 
@@ -343,26 +398,6 @@ impl InputDevice {
         }
 
         Ok(state)
-    }
-}
-
-impl Iterator for InputDevice {
-    type Item = libc::input_event;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        unsafe {
-            let mut buf: libc::input_event = core::mem::zeroed();
-
-            let _ = unistd::read(
-                self.fd,
-                core::slice::from_raw_parts_mut(
-                    (&mut buf as *mut libc::input_event).cast(),
-                    core::mem::size_of::<libc::input_event>()
-                )
-            ).ok()?;
-
-            Some(buf)
-        }
     }
 }
 

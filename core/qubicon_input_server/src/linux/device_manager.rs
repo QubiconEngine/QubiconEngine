@@ -112,10 +112,13 @@ impl DeviceManager {
             // If device is accessible, its initialized and we adding it to hash map
             if unistd::access(file_path.as_str(), unistd::AccessFlags::R_OK | unistd::AccessFlags::W_OK).is_ok() {
                 self.event_files_in_init_process.swap_remove(idx);
-                self.devices.insert(
-                    event_file_id,
-                    InputDevice::open_from(file_path.as_str()).unwrap()
-                );
+
+                if let Ok(device) = InputDevice::open_from(file_path.as_str()) {
+                    let _ = self.devices.insert(
+                        event_file_id,
+                        device
+                    );
+                }
 
                 continue;
             }

@@ -1,18 +1,21 @@
-use keymaps::{Abs, Key};
+use nix::sys;
 use std::collections::HashMap;
+use keymaps::{Relative, Abs, Key, Ev};
 
 use self::{device_manager::DeviceManager, input_device::InputDevice};
 
 pub(crate) mod device_manager;
 pub(crate) mod input_device;
+pub(crate) mod input_event;
 
 #[cfg(test)]
 mod tests;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventType {
-    Key(Key),
+    Key(Key, bool),
     Abs(Abs),
+    Rel(Relative, i32)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -47,6 +50,51 @@ impl LinuxInputServer {
         self.device_manager.update_device_list();
         self.device_manager.update_devices_state();
 
+        self.read_device_events();
+        self.update_actions();
+    }
+
+    pub fn add_input_action(&mut self, action: impl Into<String>, input_events: impl Into<Vec<LinuxInputEvent>>) {
+        self.input_actions.insert(
+            action.into(),
+            ActionState {
+                action_force: 0.0,
+                input_events: input_events.into()
+            }
+        );
+    }
+
+    pub fn is_action_pressed(&self, action: impl AsRef<str>) -> bool {
+        self.input_actions[action.as_ref()].action_force != 0.0
+    }
+
+    pub fn get_action_force(&self, action: impl AsRef<str>) -> f32 {
+        self.input_actions[action.as_ref()].action_force
+    }
+}
+
+impl LinuxInputServer {
+    fn read_device_events(&mut self) {
+        for (&_device_id, device) in self.device_manager.iter_mut() {            
+            while let Ok(event) = device.next_event() {
+                let ev = unsafe { Ev::from_raw(event.type_) };
+                let timeval = sys::time::TimeVal::new(
+                    event.time.tv_sec,
+                    event.time.tv_usec
+                );
+
+                match ev {
+                    Ev::Rel => {},
+                    Ev::Key => {},
+                    Ev::Abs => {},
+
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    fn update_actions(&mut self) {
         for (_action_name, action_state) in self.input_actions.iter_mut() {
             // Action force may be not zero from previous update
             // so we need to reset it. Otherwise action will be always enabled
@@ -95,34 +143,17 @@ impl LinuxInputServer {
                                 }
                             }
                         },
-                        EventType::Key(ke) => {
+                        EventType::Key(ke, st) => {
                             if let Some(key_state) = state.key_state() {
-                                if key_state[Into::<u16>::into(ke) as usize] {
+                                if st == key_state[Into::<u16>::into(ke) as usize] {
                                     action_state.action_force = 1.0;
                                 }
                             }
                         },
+                        EventType::Rel(re, de) => {}
                     }
                 }
             }
         }
-    }
-
-    pub fn add_input_action(&mut self, action: impl Into<String>, input_events: impl Into<Vec<LinuxInputEvent>>) {
-        self.input_actions.insert(
-            action.into(),
-            ActionState {
-                action_force: 0.0,
-                input_events: input_events.into()
-            }
-        );
-    }
-
-    pub fn is_action_pressed(&self, action: impl AsRef<str>) -> bool {
-        self.input_actions[action.as_ref()].action_force != 0.0
-    }
-
-    pub fn get_action_force(&self, action: impl AsRef<str>) -> f32 {
-        self.input_actions[action.as_ref()].action_force
     }
 }

@@ -18,7 +18,7 @@ fn main() {
     loop {
         server.update();
 
-        println!("{}", server.is_action_pressed("left"));
-        println!("{}", server.get_action_force("left"));
+        //println!("{}", server.is_action_pressed("left"));
+        //println!("{}", server.get_action_force("left"));
     }
 }
