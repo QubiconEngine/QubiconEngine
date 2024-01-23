@@ -77,19 +77,23 @@ impl LinuxInputServer {
                     let state = device.current_state().unwrap();
 
                     match event.r#type {
-                        EventType::Abs(_ty) => {
-                            // if let Some(abs) = state.abs_vals() {
-                            //     let value = abs[ty.0 as usize];
+                        EventType::Abs(ty) => {
+                            if let Some(abs) = state.abs_state() {
+                                if !abs.contains_key(&ty) {
+                                    continue;
+                                }
 
-                            //     let max = value.maximum - value.minimum;
-                            //     let val = value.value - value.minimum;
+                                let value = abs[&ty];
 
-                            //     let value = max as f32 / val as f32;
+                                let max = value.maximum - value.minimum;
+                                let val = value.value - value.minimum;
 
-                            //     if value > event.activation_value {
-                            //         action_state.action_force = value;
-                            //     }
-                            // }
+                                let value = val as f32 / max as f32;
+
+                                if value > event.activation_value {
+                                    action_state.action_force = value;
+                                }
+                            }
                         },
                         EventType::Key(ke) => {
                             if let Some(key_state) = state.key_state() {

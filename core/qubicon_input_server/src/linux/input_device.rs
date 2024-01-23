@@ -1,8 +1,8 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 use arrayvec::ArrayString;
 
 use bitvec::{bitarr, BitArr};
-use keymaps::{State, Relative, Key, Abs, Ev};
+use keymaps::{Relative, Key, Abs, Ev};
 use nix::{libc, unistd, fcntl, sys, Result};
 
 #[allow(dead_code)]
@@ -96,15 +96,19 @@ mod ioctl {
 
 
 
-#[derive(Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, PartialEq, Eq)]
 pub struct DeviceState {
-    //abs_state: Option<Box<()>>,
+    abs_state: Option<HashMap<Abs, libc::input_absinfo>>,
     key_state: Option<Box<BitArr!(for Key::MAX as usize)>>
 }
 
 impl DeviceState {
     pub fn key_state(&self) -> Option<&BitArr!(for Key::MAX as usize)> {
         self.key_state.as_deref()
+    }
+
+    pub fn abs_state(&self) -> Option<&HashMap<Abs, libc::input_absinfo>> {
+        self.abs_state.as_ref()
     }
 }
 
@@ -304,6 +308,7 @@ impl InputDevice {
     fn construct_state(&self) -> Result<DeviceState> {
         let mut state = DeviceState::default();
 
+        // Key
         if self.supported_events[Into::<u16>::into(Ev::Key) as usize] {
             let mut keys = Box::new(bitarr!(0; Key::MAX as usize));
 
@@ -316,6 +321,25 @@ impl InputDevice {
             }
 
             state.key_state = Some(keys);
+        }
+        // Abs
+        if self.supported_events[Into::<u16>::into(Ev::Abs) as usize] {
+            let map = self.supported_abs.unwrap().iter()
+                .enumerate()
+                .filter(| (_, b) | **b)
+                .map(| (i, _) | unsafe { Abs::from_raw(i as u16) })
+                .map(| abs | {
+                    unsafe {
+                        let mut abs_info = core::mem::zeroed();
+
+                        // I dont know what to do here. Maybe this code won`t trigger UB
+                        let _ = ioctl::eviocgabs(self.fd, abs.into(), &mut abs_info);
+
+                        (abs, abs_info)
+                    }
+                }).collect();
+
+            state.abs_state = Some(map);
         }
 
         Ok(state)

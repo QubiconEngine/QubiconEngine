@@ -1,16 +1,16 @@
-use keymaps::Key;
+use keymaps::Abs;
 use q_input_server::{LinuxInputServer, LinuxInputEvent, EventType};
 
 fn main() {
     let mut server = LinuxInputServer::new();
 
     server.add_input_action(
-        "space_press",
+        "left",
         [
             LinuxInputEvent {
                 device_id: None,
-                r#type: EventType::Key(Key::Space),
-                activation_value: 0.0
+                r#type: EventType::Abs(Abs::LX),
+                activation_value: 0.55
             }
         ]
     );
@@ -18,7 +18,7 @@ fn main() {
     loop {
         server.update();
 
-        println!("{}", server.is_action_pressed("space_press"));
-        println!("{}", server.get_action_force("space_press"));
+        println!("{}", server.is_action_pressed("left"));
+        println!("{}", server.get_action_force("left"));
     }
 }
