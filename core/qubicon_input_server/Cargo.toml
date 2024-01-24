@@ -11,5 +11,6 @@ arrayvec = "0.7"
 nix = "0.27"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+udev = "0.8"
+nix = { features = ["fs", "ioctl"] }
 keymaps = {path = "src/linux/keymaps"}
-nix = { features = ["fs", "inotify", "ioctl"] }

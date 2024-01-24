@@ -1,25 +1,21 @@
+use nix::unistd;
 use arrayvec::ArrayString;
-use nix::{
-    unistd,
-    sys::inotify
-};
 use std::{
     collections::HashMap,
     os::unix::ffi::OsStrExt,
     ops::{
         Deref,
         DerefMut
-    }, fmt::Write
+    },
+    fmt::Write
 };
 
 use crate::input_device::InputDevice;
 
 pub struct DeviceManager {
     devices: HashMap<u16, InputDevice>,
-    notify: inotify::Inotify,
-    input_dir_desc: inotify::WatchDescriptor,
-
-    event_files_in_init_process: Vec<u16>
+    
+    udev_monitor: udev::MonitorSocket
 }
 
 
@@ -41,20 +37,16 @@ impl DeviceManager {
             
             .collect();
 
-        let notify = inotify::Inotify::init(
-            inotify::InitFlags::IN_NONBLOCK
-        ).unwrap();
-
-        let input_dir_desc = notify.add_watch(
-            "/dev/input",
-            inotify::AddWatchFlags::IN_CREATE | inotify::AddWatchFlags::IN_DELETE
-        ).unwrap();
+        let udev_monitor = udev::MonitorBuilder::new()
+            .unwrap()
+            .match_subsystem("input")
+            .unwrap()
+            .listen()
+            .unwrap();
 
         Self {
             devices,
-            notify,
-            input_dir_desc,
-            event_files_in_init_process: Vec::new()
+            udev_monitor
         }
     }
 
@@ -65,66 +57,33 @@ impl DeviceManager {
     }
 
     pub fn update_device_list(&mut self) {
-        self.update_event_files_in_init_process();
+        // let events = match self.notify.read_events() {
+        //     Ok(e) => e,
+        //     Err(_) => return,
+        // };
 
-        let events = match self.notify.read_events() {
-            Ok(e) => e,
-            Err(_) => return,
-        };
+        // let events = events.into_iter()
+        //     .filter(| e | junk::is_event_file(e.name.as_ref().unwrap().as_bytes()))
+        //     .map(| e | (
+        //         junk::extract_id_from_file_name(e.name.unwrap().to_str().unwrap()),
+        //         e.mask
+        //     ));
 
-        let events = events.into_iter()
-            .filter(| e | junk::is_event_file(e.name.as_ref().unwrap().as_bytes()))
-            .map(| e | (
-                junk::extract_id_from_file_name(e.name.unwrap().to_str().unwrap()),
-                e.mask
-            ));
+        // for (file_id, ev_type) in events {
+        //     match ev_type {
+        //         // New device is connected, we put it onto a waiting list until it initialized
+        //         inotify::AddWatchFlags::IN_CREATE => {
+        //             self.event_files_in_init_process.push(file_id)
+        //         },
+        //         // Some device is removed. If it contained in our hash map, delete
+        //         inotify::AddWatchFlags::IN_DELETE => {
+        //             let _ = self.devices.remove(&file_id);
+        //         },
 
-        for (file_id, ev_type) in events {
-            match ev_type {
-                // New device is connected, we put it onto a waiting list until it initialized
-                inotify::AddWatchFlags::IN_CREATE => {
-                    self.event_files_in_init_process.push(file_id)
-                },
-                // Some device is removed. If it contained in our hash map, delete
-                inotify::AddWatchFlags::IN_DELETE => {
-                    let _ = self.devices.remove(&file_id);
-                },
-
-                // Linux cant give us events with type what we not provided in descriptor mask
-                _ => unreachable!()
-            }
-        }
-    }
-
-
-
-    // Shit code
-    fn update_event_files_in_init_process(&mut self) {
-        let mut idx = 0;
-
-        while idx < self.event_files_in_init_process.len() {
-            let event_file_id = self.event_files_in_init_process[idx];
-            let mut file_path = ArrayString::<256>::new();
-
-            file_path.write_fmt(format_args!("/dev/input/event{event_file_id}"))
-                .unwrap();
-
-            // If device is accessible, its initialized and we adding it to hash map
-            if unistd::access(file_path.as_str(), unistd::AccessFlags::R_OK | unistd::AccessFlags::W_OK).is_ok() {
-                self.event_files_in_init_process.swap_remove(idx);
-
-                if let Ok(device) = InputDevice::open_from(file_path.as_str()) {
-                    let _ = self.devices.insert(
-                        event_file_id,
-                        device
-                    );
-                }
-
-                continue;
-            }
-            
-            idx += 1;
-        }
+        //         // Linux cant give us events with type what we not provided in descriptor mask
+        //         _ => unreachable!()
+        //     }
+        // }
     }
 }
 
