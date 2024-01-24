@@ -5,6 +5,89 @@ use bitvec::{bitarr, BitArr};
 use keymaps::{Relative, Key, Abs, Ev};
 use nix::{libc, unistd, fcntl, sys, Result};
 
+mod check_sets {
+    use bitvec::BitArr;
+    use keymaps::{Relative, Key, Abs, Ev};
+
+    pub fn gamepad(
+        supported_abs: Option<&BitArr!(for Abs::MAX as usize)>,
+        supported_keys: Option<&BitArr!(for Key::MAX as usize)>
+    ) -> bool {
+        const KEY_LIST: &[Key] = &[
+            Key::BtnA,
+            Key::BtnB,
+            Key::BtnY,
+            Key::BtnX
+        ];
+        const ABS_LIST: &[Abs] = &[
+            // Left stick
+            Abs::LX,
+            Abs::LY,
+
+            // Right stick
+            Abs::RX,
+            Abs::RY
+        ];
+
+
+        let supported_keys = match supported_keys {
+            Some(s) => s,
+            None => return false
+        };
+        let supported_abs = match supported_abs {
+            Some(s) => s,
+            None => return false
+        };
+
+        let keys = KEY_LIST.iter()
+            .all(| &key | supported_keys[Into::<u16>::into(key) as usize]);
+
+        let abs = ABS_LIST.iter()
+            .all(| &abs | supported_abs[Into::<u16>::into(abs) as usize]);
+
+        keys & abs
+    }
+
+    pub fn keyboard(
+        supported_ev: &BitArr!(for Ev::MAX as usize),
+        supported_keys: Option<&BitArr!(for Key::MAX as usize)>
+    ) -> bool {
+        supported_ev[Into::<u16>::into(Ev::Rep) as usize] && supported_keys.is_some()
+    }
+
+    pub fn mouse(
+        supported_keys: Option<&BitArr!(for Key::MAX as usize)>,
+        supported_rel: Option<&BitArr!(for Relative::MAX as usize)>
+    ) -> bool {
+        const KEY_LIST: &[Key] = &[
+            Key::BtnLeft,
+            Key::BtnRight
+        ];
+        const REL_LIST: &[Relative] = &[
+            Relative::X,
+            Relative::Y
+        ];
+
+        
+        let supported_keys = match supported_keys {
+            Some(s) => s,
+            None => return false
+        };
+        let supported_rel = match supported_rel {
+            Some(s) => s,
+            None => return false
+        };
+
+        let keys = KEY_LIST.iter()
+            .all(| &key | supported_keys[Into::<u16>::into(key) as usize]);
+
+        let rel = REL_LIST.iter()
+            .all(| &rel | supported_rel[Into::<u16>::into(rel) as usize]);
+
+        keys & rel
+    }
+}
+
 #[allow(dead_code)]
 mod ioctl {
     use nix::libc;
@@ -128,9 +211,9 @@ const EVENT_BUF_CAPACITY: u8 = 16;
 pub struct InputDevice {
     fd: i32,
 
-    name: Option<String>,
+    name: String,
+    physical_path: String,
     unique_name: Option<String>,
-    physical_path: Option<String>,
 
     device_id: libc::input_id,
     driver_version: i32,
@@ -150,7 +233,7 @@ pub struct InputDevice {
 impl InputDevice {
     // Message for future me: add final fn to handle fd closing
     pub fn open_from(path: impl AsRef<Path>) -> Result<Self> {
-        fn with_string_buffer<const CAP: usize>(op: impl Fn(&mut [u8]) -> bool) -> Option<String> {
+        fn with_string_buffer<const CAP: usize>(op: impl Fn(&mut [u8]) -> Result<libc::c_int>) -> Result<String> {
             // If result string greater than CAP, we are in a big trouble
             let mut buf = ArrayString::<CAP>::new();
 
@@ -160,14 +243,12 @@ impl InputDevice {
                     CAP
                 );
 
-                if op(slice) {
-                    buf.set_len(libc::strlen(slice.as_ptr().cast()));
+                op(slice)?;
 
-                    Some(buf.to_string())
-                } else {
-                    None
-                }
+                buf.set_len(libc::strlen(slice.as_ptr().cast()));
             }
+
+            Ok(buf.to_string())
         }
         fn with_type_buffer<T: Sized, R>(op: impl Fn(*mut T) -> Result<R>) -> Result<T> {
             unsafe {
@@ -197,9 +278,9 @@ impl InputDevice {
         let _final = Final(fd);
 
 
-        let name = with_string_buffer::<256>(| buf | unsafe { ioctl::eviocgname(fd, buf).is_ok() });
-        let unique_name = with_string_buffer::<256>(| buf | unsafe { ioctl::eviocguniq(fd, buf).is_ok() });
-        let physical_path = with_string_buffer::<256>(| buf | unsafe { ioctl::eviocgphys(fd, buf).is_ok() });
+        let name = with_string_buffer::<256>(| buf | unsafe { ioctl::eviocgname(fd, buf) })?;
+        let physical_path = with_string_buffer::<256>(| buf | unsafe { ioctl::eviocgphys(fd, buf) })?;
+        let unique_name = with_string_buffer::<256>(| buf | unsafe { ioctl::eviocguniq(fd, buf) }).ok();
 
         let driver_version = with_type_buffer::<i32, _>(| data | unsafe { ioctl::eviocgversion(fd, data) })?;
         let device_id = with_type_buffer::<libc::input_id, _>(| data | unsafe { ioctl::eviocgid(fd, data) })?;
@@ -270,16 +351,16 @@ impl InputDevice {
 
         // TODO: Delete this shit. This piece of code is here only for one reason: filter out
         // devices what not a keyboard, gamepad or mouse
-        if supported_abs.is_none() && supported_keys.is_none() && supported_rel.is_none() {
+        if !check_sets::keyboard(&supported_events, supported_keys.as_ref()) &&
+           !check_sets::gamepad(supported_abs.as_ref(), supported_keys.as_ref()) &&
+           !check_sets::mouse(supported_keys.as_ref(), supported_rel.as_ref())
+        {
             // I dont realy care what to return, just filter this shit out
             return Err(nix::Error::EINVAL)
         }
 
-
         // All operations are success ! No need for closing file
         core::mem::forget(_final);
-
-        println!("{}", name.as_deref().unwrap());
 
         Ok(
             Self {
@@ -331,16 +412,16 @@ impl InputDevice {
         self.current_state.as_ref()
     }
 
-    pub fn name(&self) -> Option<&str> {
-        self.name.as_deref()
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn physical_path(&self) -> &str {
+        &self.physical_path
     }
 
     pub fn unique_name(&self) -> Option<&str> {
         self.unique_name.as_deref()
-    }
-
-    pub fn physical_path(&self) -> Option<&str> {
-        self.physical_path.as_deref()
     }
 }
 
