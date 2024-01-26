@@ -33,8 +33,7 @@ pub enum ActionEventType {
 pub struct ActionInputEntry {
     /// If None, then event from any device will count
     pub device_id: Option<u16>,
-    pub r#type: ActionEventType,
-    pub activation_value: f32
+    pub r#type: ActionEventType
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]

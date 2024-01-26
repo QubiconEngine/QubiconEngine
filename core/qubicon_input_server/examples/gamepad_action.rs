@@ -9,13 +9,11 @@ fn main() {
         [
             ActionInputEntry {
                 device_id: None,
-                r#type: ActionEventType::Abs{ abs: Abs::LX, range: 0.0..1.1},
-                activation_value: 0.55
+                r#type: ActionEventType::Abs{ abs: Abs::LX, range: 0.0..1.1}
             },
             ActionInputEntry {
                 device_id: None,
-                r#type: ActionEventType::Key { key: Key::D, pressed: true },
-                activation_value: 1.0
+                r#type: ActionEventType::Key { key: Key::D, pressed: true }
             }
         ]
     );
