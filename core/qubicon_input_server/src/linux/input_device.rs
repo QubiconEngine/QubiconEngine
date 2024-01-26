@@ -6,11 +6,14 @@ use keymaps::{Relative, Key, Abs, Ev};
 use nix::{libc, unistd, fcntl, sys, Result};
 
 mod check_sets {
+    use super::AbsInfo;
+    use std::collections::HashMap;
+
     use bitvec::BitArr;
     use keymaps::{Relative, Key, Abs, Ev};
 
     pub fn gamepad(
-        supported_abs: Option<&BitArr!(for Abs::MAX as usize)>,
+        supported_abs: Option<&HashMap<Abs, AbsInfo>>,
         supported_keys: Option<&BitArr!(for Key::MAX as usize)>
     ) -> bool {
         const KEY_LIST: &[Key] = &[
@@ -43,7 +46,7 @@ mod check_sets {
             .all(| &key | supported_keys[Into::<u16>::into(key) as usize]);
 
         let abs = ABS_LIST.iter()
-            .all(| &abs | supported_abs[Into::<u16>::into(abs) as usize]);
+            .all(| abs | supported_abs.contains_key(abs));
 
         keys & abs
     }
@@ -188,19 +191,25 @@ mod ioctl {
 //     Accelerometer = 0x06
 // }
 
-#[derive(Default, Clone, PartialEq, Eq)]
-pub struct DeviceState {
-    abs_state: Option<HashMap<Abs, libc::input_absinfo>>,
-    key_state: Option<Box<BitArr!(for Key::MAX as usize)>>
+// libc::input_absinfo without value field
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AbsInfo {
+    pub min: i32,
+    pub max: i32,
+    pub res: i32,
+    pub fuzz: i32,
+    pub flat: i32
 }
 
-impl DeviceState {
-    pub fn key_state(&self) -> Option<&BitArr!(for Key::MAX as usize)> {
-        self.key_state.as_deref()
-    }
-
-    pub fn abs_state(&self) -> Option<&HashMap<Abs, libc::input_absinfo>> {
-        self.abs_state.as_ref()
+impl From<libc::input_absinfo> for AbsInfo {
+    fn from(value: libc::input_absinfo) -> Self {
+        Self {
+            min: value.minimum,
+            max: value.maximum,
+            res: value.resolution,
+            fuzz: value.fuzz,
+            flat: value.flat
+        }
     }
 }
 
@@ -219,11 +228,10 @@ pub struct InputDevice {
     driver_version: i32,
 
     supported_events: BitArr!(for Ev::MAX as usize),
-    supported_abs: Option<BitArr!(for Abs::MAX as usize)>,
+    supported_abs: Option<HashMap<Abs, AbsInfo>>,
     supported_keys: Option<BitArr!(for Key::MAX as usize)>,
     supported_rel: Option<BitArr!(for Relative::MAX as usize)>,
 
-    current_state: Option<DeviceState>,
     event_buf: Vec<libc::input_event>,
     current_event_idx: u8,
 
@@ -312,7 +320,22 @@ impl InputDevice {
                 )?;
             }
 
-            Some(buf)
+            let abs: HashMap<_, _> = buf
+                .into_iter()
+                .enumerate()
+                .map(| (abs, s) | (unsafe { Abs::from_raw(abs as u16) }, s))
+                .filter_map(| (abs, s) | s.then(|| abs))
+                .filter_map(| abs | {
+                    let mut abs_into_raw: core::mem::MaybeUninit<libc::input_absinfo> = core::mem::MaybeUninit::uninit();
+
+                    unsafe { ioctl::eviocgabs(fd, abs.into(), abs_into_raw.as_mut_ptr()) }
+                        .ok()?; // If call failed, return
+
+                    Some((abs, unsafe { abs_into_raw.assume_init() }.into()))
+                })
+                .collect();
+
+            Some(abs)
         } else {
             None
         };
@@ -377,7 +400,6 @@ impl InputDevice {
                 supported_keys,
                 supported_rel,
 
-                current_state: None,
                 event_buf: Vec::with_capacity(EVENT_BUF_CAPACITY as usize),
                 current_event_idx: 0,
 
@@ -387,6 +409,7 @@ impl InputDevice {
     }
 
     /// May result in EAGAIN. this signals about what no more events left
+    /// For some strange reason ignores some events
     pub fn next_event(&mut self) -> Result<libc::input_event> {
         if self.current_event_idx as usize == self.event_buf.len() {
             self.update_event_buf()?;
@@ -402,14 +425,20 @@ impl InputDevice {
         Ok(event)
     }
 
-    pub fn update_state(&mut self) -> Result<()> {
-        self.current_state = Some(self.construct_state()?);
-
-        Ok(())
+    pub fn supported_events(&self) -> &BitArr!(for Ev::MAX as usize) {
+        &self.supported_events
     }
 
-    pub fn current_state(&self) -> Option<&DeviceState> {
-        self.current_state.as_ref()
+    pub fn supported_abs(&self) -> Option<&HashMap<Abs, AbsInfo>> {
+        self.supported_abs.as_ref()
+    }
+
+    pub fn supported_keys(&self) -> Option<&BitArr!(for Key::MAX as usize)> {
+        self.supported_keys.as_ref()
+    }
+
+    pub fn supported_rel(&self) -> Option<&BitArr!(for Relative::MAX as usize)> {
+        self.supported_rel.as_ref()
     }
 
     pub fn name(&self) -> &str {
@@ -439,46 +468,6 @@ impl InputDevice {
         }
 
         Ok(())
-    }
-
-    fn construct_state(&self) -> Result<DeviceState> {
-        let mut state = DeviceState::default();
-
-        // Key
-        if self.supported_events[Into::<u16>::into(Ev::Key) as usize] {
-            let mut keys = Box::new(bitarr!(0; Key::MAX as usize));
-
-            unsafe {
-                ioctl::eviocgkey(
-                    self.fd,
-                    Key::MAX as usize,
-                    keys.as_mut_bitptr().pointer().cast()
-                )?;
-            }
-
-            state.key_state = Some(keys);
-        }
-        // Abs
-        if self.supported_events[Into::<u16>::into(Ev::Abs) as usize] {
-            let map = self.supported_abs.unwrap().iter()
-                .enumerate()
-                .filter(| (_, b) | **b)
-                .map(| (i, _) | unsafe { Abs::from_raw(i as u16) })
-                .map(| abs | {
-                    unsafe {
-                        let mut abs_info = core::mem::zeroed();
-
-                        // I dont know what to do here. Maybe this code won`t trigger UB
-                        let _ = ioctl::eviocgabs(self.fd, abs.into(), &mut abs_info);
-
-                        (abs, abs_info)
-                    }
-                }).collect();
-
-            state.abs_state = Some(map);
-        }
-
-        Ok(state)
     }
 }
 

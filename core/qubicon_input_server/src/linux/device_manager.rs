@@ -1,7 +1,9 @@
 use arrayvec::ArrayString;
 use nix::{
+    dir,
+    fcntl,
     unistd,
-    sys::inotify
+    sys::{stat, inotify}
 };
 use std::{
     collections::HashMap,
@@ -32,43 +34,51 @@ pub struct DeviceManager {
 
 // TODO: Error handling
 impl DeviceManager {
-    #[allow(all)]
-    pub fn new() -> Self {
-        let devices: HashMap<_, _> = std::fs::read_dir("/dev/input")
-            .unwrap()
-            .filter_map(| d | d.ok())
-            
-            .filter(| d | junk::is_event_file(d.file_name().as_bytes()))
-            .filter_map(| d | Some(
-                (
-                    junk::extract_id_from_file_name(d.file_name().to_str().unwrap()),
-                    InputDevice::open_from(d.path()).ok()?
-                )
-            ))
+    pub fn new() -> nix::Result<Self> {
+        let devices: HashMap<_, _> = dir::Dir::open("/dev/input", fcntl::OFlag::O_RDONLY, stat::Mode::S_IRGRP)?
+            .into_iter()
+            .filter_map(| e | e.ok())
+
+            .filter_map(| e | {
+                let file_name = e.file_name();
+
+                if !junk::is_event_file(file_name.to_bytes()) {
+                    return None;
+                }
+
+                let file_name = file_name.to_str().ok()?;
+                let file_id = junk::extract_id_from_file_name(file_name);
+
+                let path = {
+                    let mut buf = ArrayString::<256>::new();
+
+                    buf.write_fmt(format_args!("/dev/input/{file_name}")).unwrap();
+
+                    buf
+                };
+
+                Some((file_id, InputDevice::open_from(path.as_str()).ok()?))
+            })
             
             .collect();
 
         let notify = inotify::Inotify::init(
             inotify::InitFlags::IN_NONBLOCK
-        ).unwrap();
+        )?;
 
         let input_dir_desc = notify.add_watch(
             "/dev/input",
             inotify::AddWatchFlags::IN_CREATE | inotify::AddWatchFlags::IN_DELETE
-        ).unwrap();
+        )?;
 
-        Self {
-            devices,
-            notify,
-            input_dir_desc,
-            event_files_in_init_process: Vec::new()
-        }
-    }
-
-    pub fn update_devices_state(&mut self) {
-        for device in self.devices.values_mut() {
-            device.update_state().unwrap();
-        }
+        Ok(
+            Self {
+                devices,
+                notify,
+                input_dir_desc,
+                event_files_in_init_process: Vec::new()
+            }
+        )
     }
 
     pub fn update_device_list(&mut self) {
@@ -177,7 +187,7 @@ impl DerefMut for DeviceManager {
 // Idk how to write this in another way
 mod junk {
     // Takes linux file name as slice of bytes
-    // This code cant normaly operate on OsStr
+    // This code cant normaly operate on OsStr and CStr
     pub(super) fn is_event_file(name: &[u8]) -> bool {
         name.starts_with("event".as_bytes())
     }

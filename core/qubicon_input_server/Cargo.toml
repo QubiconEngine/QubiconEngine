@@ -6,10 +6,11 @@ edition = "2021"
 [dependencies]
 bitvec = "1.0"
 arrayvec = "0.7"
+# thiserror = "1.0"
 
 [target.'cfg(unix)'.dependencies]
 nix = "0.27"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 keymaps = {path = "src/linux/keymaps"}
-nix = { features = ["fs", "inotify", "ioctl"] }
+nix = { features = ["fs", "dir", "ioctl", "inotify"] }
