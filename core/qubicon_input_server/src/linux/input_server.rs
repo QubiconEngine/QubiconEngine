@@ -4,7 +4,7 @@ use std::ops::Range;
 use std::collections::HashMap;
 use keymaps::{Relative, Abs, Key, Ev};
 
-use super::{device_manager::DeviceManager, device_state::DeviceState, input_device::InputDevice};
+use super::{device_manager::DeviceManager, device_state::DeviceState};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InputEventData {
