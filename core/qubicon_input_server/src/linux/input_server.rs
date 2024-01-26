@@ -154,7 +154,7 @@ impl LinuxInputServer {
             action_state.action_force = 0.0;
 
             for event in action_state.input_events.iter() {
-                let devices: &mut dyn Iterator<Item = (u16, &InputDevice)>;
+                let devices: &mut dyn Iterator<Item = u16>;
 
 
                 let mut _all_devices;
@@ -162,20 +162,19 @@ impl LinuxInputServer {
 
                 match event.device_id {
                     Some(id) => {
-                        _single_device = core::iter::once((id, &self.device_manager[&id]));
+                        _single_device = core::iter::once(id);
 
                         devices = &mut _single_device;
                     },
                     None => {
-                        _all_devices = self.device_manager.iter()
-                            .map(| (&id, dev) | (id, dev));
+                        _all_devices = self.device_manager.keys().copied();
 
                         devices = &mut _all_devices
                     }
                 }
 
 
-                for (device_id, _) in devices {
+                for device_id in devices {
                     let state = &self.devices_state[&device_id];
 
                     match event.r#type.clone() {
