@@ -9,7 +9,7 @@ fn main() {
         [
             ActionInputEntry {
                 device_id: None,
-                r#type: ActionEventType::Abs{ abs: Abs::LX, range: 0.0..1.1}
+                r#type: ActionEventType::Abs { abs: Abs::LX, range: 0.0..1.1 }
             },
             ActionInputEntry {
                 device_id: None,
@@ -19,12 +19,8 @@ fn main() {
     );
 
     loop {
-        // server.read_device_events(| event | println!("{event:?}"));
-        // server.update_actions();
-
         server.update(| ev | println!("{ev:?}"));
 
-        //println!("{}", server.is_action_pressed("left"));
-        //println!("{}", server.get_action_force("left"));
+        println!("{} - {}", server.is_action_pressed("left"), server.get_action_force("left"));
     }
 }

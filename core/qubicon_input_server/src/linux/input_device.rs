@@ -239,7 +239,6 @@ pub struct InputDevice {
 }
 
 impl InputDevice {
-    // Message for future me: add final fn to handle fd closing
     pub fn open_from(path: impl AsRef<Path>) -> Result<Self> {
         fn with_string_buffer<const CAP: usize>(op: impl Fn(&mut [u8]) -> Result<libc::c_int>) -> Result<String> {
             // If result string greater than CAP, we are in a big trouble
@@ -409,7 +408,6 @@ impl InputDevice {
     }
 
     /// May result in EAGAIN. this signals about what no more events left
-    /// For some strange reason ignores some events
     pub fn next_event(&mut self) -> Result<libc::input_event> {
         if self.current_event_idx as usize == self.event_buf.len() {
             self.update_event_buf()?;
