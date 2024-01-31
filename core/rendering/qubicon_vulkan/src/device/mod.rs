@@ -152,36 +152,36 @@ impl Device {
         )
     }
 
-    pub fn create_raw_buffer(&self, create_info: &BufferCreateInfo) -> Result<Arc<RawBuffer>, Error> {
+    pub fn create_raw_buffer(&self, create_info: &BufferCreateInfo) -> Result<RawBuffer, Error> {
         RawBuffer::create(
             Arc::clone(&self.inner),
             create_info
-        ).map(Arc::new)
+        )
     }
 
-    pub fn create_buffer<A: DeviceMemoryAllocator>(&self, allocator: Arc<A>, memory_properties: MemoryTypeProperties, create_info: &BufferCreateInfo) -> Result<Arc<Buffer<A>>, ResourceCreationError<A::AllocError>> {
+    pub fn create_buffer<A: DeviceMemoryAllocator>(&self, allocator: Arc<A>, memory_properties: MemoryTypeProperties, create_info: &BufferCreateInfo) -> Result<Buffer<A>, ResourceCreationError<A::AllocError>> {
         Buffer::create_and_allocate(
             Arc::clone(&self.inner),
             allocator,
             memory_properties,
             create_info
-        ).map(Arc::new)
+        )
     }
 
-    pub fn create_raw_image(&self, create_info: &ImageCreateInfo) -> Result<Arc<RawImage>, Error> {
+    pub fn create_raw_image(&self, create_info: &ImageCreateInfo) -> Result<RawImage, Error> {
         RawImage::create(
             Arc::clone(&self.inner),
             create_info
-        ).map(Arc::new)
+        )
     }
 
-    pub fn create_image<A: DeviceMemoryAllocator>(&self, allocator: Arc<A>, memory_properties: MemoryTypeProperties, create_info: ImageCreateInfo) -> Result<Arc<Image<A>>, ResourceCreationError<A::AllocError>> {
+    pub fn create_image<A: DeviceMemoryAllocator>(&self, allocator: Arc<A>, memory_properties: MemoryTypeProperties, create_info: ImageCreateInfo) -> Result<Image<A>, ResourceCreationError<A::AllocError>> {
         Image::create_and_allocate(
             Arc::clone(&self.inner),
             allocator,
             memory_properties,
             create_info
-        ).map(Arc::new)
+        )
     }
 
     

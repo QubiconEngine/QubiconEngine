@@ -4,6 +4,7 @@ pub use device_memory::DeviceMemoryObject;
 
 pub mod error;
 pub mod device_memory;
+pub mod hollow_device_memory_allocator;
 pub mod standart_device_memory_allocator;
 
 pub unsafe trait MapGuard<'a> {

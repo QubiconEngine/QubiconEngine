@@ -18,7 +18,7 @@ use crate::{
     Error,
     error::VkError,
 };
-use super::{image::Image, format::Format};
+use super::{image::{Image, ImageInner}, format::Format};
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -167,7 +167,7 @@ pub struct ImageViewCreateInfo {
 }
 
 pub struct ImageView<A: DeviceMemoryAllocator> {
-    image: Arc<Image<A>>,
+    image: Arc<ImageInner<A>>,
     image_view: VkImageView,
 
     create_info: ImageViewCreateInfo
@@ -178,9 +178,10 @@ impl<A: DeviceMemoryAllocator> ImageView<A> {
     /// * Format size of image view should match format size of original image
     /// * If view type is Cube, then original image should be created with cube compatiple flag
     pub(crate) unsafe fn create_unchecked(
-        image: Arc<Image<A>>,
+        image: &Image<A>,
         create_info: &ImageViewCreateInfo
     ) -> Result<Arc<Self>, Error> {
+        let image = Arc::clone(image.as_inner());
         let create_info = create_info.clone();
 
         let image_view = image.device.create_image_view(

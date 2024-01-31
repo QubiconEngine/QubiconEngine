@@ -5,7 +5,7 @@ use ash::vk::{
 };
 
 use crate::{memory::alloc::DeviceMemoryAllocator, Error, error::VkError};
-use super::{buffer::Buffer, format::Format};
+use super::{buffer::{Buffer, BufferInner}, format::Format};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BufferViewCreateInfo {
@@ -23,7 +23,7 @@ impl Default for BufferViewCreateInfo {
 }
 
 pub struct BufferView<A: DeviceMemoryAllocator> {
-    buffer: Arc<Buffer<A>>,
+    buffer: Arc<BufferInner<A>>,
     buffer_view: VkBufferView,
 
     create_info: BufferViewCreateInfo
@@ -34,9 +34,10 @@ impl<A: DeviceMemoryAllocator> BufferView<A> {
     /// * Range should be in bounds of buffer, be multiple of format size and countain at least one element
     /// * Buffer should have one of Texel usage flags
     pub(crate) unsafe fn create_unchecked(
-        buffer: Arc<Buffer<A>>,
+        buffer: &Buffer<A>,
         create_info: &BufferViewCreateInfo
     ) -> Result<Arc<Self>, Error> {
+        let buffer = Arc::clone(buffer.as_inner());
         let create_info = create_info.clone();
 
         let buffer_view = buffer.device.create_buffer_view(
