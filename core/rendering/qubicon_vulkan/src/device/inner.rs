@@ -39,7 +39,7 @@ impl DeviceInner {
     ) -> Result<Self, Error> {
         let queue_usage: Box<[QueueFamilyUsage]> = create_info.queues.into();
 
-        let mut enabled_extensions: ArrayVec<_, 4> = ArrayVec::new();
+        let mut enabled_extensions: ArrayVec<*const u8, 4> = ArrayVec::new();
 
         #[cfg(feature = "windowing")]
         if create_info.enable_swapchain {

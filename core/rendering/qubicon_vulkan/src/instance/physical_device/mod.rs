@@ -74,6 +74,38 @@ impl PhysicalDevice {
     }
 }
 
+impl PhysicalDevice {
+    #[cfg(feature = "x11")]
+    /// # Safety
+    /// * *display* must be valid X object, *visual_id* must be valid value
+    pub unsafe fn get_x_presentation_support(
+        &self,
+        queue_family_index: u32,
+        display: *mut x11::xlib::Display,
+        visual_id: x11::xlib::VisualID
+    ) -> Result<bool, crate::error::ValidationError> {
+        if queue_family_index as usize > self.get_queue_family_infos().len() {
+            return Err(crate::error::ValidationError::InvalidQueueFamilyIndex);
+        }
+
+        if let Some(x_surface_ext_calls) = self.instance.x_surface.as_ref() {
+            let res = unsafe {
+                x_surface_ext_calls.get_physical_device_xlib_presentation_support(
+                    self.dev,
+                    queue_family_index,
+                    // Bruh
+                    core::mem::transmute(display),
+                    visual_id as u32
+                )
+            };
+
+            return Ok(res);
+        }
+
+        return Err(crate::error::ValidationError::NoWindowingEnabled);
+    }
+}
+
 impl PartialEq for PhysicalDevice {
     fn eq(&self, other: &Self) -> bool {
         self.instance == other.instance &&

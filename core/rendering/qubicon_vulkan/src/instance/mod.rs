@@ -1,5 +1,15 @@
 use std::{sync::Arc, fmt::Debug};
 use physical_device::PhysicalDevice;
+use crate::{
+    Error,
+    error::{
+        VkError,
+        ValidationError
+    }
+};
+
+#[cfg(feature = "windowing")]
+use crate::surface::Surface;
 
 pub mod error;
 pub mod creation_info;
@@ -31,6 +41,33 @@ impl Instance {
             });
 
         Ok(iter)
+    }
+}
+
+impl Instance {
+    #[cfg(feature = "x11")]
+    /// # Safety
+    /// *display* and *window* must be valid X objects
+    pub unsafe fn create_surface_x11(&self, display: *mut x11::xlib::Display, window: x11::xlib::Window) -> Result<Surface, Error> {
+        use ash::vk::XlibSurfaceCreateInfoKHR;
+
+        if let Some(x_surface_ext_calls) = self.inner.x_surface.as_ref() {
+            unsafe {
+                let raw_surface = x_surface_ext_calls.create_xlib_surface(
+                    &XlibSurfaceCreateInfoKHR {
+                        dpy: display.cast(),
+                        window,
+
+                        ..Default::default()
+                    },
+                    None
+                ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
+
+                return Ok(Surface::from_raw(Arc::clone(&self.inner), raw_surface));
+            }
+        }
+
+        return Err(ValidationError::NoWindowingEnabled.into());
     }
 }
 

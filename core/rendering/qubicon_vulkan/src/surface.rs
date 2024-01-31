@@ -174,6 +174,10 @@ pub struct Surface {
 }
 
 impl Surface {
+    pub(crate) unsafe fn from_raw(instance: Arc<InstanceInner>, surface: VkSurface) -> Self {
+        Self { instance, surface }
+    }
+
     pub(crate) unsafe fn as_raw(&self) -> VkSurface {
         self.surface
     }
