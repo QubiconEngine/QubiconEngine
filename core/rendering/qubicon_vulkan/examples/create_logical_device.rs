@@ -19,7 +19,9 @@ fn main() {
         .expect("No devices found")
         .create_logical_device(DeviceCreateInfo {
             features: Default::default(),
-            queues: queue_usage.to_vec()
+            queues: queue_usage.to_vec(),
+
+            ..Default::default()
         })
         .expect("Failed to create logical device");
     

@@ -1,14 +1,12 @@
-use std::{sync::Arc, mem::MaybeUninit};
+use std::sync::Arc;
 use ash::vk::{
     Extent2D as VkExtent2D,
-    SwapchainKHR as VkSwapchain,
     SwapchainCreateInfoKHR as VkSwapchainCreateInfo
 };
 
-use crate::{surface::{Surface, ColorSpace, SurfaceTransformFlags, CompositeAlphaFlags, PresentMode}, device::inner::DeviceInner, memory::resources::{format::Format, image::{ImageUsageFlags, Image, RawImage, ImageSampleCountFlags, ImageTiling, ImageType, ImageLayout}, image_view::{ImageView, ImageViewCreateInfo, ImageViewType}}, error::{ValidationError, VkError}, Error, queue::Submission, sync::{Semaphore, semaphore_types::SemaphoreType, Fence}};
+use crate::{surface::{Surface, ColorSpace, SurfaceTransformFlags, CompositeAlphaFlags, PresentMode}, device::inner::DeviceInner, memory::{alloc::{hollow_device_memory_allocator::{HollowDeviceMemoryAllocator, HollowMemoryFragment}, DeviceMemoryAllocator}, resources::{format::Format, image::{Image, ImageCreateInfo, ImageInner, ImageLayout, ImageSampleCountFlags, ImageTiling, ImageType, ImageUsageFlags, RawImage}, image_view::{ImageView, ImageViewCreateInfo, ImageViewType}, ResourceMemory}}, error::{ValidationError, VkError}, Error, queue::Submission, sync::{Semaphore, semaphore_types::SemaphoreType, Fence}};
 
 pub(crate) mod inner;
-mod memory_allocator;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SwapchainCreationInfo {
@@ -70,11 +68,9 @@ impl Into<VkSwapchainCreateInfo> for &SwapchainCreationInfo {
     }
 }
 
-// TODO: Disable image drop
 pub struct Swapchain {
     inner: Arc<inner::SwapchainInner>,
-    allocator: Arc<memory_allocator::SwapchainImageMemoryAllocator>,
-    images: Box<[Arc<Image<memory_allocator::SwapchainImageMemoryAllocator>>]>
+    images: Box<[Image<inner::SwapchainInner>]>
 }
 
 impl Swapchain {
@@ -97,46 +93,37 @@ impl Swapchain {
                 device: Arc::clone(&device)
             }
         );
-        let allocator = Arc::new(
-            memory_allocator::SwapchainImageMemoryAllocator { _swapchain: Arc::clone(&inner) }
-        );
 
         let images: Box<[_]> = device.swapchain.as_ref().unwrap_unchecked().get_swapchain_images(swapchain)
             .map_err(| e | VkError::try_from(e).unwrap_unchecked())?
             .into_iter()
-            .map(| i | {
-                Arc::new(
-                    Image {
-                        raw: RawImage {
-                            device: Arc::clone(&device),
-                            image: i,
-                            usage_flags: create_info.image_usage,
-                            create_flags: Default::default(),
-                            sample_count_flags: ImageSampleCountFlags::TYPE_1,
-                            initital_layout: ImageLayout::General,
-                            image_tiling: ImageTiling::Optimal,
-                            image_type: ImageType::Type2D {
-                                width: create_info.image_extent.0,
-                                height: create_info.image_extent.1,
-                                miplevels_enabled: false
-                            },
-                            array_layers: create_info.image_array_layers,
-                            mip_levels: 1,
-                            format: create_info.image_format
+            .map(| raw_image | {
+                let inner = ImageInner {
+                    device: Arc::clone(&device),
+                    image: raw_image,
+                    info: ImageCreateInfo {
+                        usage_flags: create_info.image_usage,
+                        create_flags: Default::default(),
+                        sample_count_flags: ImageSampleCountFlags::TYPE_1,
+                        initial_layout: ImageLayout::General,
+                        image_tiling: ImageTiling::Optimal,
+                        image_type: ImageType::Type2D {
+                            width: create_info.image_extent.0,
+                            height: create_info.image_extent.1,
+                            miplevels_enabled: false
                         },
-                        allocator: Arc::clone(&allocator),
-                        memory: MaybeUninit::new(memory_allocator::SwapchainImageMemoryFragment)
-                    }
-                )
+                        array_layers: create_info.image_array_layers,
+                        format: create_info.image_format
+                    },
+                    mip_levels: 1,
+                    drop_required: false,
+                    memory: Some(ResourceMemory::new(Arc::clone(&inner), inner::SwapchainMemoryFragment))
+                };
+
+                Image::from_inner(inner)
             }).collect();
 
-        Ok(
-            Self {
-                inner,
-                allocator,
-                images
-            }
-        )
+        return Ok( Self { inner, images } );
     }
 
     /// # Safety
@@ -145,9 +132,8 @@ impl Swapchain {
         &mut self,
         semaphore: Option<&Semaphore<T>>,
         fence: Option<&Fence>,
-        timeout: u64,
-        create_info: &ImageViewCreateInfo
-    ) -> Result<Arc<ImageView<memory_allocator::SwapchainImageMemoryAllocator>>, Error> {
+        timeout: u64
+    ) -> Result<&Image<impl DeviceMemoryAllocator>, Error> {
         let semaphore = semaphore.map(| s | s.as_raw()).unwrap_or_default();
         let fence = fence.map(| f | f.as_raw()).unwrap_or_default();
 
@@ -158,7 +144,7 @@ impl Swapchain {
             fence
         ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
-        self.images[image_index as usize].create_image_view_unchecked(create_info)
+        return Ok( &self.images[image_index as usize] )
     }
 
     pub fn drop(self) -> Result<Surface, ValidationError> {

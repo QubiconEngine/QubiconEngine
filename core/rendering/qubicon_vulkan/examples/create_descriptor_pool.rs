@@ -1,3 +1,6 @@
+// this example for some reason gives SIGSEGV on my laptop with nvidia
+// if we allocate some queue from device, it some how starts working
+
 use std::sync::Arc;
 use qubicon_vulkan::{
     Instance,
@@ -22,8 +25,6 @@ fn main() {
         .unwrap()
         .next()
         .unwrap();
-
-    println!("{}", device.get_properties().device_name);
 
     let device = device.create_logical_device::<[QueueFamilyUsage; 0]>(Default::default()).unwrap();
     let allocator = StandartMemoryAllocator::new(&device);
@@ -51,18 +52,15 @@ fn main() {
             pool_sizes: [
                 DescriptorPoolSize {
                     r#type: qubicon_vulkan::descriptors::DescriptorType::StorageBuffer,
-                    count: 4
+                    count: 2
                 }
             ]
         }
     ).unwrap();
 
-    let (set1, set2) = unsafe {
-        let set1 = pool.allocate_descriptor_set_unchecked(Arc::clone(&desc_layout)).unwrap();
-        let set2 = pool.allocate_descriptor_set_unchecked(Arc::clone(&desc_layout)).unwrap();
-
-        (set1, set2)
-    };
+    let set = unsafe {
+        pool.allocate_descriptor_set_unchecked(Arc::clone(&desc_layout))
+    }.unwrap();
 
     let buffer = device.create_buffer(
         Arc::clone(&allocator),
@@ -76,12 +74,12 @@ fn main() {
     ).unwrap();
 
     unsafe {
-        set1.update_unchecked(&[
+        set.update_unchecked(&[
             DescriptorWrite {
                 binding: 0,
                 index: 0,
                 write_info: BufferWriteInfo {
-                    buffer: Arc::clone(&buffer),
+                    buffer: &buffer,
                     offset: 0,
                     len: 1024
                 }

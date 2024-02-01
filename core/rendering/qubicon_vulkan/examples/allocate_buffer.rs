@@ -1,3 +1,6 @@
+// same case as **create_descriptor_pool**. This dont work on my setup because of nvidia
+// if we allocate at least one queue, it starts working.
+
 use std::sync::Arc;
 use qubicon_vulkan::{
     Instance,

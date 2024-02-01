@@ -63,7 +63,7 @@ impl DescriptorPool {
         device: Arc<DeviceInner>,
         create_info: DescriptorPoolCreateInfo<T>
     ) -> Result<Self, Error> {
-        Self::new_with_vec_sizes(device, create_info.max_sets, create_info.pool_sizes.into())
+        Self::new_with_box_sizes(device, create_info.max_sets, create_info.pool_sizes.into())
     }
 
     pub unsafe fn allocate_descriptor_set_unchecked(&self, layout: Arc<DescriptorSetLayout>) -> Result<Arc<DescriptorSet>, Error> {
@@ -100,7 +100,7 @@ impl DescriptorPool {
 }
 
 impl DescriptorPool {
-    fn new_with_vec_sizes(
+    fn new_with_box_sizes(
         device: Arc<DeviceInner>,
         max_sets: u32,
         pool_sizes: Box<[DescriptorPoolSize]>

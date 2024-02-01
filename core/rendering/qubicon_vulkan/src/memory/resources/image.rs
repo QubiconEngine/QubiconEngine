@@ -2,8 +2,7 @@ use bitflags::bitflags;
 use thiserror::Error as ErrorDerive;
 use super::{format::{Format, formats_representation::Format as FormatTrait}, image_view::{ImageView, ImageViewCreateInfo}, mapped_resource::{MappableType, MappedResource}, ResourceCreationError, ResourceMemory};
 use std::{
-    sync::Arc,
-    error::Error as ErrorTrait
+    error::Error as ErrorTrait, mem::ManuallyDrop, sync::Arc
 };
 use crate::{
     Error,
@@ -168,7 +167,6 @@ pub struct ImageCreateInfo {
     pub image_type: ImageType,
     
     pub array_layers: u32,
-    pub mipmaps_enabled: bool,
     pub format: Format
 }
 
@@ -180,8 +178,8 @@ pub(crate) struct ImageInner<A: DeviceMemoryAllocator> {
     pub(crate) mip_levels: u32,
 
     // we shouldnt drop image if it is from swapchain
-    drop_required: bool,
-    memory: Option<ResourceMemory<A>>
+    pub(crate) drop_required: bool,
+    pub(crate) memory: Option<ResourceMemory<A>>
 }
 
 impl<A: DeviceMemoryAllocator> Drop for ImageInner<A> {
@@ -331,6 +329,7 @@ impl<A: DeviceMemoryAllocator> Image<A> {
         unsafe {
             let inner = Arc::into_inner(raw.inner)
                 .expect("image is in use");
+            let inner = ManuallyDrop::new(inner);
 
             let requirements = inner.device.get_image_memory_requirements(inner.image);
             let memory_type_index = bitvec::array::BitArray::<u32, bitvec::order::Lsb0>::from(requirements.memory_type_bits)
@@ -365,7 +364,8 @@ impl<A: DeviceMemoryAllocator> Image<A> {
 
             // there should be a better way
             let inner = ImageInner {
-                device: inner.device,
+                // hard way of taking field of struct what implements drop
+                device: Arc::clone(&inner.device),
                 image: inner.image,
                 info: inner.info,
                 mip_levels: inner.mip_levels,
@@ -375,6 +375,11 @@ impl<A: DeviceMemoryAllocator> Image<A> {
 
             return Ok( Self { inner: Arc::new(inner) } );
         }
+    }
+
+    // no guarantees what it is a valid inner!
+    pub(crate) unsafe fn from_inner(inner: ImageInner<A>) -> Self {
+        Self { inner: Arc::new(inner) }
     }
 
     pub(crate) fn as_inner(&self) -> &Arc<ImageInner<A>> {
@@ -451,7 +456,7 @@ impl<'a, A: DeviceMemoryAllocator> Image<A>
         unsafe {
             Ok(
                 MappedResource::new(
-                    self.inner.memory.unwrap_unchecked().map()?,
+                    self.inner.memory.as_ref().unwrap_unchecked().map()?,
                     len
                 )
             )

@@ -16,9 +16,8 @@ fn main() {
     let mut shader_binary = Vec::<u32>::with_capacity(SHADER.len() / 4);
 
     unsafe {
-        core::ptr::copy_nonoverlapping(SHADER.as_ptr(), shader_binary.as_mut_ptr().cast(), SHADER.len());
-
-        shader_binary.set_len(shader_binary.len() / 4);
+        core::ptr::copy_nonoverlapping(SHADER.as_ptr().cast(), shader_binary.as_mut_ptr(), SHADER.len() / 4);
+        shader_binary.set_len(SHADER.len() / 4);
     }
 
     let _shader_module = unsafe {

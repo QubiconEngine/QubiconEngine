@@ -31,23 +31,20 @@ use super::{
 //     }
 // }
 
-pub struct BufferWriteInfo<A: DeviceMemoryAllocator> {
-    pub buffer: Arc<Buffer<A>>,
+pub struct BufferWriteInfo<'a, A: DeviceMemoryAllocator> {
+    pub buffer: &'a Buffer<A>,
     pub offset: u64,
     pub len: u64
 }
 
-impl<A: DeviceMemoryAllocator> Clone for BufferWriteInfo<A> {
+impl<'a, A: DeviceMemoryAllocator> Copy for BufferWriteInfo<'a, A> {}
+impl<'a, A: DeviceMemoryAllocator> Clone for BufferWriteInfo<'a, A> {
     fn clone(&self) -> Self {
-        Self {
-            buffer: Arc::clone(&self.buffer),
-            offset: self.offset,
-            len: self.len
-        }
+        *self
     }
 }
 
-impl<A: DeviceMemoryAllocator> Debug for BufferWriteInfo<A> {
+impl<'a, A: DeviceMemoryAllocator> Debug for BufferWriteInfo<'a, A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("BufferWriteInfo")
             .field("offset", &self.offset)
@@ -69,12 +66,12 @@ mod write_info_sealed {
         unsafe fn update_raw_descriptor_write_unchecked(dst: &mut VkWriteDescriptorSet, src: &Self::VkInfo);
     }
 
-    impl<A: DeviceMemoryAllocator> WriteInfoSealed for BufferWriteInfo<A> {
+    impl<'a, A: DeviceMemoryAllocator> WriteInfoSealed for BufferWriteInfo<'a, A> {
         type VkInfo = VkDescriptorBufferInfo;
 
         unsafe fn construct_info(&self) -> Self::VkInfo {
             VkDescriptorBufferInfo {
-                buffer: self.buffer.buffer,
+                buffer: self.buffer.as_inner().buffer,
                 offset: self.offset,
                 range: self.len
             }

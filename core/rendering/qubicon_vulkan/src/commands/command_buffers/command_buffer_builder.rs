@@ -18,7 +18,7 @@ use super::{
 use crate::{
     Error,
     error::VkError,
-    shaders::{compute::ComputePipeline, pipeline_layout::{self, PipelineLayout}},
+    shaders::{compute::ComputePipeline, pipeline_layout::PipelineLayout},
     memory::{
         alloc::DeviceMemoryAllocator,
         resources::buffer::Buffer
@@ -225,7 +225,7 @@ impl<'a, L: levels::CommandBufferLevel> CommandBufferBuilder<'a, L> {
             .cmd_bind_vertex_buffers(
                 self.command_buffer,
                 binding_idx,
-                &[buffer.buffer],
+                &[buffer.as_inner().buffer],
                 &[offset]
             );
 
@@ -236,7 +236,7 @@ impl<'a, L: levels::CommandBufferLevel> CommandBufferBuilder<'a, L> {
         self.command_pool.as_ref().unwrap_unchecked().device
             .cmd_bind_index_buffer(
                 self.command_buffer,
-                buffer.buffer,
+                buffer.as_inner().buffer,
                 offset,
                 index_type.into()
             );

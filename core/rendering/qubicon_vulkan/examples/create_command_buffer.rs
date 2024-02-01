@@ -26,7 +26,9 @@ fn main() {
     let device = device.create_logical_device(
         DeviceCreateInfo {
             features: Default::default(),
-            queues
+            queues,
+
+            ..Default::default()
         }
     ).unwrap();
 

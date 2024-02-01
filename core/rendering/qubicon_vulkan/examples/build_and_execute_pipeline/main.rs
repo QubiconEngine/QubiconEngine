@@ -14,7 +14,7 @@ use qubicon_vulkan::{
     instance::physical_device::{queue_info::QueueFamilyCapabilities, memory_properties::MemoryTypeProperties}, sync::semaphore_types::Binary, descriptors::{DescriptorSetLayoutCreateInfo, DescriptorBinding, DescriptorType, DescriptorPoolCreateInfo, alloc::{DescriptorPoolSize, descriptor_set::{DescriptorWrite, BufferWriteInfo}}}, memory::{alloc::standart_device_memory_allocator::StandartMemoryAllocator, resources::buffer::{BufferCreateInfo, BufferUsageFlags}}
 };
 
-const BUFFER_LEN: usize = 10000;
+const BUFFER_LEN: usize = 100;
 const SHADER: &[u8] = include_bytes!("shader.spv");
 
 fn main() {
@@ -37,7 +37,9 @@ fn main() {
                 family_index: compute_family_idx,
                 queue_count: 1
             }
-        ]
+        ],
+
+        ..Default::default()
     }).unwrap();
 
     let mut shader_sources = Vec::<u32>::with_capacity(SHADER.len() / 4);
@@ -134,7 +136,7 @@ fn main() {
                 binding: 0,
                 index: 0,
                 write_info: BufferWriteInfo {
-                    buffer: Arc::clone(&src_buffer),
+                    buffer: &src_buffer,
                     offset: 0,
                     len: BUFFER_LEN as u64 * 4
                 }
@@ -143,7 +145,7 @@ fn main() {
                 binding: 1,
                 index: 0,
                 write_info: BufferWriteInfo {
-                    buffer: Arc::clone(&dst_buffer),
+                    buffer: &dst_buffer,
                     offset: 0,
                     len: BUFFER_LEN as u64 * 4
                 }

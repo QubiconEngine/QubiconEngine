@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{mem::ManuallyDrop, sync::Arc};
 use bitflags::bitflags;
 use super::{buffer_view::{BufferView, BufferViewCreateInfo}, mapped_resource::{MappedResource, MappableType}, ResourceCreationError, ResourceMemory};
 use crate::{
@@ -184,6 +184,7 @@ impl<A: DeviceMemoryAllocator> Buffer<A> {
         unsafe {
             let inner = Arc::into_inner(raw.inner)
                 .expect("buffer is in use");
+            let inner = ManuallyDrop::new(inner);
 
             let requirement = inner.device.get_buffer_memory_requirements(inner.buffer);
             let memory_type_index = bitvec::array::BitArray::<u32, bitvec::order::Lsb0>::from(requirement.memory_type_bits)
@@ -218,7 +219,8 @@ impl<A: DeviceMemoryAllocator> Buffer<A> {
 
             // just copying into new inner
             let inner = BufferInner {
-                device: inner.device,
+                // rust dont allow to take fields from structures with drop. we will do this in hard way
+                device: Arc::clone(&inner.device),
                 buffer: inner.buffer,
                 info: inner.info,
                 drop_required: inner.drop_required,
@@ -277,7 +279,7 @@ impl<'a, A: DeviceMemoryAllocator> Buffer<A>
 
         Ok(
             MappedResource::new(
-                self.inner.memory.unwrap_unchecked().map()?,
+                self.inner.memory.as_ref().unwrap_unchecked().map()?,
                 self.inner.info.size as usize / core::mem::size_of::<T>()
             )
         )
