@@ -184,6 +184,10 @@ dependencies = [
 [[package]]
 name = "qubicon_windowing"
 version = "0.0.0"
+dependencies = [
+ "smallstr",
+ "x11",
+]
 
 [[package]]
 name = "quote"

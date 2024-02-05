@@ -2,3 +2,17 @@
 name = "qubicon_windowing"
 version = "0.0.0"
 edition = "2021"
+
+[features]
+default = ["x11"]
+
+x11 = ["dep:x11"]
+
+# TODO: change to dynamicaly linked crate
+[dependencies.x11]
+optional = true
+version = "2.21"
+features = ["xlib"]
+
+[dependencies]
+smallstr = "0.3"
