@@ -45,6 +45,12 @@ impl Instance {
 }
 
 impl Instance {
+    pub(crate) fn from_inner(inner: Arc<inner::InstanceInner>) -> Self {
+        Self { inner }
+    }
+}
+
+impl Instance {
     #[cfg(feature = "x11")]
     /// # Safety
     /// *display* and *window* must be valid X objects

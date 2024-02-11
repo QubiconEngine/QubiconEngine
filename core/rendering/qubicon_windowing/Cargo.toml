@@ -3,16 +3,27 @@ name = "qubicon_windowing"
 version = "0.0.0"
 edition = "2021"
 
-[features]
-default = ["x11"]
+[[example]]
+name = "window_with_swapchain"
+required-features = ["x11", "vulkan"]
 
-x11 = ["dep:x11"]
+[features]
+default = ["x11", "vulkan"]
+
+vulkan = ["dep:qubicon_vulkan"]
+
+x11 = ["dep:x11", "qubicon_vulkan/x11"]
 
 # TODO: change to dynamicaly linked crate
 [dependencies.x11]
 optional = true
 version = "2.21"
 features = ["xlib"]
+
+[dependencies.qubicon_vulkan]
+optional = true
+path = "../qubicon_vulkan"
+features = ["windowing"]
 
 [dependencies]
 smallstr = "0.3"

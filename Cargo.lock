@@ -185,6 +185,7 @@ dependencies = [
 name = "qubicon_windowing"
 version = "0.0.0"
 dependencies = [
+ "qubicon_vulkan",
  "smallstr",
  "x11",
 ]

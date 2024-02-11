@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use qubicon_windowing::x11::{WindowEvent, WindowingServer};
 
 fn main() {
@@ -13,6 +15,8 @@ fn main() {
     }
 
     'event_loop: loop {
+        let start_time = Instant::now();
+
         server.update();
 
         let mut window = server.window_mut(window_id).unwrap();
@@ -20,7 +24,10 @@ fn main() {
         for event in window.events() {
             match event {
                 WindowEvent::Visibility { state } => println!("visibility state changed! {state:?}"),
-                WindowEvent::Configure { width, height } => println!("configure event! size: {width} {height}"),
+                WindowEvent::Resize { width, height } => println!("resized! {width} {height}"),
+                WindowEvent::Move { x, y } => println!("moved to {x} {y}"),
+
+
                 WindowEvent::Close => {
                     println!("closing");
 
@@ -28,6 +35,10 @@ fn main() {
                 }
             }
         }
+
+        let time_passed = start_time.elapsed().as_secs_f64();
+
+        println!("{}", 1.0 / time_passed);
     }
 
     server.destroy_window(window_id);

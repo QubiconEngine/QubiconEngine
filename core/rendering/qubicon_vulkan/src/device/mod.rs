@@ -134,6 +134,11 @@ impl Device {
         }
     }
 
+    /// Returns instance from wich device was created
+    pub fn associated_instance(&self) -> crate::Instance {
+        crate::Instance::from_inner(Arc::clone(&self.inner.physical_device.instance))
+    }
+
     pub fn allocate_memory(&self, memory_type_index: u8, size: u64) -> Result<Arc<DeviceMemoryObject>, Error> {
         DeviceMemoryObject::allocate(Arc::clone(&self.inner), memory_type_index, size)
     }
