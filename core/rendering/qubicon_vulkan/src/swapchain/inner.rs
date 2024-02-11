@@ -7,7 +7,9 @@ pub(crate) struct SwapchainInner {
     // In option because may be obtained back
     pub(crate) surface: Option<Surface>,
     pub(crate) device: Arc<DeviceInner>,
-    pub(crate) swapchain: VkSwapchain
+    pub(crate) swapchain: VkSwapchain,
+
+    pub(crate) info: super::SwapchainCreationInfo
 }
 
 // For the first glance may be strange. This is done to make some kind of dependency.

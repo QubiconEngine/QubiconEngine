@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 use ash::vk::{
     Extent2D as VkExtent2D,
     SwapchainCreateInfoKHR as VkSwapchainCreateInfo
@@ -70,7 +70,10 @@ impl Into<VkSwapchainCreateInfo> for &SwapchainCreationInfo {
 
 pub struct Swapchain {
     inner: Arc<inner::SwapchainInner>,
-    images: Box<[Image<inner::SwapchainInner>]>
+    images: Box<[Image<inner::SwapchainInner>]>,
+
+    // To disable Sync
+    _ph: PhantomData<core::cell::Cell<()>>
 }
 
 impl Swapchain {
@@ -90,7 +93,9 @@ impl Swapchain {
             inner::SwapchainInner {
                 swapchain,
                 surface: Some(surface),
-                device: Arc::clone(&device)
+                device: Arc::clone(&device),
+
+                info: *create_info
             }
         );
 
@@ -123,7 +128,30 @@ impl Swapchain {
                 Image::from_inner(inner)
             }).collect();
 
-        return Ok( Self { inner, images } );
+        return Ok( Self { inner, images, _ph: Default::default() } );
+    }
+
+
+    pub fn create_info(&self) -> &SwapchainCreationInfo {
+        &self.inner.info
+    }
+
+    pub fn image_extent(&self) -> (u32, u32) {
+        self.inner.info.image_extent
+    }
+
+    pub fn image_format(&self) -> Format {
+        self.inner.info.image_format
+    }
+
+    pub fn color_space(&self) -> ColorSpace {
+        self.inner.info.image_color_space
+    }
+    // TODO: add more methods to query info
+
+
+    pub fn resize(&mut self, width: u32, height: u32) {
+        todo!()
     }
 
     /// # Safety
