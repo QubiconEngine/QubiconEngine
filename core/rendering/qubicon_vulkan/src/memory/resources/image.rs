@@ -98,8 +98,9 @@ pub enum ImageType {
     Type3D { width: u32, height: u32, depth: u32 }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ImageLayout {
+    #[default]
     Undefined,
     General,
     ColorAttachmentOptimal,
