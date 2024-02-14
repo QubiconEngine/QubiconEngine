@@ -9,7 +9,7 @@ use crate::{surface::{Surface, ColorSpace, SurfaceTransformFlags, CompositeAlpha
 pub(crate) mod inner;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SwapchainCreationInfo {
+pub struct SwapchainCreateInfo {
     pub min_image_count: u32,
     pub image_format: Format,
     pub image_color_space: ColorSpace,
@@ -27,7 +27,7 @@ pub struct SwapchainCreationInfo {
     pub clipped: bool
 }
 
-impl Default for SwapchainCreationInfo {
+impl Default for SwapchainCreateInfo {
     #[inline]
     fn default() -> Self {
         Self {
@@ -46,7 +46,7 @@ impl Default for SwapchainCreationInfo {
     }
 }
 
-impl Into<VkSwapchainCreateInfo> for &SwapchainCreationInfo {
+impl Into<VkSwapchainCreateInfo> for &SwapchainCreateInfo {
     fn into(self) -> VkSwapchainCreateInfo {
         VkSwapchainCreateInfo {
             min_image_count: self.min_image_count,
@@ -77,7 +77,7 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
-    pub(crate) unsafe fn create_unchecked(device: Arc<DeviceInner>, surface: Surface, create_info: &SwapchainCreationInfo) -> Result<Self, Error> {
+    pub(crate) unsafe fn create_unchecked(device: Arc<DeviceInner>, surface: Surface, create_info: &SwapchainCreateInfo) -> Result<Self, Error> {
         let raw_create_info = VkSwapchainCreateInfo {
             surface: surface.as_raw(),
 
@@ -99,6 +99,8 @@ impl Swapchain {
             }
         );
 
+        let image_create_info = _build_image_create_info(create_info);
+
         let images: Box<[_]> = device.swapchain.as_ref().unwrap_unchecked().get_swapchain_images(swapchain)
             .map_err(| e | VkError::try_from(e).unwrap_unchecked())?
             .into_iter()
@@ -106,20 +108,7 @@ impl Swapchain {
                 let inner = ImageInner {
                     device: Arc::clone(&device),
                     image: raw_image,
-                    info: ImageCreateInfo {
-                        usage_flags: create_info.image_usage,
-                        create_flags: Default::default(),
-                        sample_count_flags: ImageSampleCountFlags::TYPE_1,
-                        initial_layout: ImageLayout::General,
-                        image_tiling: ImageTiling::Optimal,
-                        image_type: ImageType::Type2D {
-                            width: create_info.image_extent.0,
-                            height: create_info.image_extent.1,
-                            miplevels_enabled: false
-                        },
-                        array_layers: create_info.image_array_layers,
-                        format: create_info.image_format
-                    },
+                    info: image_create_info,
                     mip_levels: 1,
                     drop_required: false,
                     memory: Some(ResourceMemory::new(Arc::clone(&inner), inner::SwapchainMemoryFragment))
@@ -132,7 +121,7 @@ impl Swapchain {
     }
 
 
-    pub fn create_info(&self) -> &SwapchainCreationInfo {
+    pub fn create_info(&self) -> &SwapchainCreateInfo {
         &self.inner.info
     }
 
@@ -150,8 +139,57 @@ impl Swapchain {
     // TODO: add more methods to query info
 
 
-    pub fn resize(&mut self, width: u32, height: u32) {
-        todo!()
+    // I dont know if destroying swapchain after falied recreation is safe. For now let it be like this
+    pub fn recreate(mut self, create_info: &SwapchainCreateInfo) -> Result<Self, Error> {
+        let images_in_use = self.images.iter()
+            .map(| img | img.as_inner())
+            .all(| inner | Arc::strong_count(inner) + Arc::weak_count(inner) <= 1);
+
+        if images_in_use {
+            return Err(ValidationError::ObjectInUse.into());
+        }
+        
+        unsafe {
+            let swapchain = self.inner.device.swapchain.as_ref().unwrap_unchecked()
+                .create_swapchain(
+                    &VkSwapchainCreateInfo {
+                        old_swapchain: self.inner.swapchain,
+
+                        ..create_info.into()
+                    },
+                    None
+                ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
+
+            {
+                // what the fuck ?
+                let inner_ptr = self.inner.as_ref() as *const inner::SwapchainInner as *mut inner::SwapchainInner;
+
+                (*inner_ptr).info = *create_info;
+                (*inner_ptr).swapchain = swapchain;
+            }
+
+            let image_info = _build_image_create_info(create_info);
+            let images: Box<[_]> = self.inner.device.swapchain.as_ref().unwrap_unchecked()
+                .get_swapchain_images(swapchain)
+                .map_err(| e | VkError::try_from(e).unwrap_unchecked())?
+                .into_iter()
+                .map(| raw_image | {
+                    let inner = ImageInner {
+                        device: Arc::clone(&self.inner.device),
+                        image: raw_image,
+                        info: image_info,
+                        mip_levels: 1,
+                        drop_required: false,
+                        memory: None
+                    };
+
+                    Image::from_inner(inner)
+                }).collect();
+
+            self.images = images;
+        }
+
+        return Ok( self );
     }
 
     /// # Safety
@@ -180,5 +218,22 @@ impl Swapchain {
             .ok_or(ValidationError::ObjectInUse)?;
 
         unsafe { Ok(inner.surface.take().unwrap_unchecked()) }
+    }
+}
+
+fn _build_image_create_info(create_info: &SwapchainCreateInfo) -> ImageCreateInfo {
+    ImageCreateInfo {
+        usage_flags: create_info.image_usage,
+        create_flags: Default::default(),
+        sample_count_flags: ImageSampleCountFlags::TYPE_1,
+        initial_layout: ImageLayout::General,
+        image_tiling: ImageTiling::Optimal,
+        image_type: ImageType::Type2D {
+            width: create_info.image_extent.0,
+            height: create_info.image_extent.1,
+            miplevels_enabled: false
+        },
+        array_layers: create_info.image_array_layers,
+        format: create_info.image_format
     }
 }

@@ -9,7 +9,7 @@ use qubicon_vulkan::{memory::resources::image::ImageUsageFlags, surface::{Compos
 
 #[cfg(feature = "vulkan")]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct AssociatedSwapchainCreationInfo {
+pub struct AssociatedSwapchainCreateInfo {
     pub min_image_count: u32,
     pub image_array_layers: u32,
     pub image_usage: ImageUsageFlags,

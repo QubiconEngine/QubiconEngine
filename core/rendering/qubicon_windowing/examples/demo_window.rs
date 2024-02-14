@@ -8,7 +8,7 @@ fn main() {
     let window_id = server.create_window(16 * 20, 9 * 20);
     
     {
-        let window = server.window_mut(window_id).unwrap();
+        let mut window = server.window_mut(window_id).unwrap();
 
         window.show();
         window.set_name("Test window");

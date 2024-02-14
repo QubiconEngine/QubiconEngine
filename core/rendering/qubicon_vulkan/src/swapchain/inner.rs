@@ -9,7 +9,7 @@ pub(crate) struct SwapchainInner {
     pub(crate) device: Arc<DeviceInner>,
     pub(crate) swapchain: VkSwapchain,
 
-    pub(crate) info: super::SwapchainCreationInfo
+    pub(crate) info: super::SwapchainCreateInfo
 }
 
 // For the first glance may be strange. This is done to make some kind of dependency.

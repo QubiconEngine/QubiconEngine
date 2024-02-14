@@ -53,7 +53,7 @@ use crate::{
     surface::Surface,
     swapchain::{
         Swapchain,
-        SwapchainCreationInfo
+        SwapchainCreateInfo
     }
 };
 
@@ -208,7 +208,7 @@ impl Device {
     #[cfg(feature = "windowing")]
     /// # Safety
     /// * *surface* must be a valid Vulkan surface
-    pub unsafe fn create_swapchain_unchecked(&self, surface: Surface, create_info: &SwapchainCreationInfo) -> Result<Swapchain, Error> {
+    pub unsafe fn create_swapchain_unchecked(&self, surface: Surface, create_info: &SwapchainCreateInfo) -> Result<Swapchain, Error> {
         Swapchain::create_unchecked(Arc::clone(&self.inner), surface, create_info)
     }
 

@@ -92,7 +92,7 @@ impl WindowingServer {
         device: &qubicon_vulkan::device::Device,
         width: u32,
         height: u32,
-        create_info: &super::AssociatedSwapchainCreationInfo,
+        create_info: &super::AssociatedSwapchainCreateInfo,
         present_mode_selector: impl Fn(qubicon_vulkan::surface::PresentMode) -> bool,
         format_and_colorspace_selector: impl Fn(qubicon_vulkan::surface::SurfaceFormat) -> bool,
     ) -> Result<WindowId, qubicon_vulkan::Error> {
@@ -128,7 +128,7 @@ impl WindowingServer {
                 .ok_or(qubicon_vulkan::error::VkError::Unknown)?;
 
 
-            let create_info = qubicon_vulkan::swapchain::SwapchainCreationInfo {
+            let create_info = qubicon_vulkan::swapchain::SwapchainCreateInfo {
                 min_image_count: create_info.min_image_count,
                 
                 image_extent: (width, height),
@@ -212,7 +212,11 @@ impl WindowingServer {
 
                             window.data.event_queue.push_front(
                                 WindowEvent::Resize { width, height }
-                            )
+                            );
+
+                            // TODO: This operation costs a lot. There are lots of events of this type to come
+                            // Move this to other place in future
+                            window.data.resize_swapchain(width, height)
                         }
                     },
                     xlib::VisibilityNotify => {
@@ -345,6 +349,25 @@ struct WindowData {
     swapchain: Option<qubicon_vulkan::swapchain::Swapchain>
 }
 
+impl WindowData {
+    // if recreation fails, no swapchain will be associated
+    #[cfg(feature = "vulkan")]
+    fn resize_swapchain(&mut self, width: u32, height: u32) {
+        use qubicon_vulkan::swapchain::SwapchainCreateInfo;
+
+        self.swapchain = self.swapchain.take()
+            .and_then(| swapchain | {
+                let new_create_info = SwapchainCreateInfo {
+                    image_extent: (width, height),
+
+                    ..(*swapchain.create_info())
+                };
+
+                swapchain.recreate(&new_create_info).ok()                
+            });
+    }
+}
+
 
 #[derive(Clone, Copy)]
 pub struct Window<'a> {
@@ -386,19 +409,21 @@ pub struct WindowMut<'a> {
 }
 
 impl<'a> WindowMut<'a> {
-    pub fn show(&self) {
+    pub fn show(&mut self) {
         unsafe { xlib::XMapWindow(self.display, self.window) };
     }
 
-    pub fn hide(&self) {
+    pub fn hide(&mut self) {
         unsafe { xlib::XUnmapWindow(self.display, self.window) };
     }
 
-    pub fn resize(&self, width: u32, height: u32) {
+    pub fn resize(&mut self, width: u32, height: u32) {
         unsafe { xlib::XResizeWindow(self.display, self.window, width, height) };
+
+        self.data.resize_swapchain(width, height);
     }
 
-    pub fn set_name(&self, name: impl AsRef<str>) {
+    pub fn set_name(&mut self, name: impl AsRef<str>) {
         // just a buffer to add \0
         let mut name = SmallString::<[u8; 64]>::from_str(name.as_ref());
 

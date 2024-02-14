@@ -1,5 +1,5 @@
-use qubicon_vulkan::{device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::{creation_info::InstanceCreateInfo, physical_device::{queue_info::QueueFamilyCapabilities, PhysicalDevice}}, memory::resources::image::ImageUsageFlags, surface::{ColorSpace, CompositeAlphaFlags, SurfaceTransformFlags}, swapchain::SwapchainCreationInfo, Instance};
-use qubicon_windowing::{x11::WindowingServer, AssociatedSwapchainCreationInfo};
+use qubicon_vulkan::{device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::{creation_info::InstanceCreateInfo, physical_device::{queue_info::QueueFamilyCapabilities, PhysicalDevice}}, memory::resources::image::ImageUsageFlags, surface::{ColorSpace, CompositeAlphaFlags, SurfaceTransformFlags}, swapchain::SwapchainCreateInfo, Instance};
+use qubicon_windowing::{x11::{WindowEvent, WindowingServer}, AssociatedSwapchainCreateInfo};
 
 fn find_family_index(dev: &PhysicalDevice) -> Option<u32> {
     dev.get_queue_family_infos().iter()
@@ -42,7 +42,7 @@ fn main() {
         &device,
         100,
         100,
-        &AssociatedSwapchainCreationInfo {
+        &AssociatedSwapchainCreateInfo {
             min_image_count: 4,
             image_array_layers: 1,
             image_usage: ImageUsageFlags::STORAGE,
@@ -53,4 +53,16 @@ fn main() {
         | _ | true,
         | _ | true 
     ).expect("Failed to create window");
+
+    win_server.window_mut(window_id).unwrap().show();
+
+    'event_loop: loop {
+        win_server.update();
+
+        for event in win_server.window_mut(window_id).unwrap().events() {
+            if let WindowEvent::Close = event {
+                break 'event_loop;
+            }
+        }
+    }
 }
