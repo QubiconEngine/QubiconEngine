@@ -140,10 +140,10 @@ impl Swapchain {
 
 
     // I dont know if destroying swapchain after falied recreation is safe. For now let it be like this
-    pub fn recreate(mut self, create_info: &SwapchainCreateInfo) -> Result<Self, Error> {
+    pub fn recreate(&mut self, create_info: &SwapchainCreateInfo) -> Result<(), Error> {
         let images_in_use = self.images.iter()
             .map(| img | img.as_inner())
-            .all(| inner | Arc::strong_count(inner) + Arc::weak_count(inner) <= 1);
+            .all(| inner | Arc::strong_count(inner) + Arc::weak_count(inner) > 1);
 
         if images_in_use {
             return Err(ValidationError::ObjectInUse.into());
@@ -154,11 +154,17 @@ impl Swapchain {
                 .create_swapchain(
                     &VkSwapchainCreateInfo {
                         old_swapchain: self.inner.swapchain,
+                        surface: self.inner.surface.as_ref().unwrap_unchecked().as_raw(),
 
                         ..create_info.into()
                     },
                     None
                 ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
+
+            { // Destroying old swapchain
+                self.inner.device.swapchain.as_ref().unwrap_unchecked()
+                    .destroy_swapchain(self.inner.swapchain, None);
+            }
 
             {
                 // what the fuck ?
@@ -189,7 +195,7 @@ impl Swapchain {
             self.images = images;
         }
 
-        return Ok( self );
+        return Ok( () );
     }
 
     /// # Safety

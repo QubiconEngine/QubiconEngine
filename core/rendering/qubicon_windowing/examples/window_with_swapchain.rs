@@ -1,3 +1,5 @@
+// Currently causes lots of errors from validation layers
+
 use qubicon_vulkan::{device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::{creation_info::InstanceCreateInfo, physical_device::{queue_info::QueueFamilyCapabilities, PhysicalDevice}}, memory::resources::image::ImageUsageFlags, surface::{ColorSpace, CompositeAlphaFlags, SurfaceTransformFlags}, swapchain::SwapchainCreateInfo, Instance};
 use qubicon_windowing::{x11::{WindowEvent, WindowingServer}, AssociatedSwapchainCreateInfo};
 
@@ -59,10 +61,20 @@ fn main() {
     'event_loop: loop {
         win_server.update();
 
-        for event in win_server.window_mut(window_id).unwrap().events() {
-            if let WindowEvent::Close = event {
-                break 'event_loop;
+        let mut window = win_server.window_mut(window_id).unwrap();
+        let mut swapchain_resize_required = false;
+
+        for event in window.events() {
+            match event {
+                WindowEvent::Resize { .. } => swapchain_resize_required = true,
+                WindowEvent::Close => break 'event_loop,
+
+                _ => {}
             }
+        }
+
+        if swapchain_resize_required {
+            window.force_swapchain_resize().unwrap();
         }
     }
 }

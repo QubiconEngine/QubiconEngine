@@ -213,10 +213,6 @@ impl WindowingServer {
                             window.data.event_queue.push_front(
                                 WindowEvent::Resize { width, height }
                             );
-
-                            // TODO: This operation costs a lot. There are lots of events of this type to come
-                            // Move this to other place in future
-                            window.data.resize_swapchain(width, height)
                         }
                     },
                     xlib::VisibilityNotify => {
@@ -352,19 +348,20 @@ struct WindowData {
 impl WindowData {
     // if recreation fails, no swapchain will be associated
     #[cfg(feature = "vulkan")]
-    fn resize_swapchain(&mut self, width: u32, height: u32) {
+    fn resize_swapchain(&mut self, width: u32, height: u32) -> Result<(), qubicon_vulkan::Error> {
         use qubicon_vulkan::swapchain::SwapchainCreateInfo;
 
-        self.swapchain = self.swapchain.take()
-            .and_then(| swapchain | {
-                let new_create_info = SwapchainCreateInfo {
+        if let Some(swapchain) = self.swapchain.as_mut() {
+            return swapchain.recreate(
+                &SwapchainCreateInfo {
                     image_extent: (width, height),
 
                     ..(*swapchain.create_info())
-                };
+                }
+            )
+        }
 
-                swapchain.recreate(&new_create_info).ok()                
-            });
+        return Ok(())        
     }
 }
 
@@ -419,8 +416,6 @@ impl<'a> WindowMut<'a> {
 
     pub fn resize(&mut self, width: u32, height: u32) {
         unsafe { xlib::XResizeWindow(self.display, self.window, width, height) };
-
-        self.data.resize_swapchain(width, height);
     }
 
     pub fn set_name(&mut self, name: impl AsRef<str>) {
@@ -435,6 +430,14 @@ impl<'a> WindowMut<'a> {
     /// Returns iterator over new events. Each steep removes event from event queue
     pub fn events(&mut self) -> QueueDrain<WindowEvent> {
         self.data.event_queue.drain(..)
+    }
+
+    #[cfg(feature = "vulkan")]
+    /// Updates swapchain image size according to current window size. This operation probalby should cost a lot.
+    /// Swapchain should not be used in any operation, othervise ValidationError::ObjectInUse will be returned.
+    /// By default, windowing server dont update swapchain because this will probably allways return ObjectInUse error.
+    pub fn force_swapchain_resize(&mut self) -> Result<(), qubicon_vulkan::Error> {
+        self.data.resize_swapchain(self.data.width, self.data.height)
     }
 
     #[cfg(feature = "vulkan")]
