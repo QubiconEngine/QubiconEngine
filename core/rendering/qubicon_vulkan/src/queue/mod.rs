@@ -21,6 +21,7 @@ use crate::{
     },
     Error,
     error::VkError,
+    memory::resources::image::Image,
     instance::physical_device::queue_info::QueueFamilyCapabilities, shaders::PipelineStageFlags
 };
 
@@ -130,8 +131,81 @@ impl Queue {
             }
         )
     }
+
+    // TODO: Add validation
+    #[cfg(feature = "windowing")]
+    pub fn present<ST: SemaphoreType>(
+        &self,
+        present_info: PresentInfo<ST>
+    ) -> Result<bool, crate::Error> {
+        use crate::error::ValidationError;
+
+        if self.inner.device.swapchain.is_none() {
+            return Err(ValidationError::NoWindowingEnabled.into());
+        }
+
+        unsafe {
+            let semaphores: SmallVec<[_; 1]> = present_info.wait_semaphores.iter()
+                .map(| s | s.as_raw())
+                .collect();
+            let swapchains: SmallVec<[_; 1]> = present_info.entries.iter()
+                .map(| e | e.swapchain.as_raw())
+                .collect();
+            let image_indicies: SmallVec<[_; 1]> = present_info.entries.iter()
+                .map(| e | e.swapchain_image.as_inner().memory.as_ref().unwrap_unchecked().image_index)
+                .collect();
+            
+            let mut results = SmallVec::<[ash::vk::Result; 1]>::from_elem(
+                ash::vk::Result::ERROR_UNKNOWN,
+                present_info.entries.len()
+            );
+
+            let result = self.inner.device.swapchain.as_ref().unwrap_unchecked()
+                .queue_present(
+                    self.inner.queue,
+                    &ash::vk::PresentInfoKHR {
+                        wait_semaphore_count: semaphores.len() as u32,
+                        p_wait_semaphores: semaphores.as_ptr(),
+
+                        swapchain_count: swapchains.len() as u32,
+                        p_swapchains: swapchains.as_ptr(),
+                        p_image_indices: image_indicies.as_ptr(),
+
+                        p_results: results.as_mut_ptr(),
+
+                        ..Default::default()
+                    }
+                )
+                .map_err(| e | VkError::try_from(e).unwrap_unchecked().into());
+
+            present_info.entries.iter_mut()
+                .map(| e | &mut e.result)
+                .zip(results.iter())
+                .for_each(| (dst, src) |
+                    *dst = match *src {
+                        ash::vk::Result::SUCCESS => Ok(()),
+
+                        _ => Err(VkError::try_from(*src).unwrap_unchecked().into())
+                    }
+                );
+            
+            result
+        }
+    }
 }
 
+#[cfg(feature = "windowing")]
+pub struct PresentInfo<'a, ST: SemaphoreType = semaphore_types::Binary> {
+    pub wait_semaphores: &'a [&'a Semaphore<ST>],
+    pub entries: &'a mut [PresentInfoSwapchainEntry<'a>]
+}
+
+#[cfg(feature = "windowing")]
+pub struct PresentInfoSwapchainEntry<'a> {
+    pub swapchain: &'a crate::swapchain::Swapchain,
+    pub swapchain_image: &'a crate::swapchain::SwapchainImage,
+    pub result: Result<(), crate::Error>
+}
 
 /// Represents multiple command buffers, what being run on a queue
 pub struct Submission<C, SS: SemaphoreType = semaphore_types::Binary, SW: SemaphoreType = semaphore_types::Binary> {

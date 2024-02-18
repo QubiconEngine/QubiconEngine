@@ -114,7 +114,10 @@ pub enum ImageLayout {
     DepthAttachmentOptimal,
     StencilAttachmentOptimal,
     DepthReadOnlyOptimal,
-    StencilReadOnlyOptimal
+    StencilReadOnlyOptimal,
+
+    #[cfg(feature = "windowing")]
+    PresentSrc
 }
 
 impl Into<VkImageTiling> for ImageTiling {
@@ -152,7 +155,10 @@ impl Into<VkImageLayout> for ImageLayout {
             Self::DepthAttachmentOptimal => VkImageLayout::DEPTH_ATTACHMENT_OPTIMAL,
             Self::StencilAttachmentOptimal => VkImageLayout::STENCIL_ATTACHMENT_OPTIMAL,
             Self::DepthReadOnlyOptimal => VkImageLayout::DEPTH_READ_ONLY_OPTIMAL,
-            Self::StencilReadOnlyOptimal => VkImageLayout::STENCIL_READ_ONLY_OPTIMAL
+            Self::StencilReadOnlyOptimal => VkImageLayout::STENCIL_READ_ONLY_OPTIMAL,
+
+            #[cfg(feature = "windowing")]
+            Self::PresentSrc => VkImageLayout::PRESENT_SRC_KHR
         }
     }
 }
@@ -381,6 +387,11 @@ impl<A: DeviceMemoryAllocator> Image<A> {
     // no guarantees what it is a valid inner!
     pub(crate) unsafe fn from_inner(inner: ImageInner<A>) -> Self {
         Self { inner: Arc::new(inner) }
+    }
+
+    // maybe this should be allowed in public API ?
+    pub(crate) fn from_inner_arc(inner: Arc<ImageInner<A>>) -> Self {
+        Self { inner }
     }
 
     pub(crate) fn as_inner(&self) -> &Arc<ImageInner<A>> {

@@ -25,7 +25,7 @@ use crate::{
     }, descriptors::alloc::descriptor_set::DescriptorSet
 };
 
-mod memory_barrier;
+pub mod barrier;
 
 
 pub struct CommandBufferBuilder<'a, L: levels::CommandBufferLevel> {

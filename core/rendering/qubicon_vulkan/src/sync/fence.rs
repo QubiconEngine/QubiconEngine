@@ -37,7 +37,7 @@ impl From<VkFenceCreateFlags> for FenceCreateFlags {
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FenceCreateInfo {
-    flags: FenceCreateFlags
+    pub flags: FenceCreateFlags
 }
 impl Into<VkFenceCreateInfo> for FenceCreateInfo {
     fn into(self) -> VkFenceCreateInfo {

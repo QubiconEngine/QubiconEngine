@@ -53,7 +53,11 @@ fn main() {
             clipped: false
         },
         | _ | true,
-        | _ | true 
+        | f | {
+            println!("{:?}", f.format);
+
+            true
+        } 
     ).expect("Failed to create window");
 
     win_server.window_mut(window_id).unwrap().show();

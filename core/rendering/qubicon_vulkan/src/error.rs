@@ -43,13 +43,12 @@ pub enum VkError {
     #[error("invalid shader")]
     InvalidShader,
 
-    #[cfg(feature = "windowing")]
     #[error("surface is changed in a way what it is no longer compatible with swapchain")]
     OutOfDate,
-    #[cfg(feature = "windowing")]
     #[error("surface is no longer available")]
     SurfaceLost,
-    #[cfg(feature = "windowing")]
+    #[error("swapchain dont match surface properties")]
+    Suboptimal,
     #[error("operation in a full-screen swapchain falied(implementation dependent)")]
     FullScreenExclusiveModeLost
 }
@@ -80,11 +79,9 @@ impl TryFrom<VkResult> for VkError {
                 VkResult::ERROR_UNKNOWN => Self::Unknown,
 
 
-                #[cfg(feature = "windowing")]
                 VkResult::ERROR_OUT_OF_DATE_KHR => Self::OutOfDate,
-                #[cfg(feature = "windowing")]
                 VkResult::ERROR_SURFACE_LOST_KHR => Self::SurfaceLost,
-                #[cfg(feature = "windowing")]
+                VkResult::SUBOPTIMAL_KHR => Self::Suboptimal,
                 VkResult::ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT => Self::FullScreenExclusiveModeLost,
 
 

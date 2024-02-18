@@ -1,0 +1,11 @@
+#version 450
+
+layout(set = 0, binding = 0, rgba8) uniform image2D dest_img;
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    ivec2 texel = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
+
+    imageStore(dest_img, texel, vec4(1.0, 0.0, 0.0, 1.0));
+}

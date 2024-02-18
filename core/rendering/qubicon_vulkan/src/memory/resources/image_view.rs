@@ -132,9 +132,9 @@ impl Into<VkComponentMapping> for ComponentMapping {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ImageSubresourceRange {
-    aspect_mask: ImageAspect,
-    mip_levels: Range<u32>,
-    array_layers: Range<u32>
+    pub aspect_mask: ImageAspect,
+    pub mip_levels: Range<u32>,
+    pub array_layers: Range<u32>
 }
 impl Default for ImageSubresourceRange {
     #[inline]
@@ -160,10 +160,10 @@ impl Into<VkImageSubresourceRange> for ImageSubresourceRange {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ImageViewCreateInfo {
-    view_type: ImageViewType,
-    format: Format,
-    components: ComponentMapping,
-    subresource_range: ImageSubresourceRange
+    pub view_type: ImageViewType,
+    pub format: Format,
+    pub components: ComponentMapping,
+    pub subresource_range: ImageSubresourceRange
 }
 
 pub struct ImageView<A: DeviceMemoryAllocator> {
@@ -174,6 +174,10 @@ pub struct ImageView<A: DeviceMemoryAllocator> {
 }
 
 impl<A: DeviceMemoryAllocator> ImageView<A> {
+    pub(crate) unsafe fn as_raw(&self) -> VkImageView {
+        self.image_view
+    }
+
     /// # Safety
     /// * Format size of image view should match format size of original image
     /// * If view type is Cube, then original image should be created with cube compatiple flag

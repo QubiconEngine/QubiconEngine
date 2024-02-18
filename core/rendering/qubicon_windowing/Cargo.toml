@@ -7,6 +7,10 @@ edition = "2021"
 name = "window_with_swapchain"
 required-features = ["x11", "vulkan"]
 
+[[example]]
+name = "vulkan_draw"
+required-features = ["x11", "vulkan"]
+
 [features]
 default = ["x11", "vulkan"]
 

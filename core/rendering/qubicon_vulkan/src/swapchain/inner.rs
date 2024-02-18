@@ -3,7 +3,7 @@ use ash::vk::SwapchainKHR as VkSwapchain;
 
 use crate::{device::inner::DeviceInner, memory::alloc::{AllocatedDeviceMemoryFragment, DeviceMemoryAllocator}, surface::Surface};
 
-pub(crate) struct SwapchainInner {
+pub struct SwapchainInner {
     // In option because may be obtained back
     pub(crate) surface: Option<Surface>,
     pub(crate) device: Arc<DeviceInner>,
@@ -20,7 +20,7 @@ unsafe impl DeviceMemoryAllocator for SwapchainInner {
     type MemoryFragmentType = SwapchainMemoryFragment;
 
     unsafe fn alloc(&self, memory_type_index: u8, size: u64, align: u64) -> Result<Self::MemoryFragmentType, Self::AllocError> {
-        Ok( SwapchainMemoryFragment )
+        unimplemented!("no allocation needed for swapchain images")
     }
 
     unsafe fn dealloc(&self, _fragment: Self::MemoryFragmentType) {}
@@ -37,7 +37,9 @@ impl Drop for SwapchainInner {
     }
 }
 
-pub(crate) struct SwapchainMemoryFragment;
+pub struct SwapchainMemoryFragment {
+    pub(crate) image_index: u32
+}
 
 unsafe impl AllocatedDeviceMemoryFragment for SwapchainMemoryFragment {
     unsafe fn as_memory_object_and_offset(&self) -> (&crate::memory::alloc::DeviceMemoryObject, u64) {

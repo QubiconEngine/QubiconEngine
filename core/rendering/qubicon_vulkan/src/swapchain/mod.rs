@@ -8,6 +8,8 @@ use crate::{surface::{Surface, ColorSpace, SurfaceTransformFlags, CompositeAlpha
 
 pub(crate) mod inner;
 
+pub type SwapchainImage = Image<inner::SwapchainInner>;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SwapchainCreateInfo {
     pub min_image_count: u32,
@@ -77,6 +79,10 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
+    pub(crate) unsafe fn as_raw(&self) -> ash::vk::SwapchainKHR {
+        self.inner.swapchain
+    }
+
     pub(crate) unsafe fn create_unchecked(device: Arc<DeviceInner>, surface: Surface, create_info: &SwapchainCreateInfo) -> Result<Self, Error> {
         let raw_create_info = VkSwapchainCreateInfo {
             surface: surface.as_raw(),
@@ -104,14 +110,20 @@ impl Swapchain {
         let images: Box<[_]> = device.swapchain.as_ref().unwrap_unchecked().get_swapchain_images(swapchain)
             .map_err(| e | VkError::try_from(e).unwrap_unchecked())?
             .into_iter()
-            .map(| raw_image | {
+            .enumerate()
+            .map(| (image_index, raw_image) | {
                 let inner = ImageInner {
                     device: Arc::clone(&device),
                     image: raw_image,
                     info: image_create_info,
                     mip_levels: 1,
                     drop_required: false,
-                    memory: Some(ResourceMemory::new(Arc::clone(&inner), inner::SwapchainMemoryFragment))
+                    memory: Some(
+                        ResourceMemory::new(
+                            Arc::clone(&inner),
+                            inner::SwapchainMemoryFragment { image_index: image_index as u32 }
+                        )
+                    )
                 };
 
                 Image::from_inner(inner)
@@ -177,7 +189,7 @@ impl Swapchain {
             let image_info = _build_image_create_info(create_info);
             let images: Box<[_]> = self.inner.device.swapchain.as_ref().unwrap_unchecked()
                 .get_swapchain_images(swapchain)
-                .map_err(| e | VkError::try_from(e).unwrap_unchecked())?
+                .expect("failed to get new swapchain images")
                 .into_iter()
                 .map(| raw_image | {
                     let inner = ImageInner {
@@ -205,7 +217,7 @@ impl Swapchain {
         semaphore: Option<&Semaphore<T>>,
         fence: Option<&Fence>,
         timeout: u64
-    ) -> Result<&Image<impl DeviceMemoryAllocator>, Error> {
+    ) -> Result<SwapchainImage, Error> {
         let semaphore = semaphore.map(| s | s.as_raw()).unwrap_or_default();
         let fence = fence.map(| f | f.as_raw()).unwrap_or_default();
 
@@ -216,7 +228,13 @@ impl Swapchain {
             fence
         ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
-        return Ok( &self.images[image_index as usize] )
+        return Ok(
+            Image::from_inner_arc(
+                Arc::clone(
+                    self.images[image_index as usize].as_inner()
+                )
+            )
+        );
     }
 
     pub fn drop(self) -> Result<Surface, ValidationError> {

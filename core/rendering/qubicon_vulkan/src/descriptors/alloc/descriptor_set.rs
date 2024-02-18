@@ -2,10 +2,11 @@ use std::{sync::Arc, fmt::Debug};
 use ash::vk::{
     DescriptorSet as VkDescriptorSet,
     WriteDescriptorSet as VkWriteDescriptorSet,
+    DescriptorImageInfo as VkDescriptorImageInfo,
     DescriptorBufferInfo as VkDescriptorBufferInfo
 };
 
-use crate::memory::{resources::buffer::Buffer, alloc::DeviceMemoryAllocator};
+use crate::memory::{alloc::DeviceMemoryAllocator, resources::{buffer::Buffer, image::ImageLayout, image_view::ImageView}};
 
 use super::{
     super::layout::DescriptorSetLayout,
@@ -53,6 +54,19 @@ impl<'a, A: DeviceMemoryAllocator> Debug for BufferWriteInfo<'a, A> {
     }
 }
 
+pub struct ImageWriteInfo<'a, A: DeviceMemoryAllocator> {
+    pub sampler: Option<()>,
+    pub image_view: &'a ImageView<A>,
+    pub image_layout: ImageLayout
+}
+
+impl<'a, A: DeviceMemoryAllocator> Copy for ImageWriteInfo<'a, A> {}
+impl<'a, A: DeviceMemoryAllocator> Clone for ImageWriteInfo<'a, A> {
+    fn clone(&self) -> Self {
+        *self
+    }
+} 
+
 pub trait WriteInfo: write_info_sealed::WriteInfoSealed {}
 impl<T: write_info_sealed::WriteInfoSealed> WriteInfo for T {} 
 
@@ -78,6 +92,22 @@ mod write_info_sealed {
         }
         unsafe fn update_raw_descriptor_write_unchecked(dst: &mut VkWriteDescriptorSet, src: &Self::VkInfo) {
             dst.p_buffer_info = src
+        }
+    }
+    impl<'a, A: DeviceMemoryAllocator> WriteInfoSealed for ImageWriteInfo<'a, A> {
+        type VkInfo = VkDescriptorImageInfo;
+
+        unsafe fn construct_info(&self) -> Self::VkInfo {
+            VkDescriptorImageInfo {
+                image_view: self.image_view.as_raw(),
+                image_layout: self.image_layout.into(),
+
+                ..Default::default()
+            }
+        }
+
+        unsafe fn update_raw_descriptor_write_unchecked(dst: &mut VkWriteDescriptorSet, src: &Self::VkInfo) {
+            dst.p_image_info = src
         }
     }
 }
