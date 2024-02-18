@@ -346,7 +346,6 @@ struct WindowData {
 }
 
 impl WindowData {
-    // if recreation fails, no swapchain will be associated
     #[cfg(feature = "vulkan")]
     fn resize_swapchain(&mut self, width: u32, height: u32) -> Result<(), qubicon_vulkan::Error> {
         use qubicon_vulkan::swapchain::SwapchainCreateInfo;

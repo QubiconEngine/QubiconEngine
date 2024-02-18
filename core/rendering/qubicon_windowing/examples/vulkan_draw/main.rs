@@ -191,7 +191,7 @@ fn main() {
                             ImageMemoryBarrier {
                                 src_access_mask: Default::default(),
                                 dst_access_mask: AccessFlags::SHADER_WRITE,
-                                old_layout: ImageLayout::PresentSrc,
+                                old_layout: ImageLayout::Undefined,
                                 new_layout: ImageLayout::General,
                                 src_queue_family_index: 0,
                                 dst_queue_family_index: 0,

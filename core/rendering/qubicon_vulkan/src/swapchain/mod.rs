@@ -191,14 +191,21 @@ impl Swapchain {
                 .get_swapchain_images(swapchain)
                 .expect("failed to get new swapchain images")
                 .into_iter()
-                .map(| raw_image | {
+                .enumerate()
+                .map(| (image_index, raw_image) | {
                     let inner = ImageInner {
                         device: Arc::clone(&self.inner.device),
                         image: raw_image,
                         info: image_info,
                         mip_levels: 1,
                         drop_required: false,
-                        memory: None
+                        // this shit crashed because I forgot to add memory fragments
+                        memory: Some(
+                            ResourceMemory::new(
+                                Arc::clone(&self.inner),
+                                inner::SwapchainMemoryFragment { image_index: image_index as u32 }
+                            )
+                        )
                     };
 
                     Image::from_inner(inner)
