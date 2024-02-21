@@ -10,7 +10,8 @@ use ash::vk::{
     ComponentMapping as VkComponentMapping,
     ComponentSwizzle as VkComponentSwizzle,
     ImageViewCreateInfo as VkImageViewCreateInfo,
-    ImageSubresourceRange as VkImageSubresourceRange
+    ImageSubresourceRange as VkImageSubresourceRange,
+    ImageSubresourceLayers as VkImageSubresourceLayers
 };
 
 use crate::{
@@ -152,6 +153,33 @@ impl Into<VkImageSubresourceRange> for ImageSubresourceRange {
             aspect_mask: self.aspect_mask.into(),
             base_mip_level: self.mip_levels.start,
             level_count: self.mip_levels.count() as u32,
+            base_array_layer: self.array_layers.start,
+            layer_count: self.array_layers.count() as u32
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ImageSubresourceLayers {
+    aspect_mask: ImageAspect,
+    mip_level: u32,
+    array_layers: Range<u32>
+}
+impl Default for ImageSubresourceLayers {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            aspect_mask: Default::default(),
+            mip_level: 0,
+            array_layers: 0..1
+        }
+    }
+}
+impl Into<VkImageSubresourceLayers> for ImageSubresourceLayers {
+    fn into(self) -> VkImageSubresourceLayers {
+        VkImageSubresourceLayers {
+            aspect_mask: self.aspect_mask.into(),
+            mip_level: self.mip_level,
             base_array_layer: self.array_layers.start,
             layer_count: self.array_layers.count() as u32
         }

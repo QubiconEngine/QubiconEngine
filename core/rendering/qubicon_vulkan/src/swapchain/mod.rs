@@ -19,9 +19,8 @@ pub struct SwapchainCreateInfo {
     pub image_extent: (u32, u32),
     pub image_array_layers: u32,
     pub image_usage: ImageUsageFlags,
-    // TODO: image_sharing_mode
-    // pub image_sharing_mode,
-    // pub queue_family_indices: &'a [u32],
+    /// For synchronization
+    pub image_main_owner_queue_family: u32,
     pub pre_transform: SurfaceTransformFlags,
     pub composite_alpha: CompositeAlphaFlags,
     pub present_mode: PresentMode,
@@ -39,6 +38,7 @@ impl Default for SwapchainCreateInfo {
             image_extent: (1, 1),
             image_array_layers: 1,
             image_usage: ImageUsageFlags::default(),
+            image_main_owner_queue_family: 0,
             pre_transform: SurfaceTransformFlags::INHERIT,
             composite_alpha: CompositeAlphaFlags::INHERIT,
             present_mode: PresentMode::Immediate,
@@ -265,6 +265,9 @@ fn _build_image_create_info(create_info: &SwapchainCreateInfo) -> ImageCreateInf
             miplevels_enabled: false
         },
         array_layers: create_info.image_array_layers,
-        format: create_info.image_format
+        format: create_info.image_format,
+
+        main_layout: ImageLayout::PresentSrc,
+        main_owner_queue_family: create_info.image_main_owner_queue_family
     }
 }

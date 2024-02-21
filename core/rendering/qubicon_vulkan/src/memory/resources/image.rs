@@ -174,7 +174,12 @@ pub struct ImageCreateInfo {
     pub image_type: ImageType,
     
     pub array_layers: u32,
-    pub format: Format
+    pub format: Format,
+
+    /// For automatic synchronization
+    pub main_layout: ImageLayout,
+    /// For automatic synchronization
+    pub main_owner_queue_family: u32
 }
 
 pub(crate) struct ImageInner<A: DeviceMemoryAllocator> {

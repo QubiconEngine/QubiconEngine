@@ -65,7 +65,10 @@ pub struct BufferCreateInfo {
     pub usage_flags: BufferUsageFlags,
     pub create_flags: BufferCreateFlags,
 
-    pub size: u64
+    pub size: u64,
+
+    /// For automatic synchronization
+    pub main_owner_queue_family: u32
 }
 
 pub(crate) struct BufferInner<A: DeviceMemoryAllocator> {

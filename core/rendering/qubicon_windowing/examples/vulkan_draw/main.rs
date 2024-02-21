@@ -103,7 +103,9 @@ fn main() {
             image_usage: ImageUsageFlags::STORAGE,
             pre_transform: Default::default(),
             composite_alpha: Default::default(),
-            clipped: false
+            clipped: false,
+
+            image_main_owner_queue_family: 0
         },
 
         // dont care what format and what mode

@@ -50,7 +50,9 @@ fn main() {
             image_usage: ImageUsageFlags::STORAGE,
             pre_transform: SurfaceTransformFlags::IDENTITY,
             composite_alpha: CompositeAlphaFlags::OPAQUE,
-            clipped: false
+            clipped: false,
+
+            image_main_owner_queue_family: family_index
         },
         | _ | true,
         | f | {

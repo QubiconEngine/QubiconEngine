@@ -142,7 +142,9 @@ impl WindowingServer {
                 image_color_space: format.color_space,
                 pre_transform: create_info.pre_transform,
                 composite_alpha: create_info.composite_alpha,
-                present_mode
+                present_mode,
+
+                image_main_owner_queue_family: create_info.image_main_owner_queue_family
             };
 
             let swapchain = device.create_swapchain_unchecked(surface, &create_info)?;

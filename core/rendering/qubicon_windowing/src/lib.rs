@@ -15,5 +15,7 @@ pub struct AssociatedSwapchainCreateInfo {
     pub image_usage: ImageUsageFlags,
     pub pre_transform: SurfaceTransformFlags,
     pub composite_alpha: CompositeAlphaFlags,
-    pub clipped: bool
+    pub clipped: bool,
+
+    pub image_main_owner_queue_family: u32
 }

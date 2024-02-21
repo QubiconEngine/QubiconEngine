@@ -31,7 +31,9 @@ fn main() {
         &BufferCreateInfo {
             create_flags:   BufferCreateFlags::empty(),
             usage_flags:    BufferUsageFlags::STORAGE_BUFFER,
-            size: 1024
+            size: 1024,
+
+            main_owner_queue_family: 0
         }
     ).expect("Buffer creation failed");
 }
