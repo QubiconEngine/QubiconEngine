@@ -3,8 +3,10 @@ pub mod resources;
 
 use std::{marker::PhantomData, sync::Arc};
 
-use crate::{commands::{command_buffers::{self, command_buffer_builder::{barrier::{AccessFlags, BufferMemoryBarrier, ImageMemoryBarrier}, copy::BufferImageCopy}, CommandBufferBuilder, CommandBufferUsageFlags}, CommandPool}, device::{inner::DeviceInner, Device}, instance::physical_device::{memory_properties::MemoryTypeProperties, queue_info::QueueFamilyCapabilities}, queue::{Queue, Submission}, shaders::PipelineStageFlags, sync::semaphore_types};
-use self::{alloc::{hollow_device_memory_allocator::HollowDeviceMemoryAllocator, DeviceMemoryAllocator}, resources::{buffer::Buffer, format::Format, image::{Image, ImageCreateFlags, ImageCreateInfo, ImageLayout, ImageSampleCountFlags, ImageTiling, ImageType, ImageUsageFlags}, image_view::{ImageAspect, ImageSubresourceLayers, ImageSubresourceRange}}};
+use ash::vk::BufferCopy;
+
+use crate::{commands::{command_buffers::{self, command_buffer_builder::{barrier::{AccessFlags, BufferMemoryBarrier, ImageMemoryBarrier, PipelineBarrierDependencyFlags}, copy::BufferImageCopy}, CommandBufferBuilder, CommandBufferUsageFlags}, CommandPool}, device::{inner::DeviceInner, Device}, instance::physical_device::{memory_properties::MemoryTypeProperties, queue_info::QueueFamilyCapabilities}, memory::resources::buffer::BufferCreateInfo, queue::{Queue, Submission}, shaders::PipelineStageFlags, sync::semaphore_types};
+use self::{alloc::{hollow_device_memory_allocator::HollowDeviceMemoryAllocator, DeviceMemoryAllocator}, resources::{buffer::{Buffer, BufferCreateFlags, BufferUsageFlags}, format::Format, image::{Image, ImageCreateFlags, ImageCreateInfo, ImageLayout, ImageSampleCountFlags, ImageTiling, ImageType, ImageUsageFlags}, image_view::{ImageAspect, ImageSubresourceLayers, ImageSubresourceRange}}};
 
 #[cfg(test)]
 mod resource_factory_tests;
@@ -56,13 +58,23 @@ impl ResourceFactory {
 
                 allocator,
                 transfer_builder: Some(transfer_builder),
-                image_list: Default::default()
+                
+                image_list: Vec::new(),
+                buffer_list: Vec::new()
             }
         )
     }
 }
 
-pub struct StagingBufferInfo<'a, A: DeviceMemoryAllocator> {
+#[derive(Clone, Copy)]
+pub struct BufferStagingBufferInfo<'a, A: DeviceMemoryAllocator> {
+    buffer: &'a Buffer<A>,
+    
+    offset: u64,
+    regions: &'a [BufferCopy]
+}
+
+pub struct ImageStagingBufferInfo<'a, A: DeviceMemoryAllocator> {
     buffer: &'a Buffer<A>,
 
     offset: u64,
@@ -70,7 +82,7 @@ pub struct StagingBufferInfo<'a, A: DeviceMemoryAllocator> {
     image_heigth: u32,
     subresource: ImageSubresourceLayers
 }
-impl<'a, A: DeviceMemoryAllocator> Clone for StagingBufferInfo<'a, A> {
+impl<'a, A: DeviceMemoryAllocator> Clone for ImageStagingBufferInfo<'a, A> {
     fn clone(&self) -> Self {
         Self {
             buffer: self.buffer,
@@ -95,7 +107,7 @@ pub struct ImageRequest<'a, StagingAlloc: DeviceMemoryAllocator = HollowDeviceMe
     pub main_layout: ImageLayout,
     pub main_owner_queue_family: u32,
 
-    pub staging_buffer: Option<StagingBufferInfo<'a, StagingAlloc>>
+    pub staging_buffer: Option<ImageStagingBufferInfo<'a, StagingAlloc>>
 }
 impl<'a, StagingAlloc: DeviceMemoryAllocator> Clone for ImageRequest<'a, StagingAlloc> {
     fn clone(&self) -> Self {
@@ -114,13 +126,26 @@ impl<'a, StagingAlloc: DeviceMemoryAllocator> Clone for ImageRequest<'a, Staging
     }
 }
 
+#[derive(Default, Clone, Copy)]
+pub struct BufferRequest<'a, StagingAlloc: DeviceMemoryAllocator = HollowDeviceMemoryAllocator> {
+    pub usage_flags: BufferUsageFlags,
+    pub create_flags: BufferCreateFlags,
+
+    pub size: u64,
+    pub main_owner_queue_family: u32,
+
+    pub staging_buffer: Option<BufferStagingBufferInfo<'a, StagingAlloc>>
+}
+
 pub struct OrderBuilder<'a, Alloc: DeviceMemoryAllocator> {
     factory: &'a ResourceFactory,
     allocator: Arc<Alloc>,
 
     // I am piece of shit. Builder takes ownership of itself
     transfer_builder: Option<CommandBufferBuilder<'a, command_buffers::levels::Primary>>,
-    image_list: Vec<Image<Alloc>>
+    
+    image_list: Vec<Image<Alloc>>,
+    buffer_list: Vec<Buffer<Alloc>>
 }
 
 impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
@@ -168,11 +193,11 @@ impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
 
             // if staging buffer is on different queue, we need barriers to transfer ownership
             transfer_builder = if let Some(staging_buffer) = request.staging_buffer {
-                let staging_buffer_owner_family = staging_buffer.buffer.as_inner().info.main_owner_queue_family;
+                let staging_buffer_owner_family = staging_buffer.buffer.create_info().main_owner_queue_family;
                 
                 let buffer_barriers = if self.factory.transfer_queue_family_index != staging_buffer_owner_family {
                     let start = BufferMemoryBarrier {
-                        src_access_mask: Default::default(),
+                        src_access_mask: AccessFlags::empty(),
                         dst_access_mask: AccessFlags::TRANSFER_READ,
 
                         src_queue_family_index: staging_buffer_owner_family,
@@ -186,7 +211,7 @@ impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
                     };
                     let end = BufferMemoryBarrier {
                         src_access_mask: AccessFlags::TRANSFER_READ,
-                        dst_access_mask: Default::default(),
+                        dst_access_mask: AccessFlags::empty(),
 
                         src_queue_family_index: staging_buffer_owner_family,
                         dst_queue_family_index: self.factory.transfer_queue_family_index,
@@ -209,11 +234,11 @@ impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
                     .cmd_pipeline_barrier_unchecked::<_, StagingAlloc>(
                         PipelineStageFlags::TOP_OF_PIPE,
                         PipelineStageFlags::TRANSFER,
-                        Default::default(),
+                        PipelineBarrierDependencyFlags::empty(),
                         &[],
                         &[
                             ImageMemoryBarrier {
-                                src_access_mask: AccessFlags::default(),
+                                src_access_mask: AccessFlags::empty(),
                                 dst_access_mask: AccessFlags::TRANSFER_WRITE,
                                 old_layout: ImageLayout::Undefined,
                                 new_layout: ImageLayout::TransferDstOptimal,
@@ -247,12 +272,12 @@ impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
                     .cmd_pipeline_barrier_unchecked::<_, StagingAlloc>(
                         PipelineStageFlags::TRANSFER,
                         PipelineStageFlags::BOTTOM_OF_PIPE,
-                        Default::default(),
+                        PipelineBarrierDependencyFlags::empty(),
                         &[],
                         &[
                             ImageMemoryBarrier {
                                 src_access_mask: AccessFlags::TRANSFER_WRITE,
-                                dst_access_mask: AccessFlags::default(),
+                                dst_access_mask: AccessFlags::empty(),
                                 old_layout: ImageLayout::TransferDstOptimal,
                                 new_layout: request.main_layout,
                                 src_queue_family_index: self.factory.transfer_queue_family_index,
@@ -272,12 +297,12 @@ impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
                     .cmd_pipeline_barrier_unchecked::<_, HollowDeviceMemoryAllocator>(
                         PipelineStageFlags::TOP_OF_PIPE,
                         PipelineStageFlags::TOP_OF_PIPE,
-                        Default::default(),
+                        PipelineBarrierDependencyFlags::empty(),
                         &[],
                         &[
                             ImageMemoryBarrier {
-                                src_access_mask: Default::default(),
-                                dst_access_mask: Default::default(),
+                                src_access_mask: AccessFlags::empty(),
+                                dst_access_mask: AccessFlags::empty(),
                                 old_layout: ImageLayout::Undefined,
                                 new_layout: request.main_layout,
                                 src_queue_family_index: u32::MAX,
@@ -302,6 +327,97 @@ impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
         Ok(())
     }
 
+    pub fn request_buffer<StagingAlloc: DeviceMemoryAllocator>(
+        &mut self,
+        memory_properties: MemoryTypeProperties,
+        request: BufferRequest<StagingAlloc>
+    ) -> Result<(), resources::ResourceCreationError<Alloc::AllocError>> {
+        let usage_flags = match request.staging_buffer.is_some() {
+            true => request.usage_flags | BufferUsageFlags::TRANSFER_DST,
+            false => request.usage_flags
+        };
+
+        let buffer = Buffer::create_and_allocate(
+            Arc::clone(&self.factory.device),
+            Arc::clone(&self.allocator),
+            memory_properties,
+            &BufferCreateInfo {
+                usage_flags,
+                create_flags: request.create_flags,
+                size: request.size,
+                main_owner_queue_family: request.main_owner_queue_family
+            }
+        )?;
+
+        if let Some(staging_buffer) = request.staging_buffer {
+            let staging_buffer_queue_family = staging_buffer.buffer.create_info().main_owner_queue_family;
+
+            unsafe {
+                let mut transfer_builder = self.transfer_builder.take().unwrap_unchecked();
+
+                if self.factory.transfer_queue_family_index != staging_buffer_queue_family {
+                    transfer_builder = transfer_builder.cmd_pipeline_barrier_unchecked::<HollowDeviceMemoryAllocator, _>(
+                        PipelineStageFlags::empty(),
+                        PipelineStageFlags::TRANSFER,
+                        PipelineBarrierDependencyFlags::empty(),
+                        &[],
+                        &[],
+                        &[
+                            BufferMemoryBarrier {
+                                src_access_mask: AccessFlags::empty(),
+                                dst_access_mask: AccessFlags::TRANSFER_READ,
+                                src_queue_family_index: staging_buffer_queue_family,
+                                dst_queue_family_index: self.factory.transfer_queue_family_index,
+                                buffer: staging_buffer.buffer,
+                                
+                                // whole size
+                                offset: 0,
+                                size: u64::MAX
+                            }
+                        ]
+                    );
+                }
+
+                transfer_builder = transfer_builder
+                    .cmd_copy_buffer(
+                        staging_buffer.buffer,
+                        &buffer,
+                        staging_buffer.regions
+                    );
+
+                // If with same statement as before. SHIT
+                if self.factory.transfer_queue_family_index != staging_buffer_queue_family {
+                    transfer_builder = transfer_builder.cmd_pipeline_barrier_unchecked::<HollowDeviceMemoryAllocator, _>(
+                        PipelineStageFlags::TRANSFER,
+                        PipelineStageFlags::BOTTOM_OF_PIPE,
+                        PipelineBarrierDependencyFlags::empty(),
+                        &[],
+                        &[],
+                        &[
+                            BufferMemoryBarrier {
+                                src_access_mask: AccessFlags::TRANSFER_READ,
+                                dst_access_mask: AccessFlags::empty(),
+                                src_queue_family_index: self.factory.transfer_queue_family_index,
+                                dst_queue_family_index: staging_buffer_queue_family,
+                                buffer: staging_buffer.buffer,
+        
+                                // also whole size
+                                offset: 0,
+                                size: u64::MAX
+                            }
+                        ]
+                    );
+                }
+
+                self.transfer_builder = Some(transfer_builder)
+            }
+        }
+
+        self.buffer_list.push(buffer);
+        
+        Ok(())
+    }
+
     pub fn do_order(self) -> Result<Order<'a, Alloc>, crate::Error> {
         let transfer_cmd = unsafe { self.transfer_builder.unwrap_unchecked() }
             .build()?;
@@ -317,6 +433,8 @@ impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
                 submission,
                 
                 images: self.image_list,
+                buffers: self.buffer_list,
+
                 _ph: Default::default()
             }
         )
@@ -328,16 +446,18 @@ pub struct Order<'a, Alloc: DeviceMemoryAllocator> {
         command_buffers::CommandBuffer<command_buffers::levels::Primary>,
         semaphore_types::Binary,
         semaphore_types::Binary>,
+    
     images: Vec<Image<Alloc>>,
+    buffers: Vec<Buffer<Alloc>>,
 
     _ph: PhantomData<&'a ResourceFactory>
 }
 
 impl<'a, Alloc: DeviceMemoryAllocator> Order<'a, Alloc> {
-    pub fn wait(self) -> Vec<Image<Alloc>> {
+    pub fn wait(self) -> (Vec<Image<Alloc>>, Vec<Buffer<Alloc>>) {
         // TODO: Currently this shit will block if error occured
         self.submission.wait_owned(u64::MAX)
-            .map(move | _ | self.images)
+            .map(move | _ | (self.images, self.buffers))
             .map_err(| (_, e) | e)
             .expect("Failed to finish resource creation operations")
     } 

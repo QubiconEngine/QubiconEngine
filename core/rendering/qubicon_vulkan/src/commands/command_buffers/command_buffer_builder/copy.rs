@@ -1,11 +1,23 @@
 use ash::vk::{
     Offset3D as VkOffset3D,
     Extent3D as VkExtent3D,
+    BufferCopy as VkBufferCopy,
     BufferImageCopy as VkBufferImageCopy
 };
 
 use crate::{commands::command_buffers::levels, memory::{alloc::DeviceMemoryAllocator, resources::{buffer::Buffer, image::{Image, ImageLayout}, image_view::ImageSubresourceLayers}}};
 use super::CommandBufferBuilder;
+
+// // TODO: DeviceSize
+// #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+// pub struct BufferCopy {
+//     src_offset: u64,
+//     dst_offset: u64,
+
+//     size: u64
+// }
+// No difference in layout. Later maybe changed
+pub type BufferCopy = VkBufferCopy;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BufferImageCopy {
@@ -57,6 +69,22 @@ impl<'a, L: levels::CommandBufferLevel> CommandBufferBuilder<'a, L> {
             dst_image.as_inner().image,
             dst_image_layout.into(),
             &regions
+        );
+
+        self
+    }
+
+    pub unsafe fn cmd_copy_buffer(
+        self,
+        src_buffer: &Buffer<impl DeviceMemoryAllocator>,
+        dst_buffer: &Buffer<impl DeviceMemoryAllocator>,
+        regions: &[BufferCopy]
+    ) -> Self {
+        self.command_pool.as_ref().unwrap_unchecked().device.cmd_copy_buffer(
+            self.command_buffer,
+            src_buffer.as_inner().buffer,
+            dst_buffer.as_inner().buffer,
+            regions
         );
 
         self

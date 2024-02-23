@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::physical_device::{memory_properties::MemoryTypeProperties, queue_info::QueueFamilyCapabilities, PhysicalDevice}, Instance};
+use crate::{commands::command_buffers::command_buffer_builder::copy::BufferCopy, device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::physical_device::{memory_properties::MemoryTypeProperties, queue_info::QueueFamilyCapabilities, PhysicalDevice}, Instance};
 
 use super::{alloc::{hollow_device_memory_allocator::HollowDeviceMemoryAllocator, standart_device_memory_allocator::StandartMemoryAllocator}, resources::{buffer::{BufferCreateInfo, BufferUsageFlags}, format::Format, image::{ImageLayout, ImageSampleCountFlags, ImageTiling, ImageType, ImageUsageFlags}, image_view::{ImageAspect, ImageSubresourceLayers}}, ImageRequest, ResourceFactory};
 
@@ -64,7 +64,7 @@ fn image_creation() {
             staging_buffer: None
         }).unwrap();
 
-    let image = order.do_order().unwrap().wait().swap_remove(0);
+    let image = order.do_order().unwrap().wait().0.swap_remove(0);
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn image_creation_with_staging_buffer() {
             main_layout: ImageLayout::General,
             main_owner_queue_family: family_index,
             staging_buffer: Some(
-                super::StagingBufferInfo {
+                super::ImageStagingBufferInfo {
                     buffer: &staging_buffer,
                     offset: 0,
                     row_length: 16,
@@ -150,5 +150,80 @@ fn image_creation_with_staging_buffer() {
         }
     ).unwrap();
 
-    let image = order.do_order().unwrap().wait().swap_remove(0);
+    let image = order.do_order().unwrap().wait().0.swap_remove(0);
+}
+
+#[test]
+fn buffer_creation_with_staging_buffer() {
+    let instance = Instance::create(&Default::default()).unwrap();
+
+    let (family_index, device) = instance.enumerate_devices()
+        .unwrap()
+        .filter_map(| dev | Some(
+            (queue_family_with_capability(&dev, QueueFamilyCapabilities::TRANSFER)?, dev)
+        ))
+        .next()
+        .unwrap();
+
+    let device = device.create_logical_device(
+        DeviceCreateInfo {
+            queues: [
+                QueueFamilyUsage {
+                    family_index,
+                    queue_count: 1
+                }
+            ].as_slice(),
+
+            ..Default::default()
+        }
+    ).unwrap();
+
+    let allocator = StandartMemoryAllocator::new(&device);
+    let resource_factory = ResourceFactory::init(
+        &device,
+        device.get_queue(family_index, 0).unwrap(),
+        family_index
+    ).unwrap();
+
+
+    let staging_buffer = device.create_buffer(
+        Arc::clone(&allocator),
+        MemoryTypeProperties::HOST_VISIBLE,
+        &BufferCreateInfo {
+            usage_flags: BufferUsageFlags::TRANSFER_SRC,
+            size: 1024,
+            main_owner_queue_family: family_index,
+
+            ..Default::default()
+        }
+    ).unwrap();
+
+
+    let mut order = resource_factory.create_order(Arc::clone(&allocator))
+        .unwrap();
+
+    order.request_buffer(
+        MemoryTypeProperties::DEVICE_LOCAL,
+        super::BufferRequest {
+            usage_flags: BufferUsageFlags::STORAGE_BUFFER,
+            create_flags: Default::default(),
+            size: 1024,
+            main_owner_queue_family: family_index,
+            staging_buffer: Some(
+                super::BufferStagingBufferInfo {
+                    buffer: &staging_buffer,
+                    offset: 0,
+                    regions: &[
+                        BufferCopy {
+                            src_offset: 0,
+                            dst_offset: 0,
+                            size: 1024
+                        }
+                    ]
+                }
+            )
+        }
+    ).unwrap();
+
+    let buffer = order.do_order().unwrap().wait().1.swap_remove(0);
 }
