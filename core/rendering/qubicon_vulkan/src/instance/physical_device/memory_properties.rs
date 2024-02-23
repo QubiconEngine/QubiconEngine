@@ -6,7 +6,7 @@ use ash::{
 };
 
 bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct MemoryTypeProperties: u32 {
         const DEVICE_LOCAL = 0b1;
         const HOST_VISIBLE = 0b10;

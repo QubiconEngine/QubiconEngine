@@ -161,9 +161,9 @@ impl Into<VkImageSubresourceRange> for ImageSubresourceRange {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ImageSubresourceLayers {
-    aspect_mask: ImageAspect,
-    mip_level: u32,
-    array_layers: Range<u32>
+    pub aspect_mask: ImageAspect,
+    pub mip_level: u32,
+    pub array_layers: Range<u32>
 }
 impl Default for ImageSubresourceLayers {
     #[inline]

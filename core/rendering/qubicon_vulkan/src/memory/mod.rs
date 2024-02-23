@@ -3,8 +3,11 @@ pub mod resources;
 
 use std::{marker::PhantomData, sync::Arc};
 
-use crate::{commands::{command_buffers::{self, command_buffer_builder::{barrier::{AccessFlags, BufferMemoryBarrier, ImageMemoryBarrier}, copy::BufferImageCopy}, CommandBufferBuilder, CommandBufferUsageFlags}, CommandPool}, device::inner::DeviceInner, instance::physical_device::memory_properties::MemoryTypeProperties, queue::{Queue, Submission}, shaders::PipelineStageFlags, sync::semaphore_types};
+use crate::{commands::{command_buffers::{self, command_buffer_builder::{barrier::{AccessFlags, BufferMemoryBarrier, ImageMemoryBarrier}, copy::BufferImageCopy}, CommandBufferBuilder, CommandBufferUsageFlags}, CommandPool}, device::{inner::DeviceInner, Device}, instance::physical_device::{memory_properties::MemoryTypeProperties, queue_info::QueueFamilyCapabilities}, queue::{Queue, Submission}, shaders::PipelineStageFlags, sync::semaphore_types};
 use self::{alloc::{hollow_device_memory_allocator::HollowDeviceMemoryAllocator, DeviceMemoryAllocator}, resources::{buffer::Buffer, format::Format, image::{Image, ImageCreateFlags, ImageCreateInfo, ImageLayout, ImageSampleCountFlags, ImageTiling, ImageType, ImageUsageFlags}, image_view::{ImageAspect, ImageSubresourceLayers, ImageSubresourceRange}}};
+
+#[cfg(test)]
+mod resource_factory_tests;
 
 pub struct ResourceFactory {
     device: Arc<DeviceInner>,
@@ -22,6 +25,26 @@ pub struct ResourceFactory {
 }
 
 impl ResourceFactory {
+    pub fn init(device: &Device, transfer_queue: Queue, transfer_queue_family_index: u32) -> Result<Self, crate::Error> {
+        if !transfer_queue.get_capabilities().contains(QueueFamilyCapabilities::TRANSFER) {
+            panic!("What the fuck you are doing!")
+        }
+        
+        Ok(
+            Self {
+                device: Arc::clone(&device.inner),
+
+                transfer_pool: transfer_queue.create_command_pool()?,
+                transfer_queue,
+                transfer_queue_family_index,
+
+                graphics_pool: None,
+                graphics_queue: None,
+                graphics_queue_family_index: 0,
+            }
+        )
+    }
+
     pub fn create_order<Alloc: DeviceMemoryAllocator>(&self, allocator: Arc<Alloc>) -> Result<OrderBuilder<Alloc>, crate::Error> {
         let transfer_builder = self.transfer_pool.create_primary_command_buffer(
             CommandBufferUsageFlags::ONE_TIME_SUBMIT
@@ -101,6 +124,7 @@ pub struct OrderBuilder<'a, Alloc: DeviceMemoryAllocator> {
 }
 
 impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
+    // TODO: Add better handling of image aspects
     pub fn request_image<StagingAlloc: DeviceMemoryAllocator>(
         &mut self,
         memory_properties: MemoryTypeProperties,
