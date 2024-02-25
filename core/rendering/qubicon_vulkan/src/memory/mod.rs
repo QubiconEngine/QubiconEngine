@@ -3,10 +3,69 @@ pub mod resources;
 
 use std::{marker::PhantomData, sync::Arc};
 
-use ash::vk::BufferCopy;
-
-use crate::{commands::{command_buffers::{self, command_buffer_builder::{barrier::{AccessFlags, BufferMemoryBarrier, ImageMemoryBarrier, PipelineBarrierDependencyFlags}, copy::BufferImageCopy}, CommandBufferBuilder, CommandBufferUsageFlags}, CommandPool}, device::{inner::DeviceInner, Device}, instance::physical_device::{memory_properties::MemoryTypeProperties, queue_info::QueueFamilyCapabilities}, memory::resources::buffer::BufferCreateInfo, queue::{Queue, Submission}, shaders::PipelineStageFlags, sync::semaphore_types};
-use self::{alloc::{hollow_device_memory_allocator::HollowDeviceMemoryAllocator, DeviceMemoryAllocator}, resources::{buffer::{Buffer, BufferCreateFlags, BufferUsageFlags}, format::Format, image::{Image, ImageCreateFlags, ImageCreateInfo, ImageLayout, ImageSampleCountFlags, ImageTiling, ImageType, ImageUsageFlags}, image_view::{ImageAspect, ImageSubresourceLayers, ImageSubresourceRange}}};
+use crate::{
+    commands::{
+        command_buffers::{
+            self,
+            command_buffer_builder::{
+                barrier::{
+                    AccessFlags,
+                    BufferMemoryBarrier,
+                    ImageMemoryBarrier,
+                    PipelineBarrierDependencyFlags
+                },
+                copy::{
+                    BufferCopy,
+                    BufferImageCopy
+                }
+            },
+            CommandBufferBuilder,
+            CommandBufferUsageFlags
+        },
+        CommandPool
+    },
+    device::{
+        inner::DeviceInner,
+        Device
+    },
+    instance::physical_device::{
+        memory_properties::MemoryTypeProperties, 
+        queue_info::QueueFamilyCapabilities
+    }, 
+    memory::resources::buffer::BufferCreateInfo, 
+    queue::{Queue, Submission}, 
+    shaders::PipelineStageFlags, 
+    sync::semaphore_types
+};
+use self::{
+    alloc::{
+        hollow_device_memory_allocator::HollowDeviceMemoryAllocator,
+        DeviceMemoryAllocator
+    },
+    resources::{
+        buffer::{
+            Buffer,
+            BufferCreateFlags,
+            BufferUsageFlags
+        },
+        format::Format,
+        image::{
+            Image,
+            ImageCreateFlags,
+            ImageCreateInfo,
+            ImageLayout,
+            ImageSampleCountFlags,
+            ImageTiling,
+            ImageType, 
+            ImageUsageFlags
+        }, 
+        image_view::{
+            ImageAspect, 
+            ImageSubresourceLayers, 
+            ImageSubresourceRange
+        }
+    }
+};
 
 #[cfg(test)]
 mod resource_factory_tests;
@@ -68,19 +127,17 @@ impl ResourceFactory {
 
 #[derive(Clone, Copy)]
 pub struct BufferStagingBufferInfo<'a, A: DeviceMemoryAllocator> {
-    buffer: &'a Buffer<A>,
-    
-    offset: u64,
-    regions: &'a [BufferCopy]
+    pub buffer: &'a Buffer<A>,
+    pub regions: &'a [BufferCopy]
 }
 
 pub struct ImageStagingBufferInfo<'a, A: DeviceMemoryAllocator> {
-    buffer: &'a Buffer<A>,
+    pub buffer: &'a Buffer<A>,
 
-    offset: u64,
-    row_length: u32,
-    image_heigth: u32,
-    subresource: ImageSubresourceLayers
+    pub offset: u64,
+    pub row_length: u32,
+    pub image_heigth: u32,
+    pub subresource: ImageSubresourceLayers
 }
 impl<'a, A: DeviceMemoryAllocator> Clone for ImageStagingBufferInfo<'a, A> {
     fn clone(&self) -> Self {
@@ -149,7 +206,7 @@ pub struct OrderBuilder<'a, Alloc: DeviceMemoryAllocator> {
 }
 
 impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
-    // TODO: Add better handling of image aspects
+    // TODO: Add better handling of image aspects. Also staging buffer bounds checks required
     pub fn request_image<StagingAlloc: DeviceMemoryAllocator>(
         &mut self,
         memory_properties: MemoryTypeProperties,
@@ -332,6 +389,29 @@ impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
         memory_properties: MemoryTypeProperties,
         request: BufferRequest<StagingAlloc>
     ) -> Result<(), resources::ResourceCreationError<Alloc::AllocError>> {
+        if let Some(staging_buffer) = request.staging_buffer.as_ref() {
+            let src_end_offset = staging_buffer.regions
+                .iter()
+                .map(| r | r.src_offset + r.size)
+                .max();
+            let dst_end_offset = staging_buffer.regions
+                .iter()
+                .map(| r | r.dst_offset + r.size)
+                .max();
+
+            if let (Some(src_end_offset), Some(dst_end_offset)) = (src_end_offset, dst_end_offset) {
+                // offsets should be in bounds!
+                
+                if src_end_offset >= staging_buffer.buffer.size() {
+                    panic!("source offset is out of bounds")
+                }
+
+                if dst_end_offset >= request.size {
+                    panic!("destination offset is out of bounds")
+                }
+            }
+        }
+
         let usage_flags = match request.staging_buffer.is_some() {
             true => request.usage_flags | BufferUsageFlags::TRANSFER_DST,
             false => request.usage_flags

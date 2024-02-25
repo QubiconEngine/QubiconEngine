@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::{commands::command_buffers::command_buffer_builder::copy::BufferCopy, device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::physical_device::{memory_properties::MemoryTypeProperties, queue_info::QueueFamilyCapabilities, PhysicalDevice}, Instance};
-
 use super::{alloc::{hollow_device_memory_allocator::HollowDeviceMemoryAllocator, standart_device_memory_allocator::StandartMemoryAllocator}, resources::{buffer::{BufferCreateInfo, BufferUsageFlags}, format::Format, image::{ImageLayout, ImageSampleCountFlags, ImageTiling, ImageType, ImageUsageFlags}, image_view::{ImageAspect, ImageSubresourceLayers}}, ImageRequest, ResourceFactory};
 
 fn queue_family_with_capability(dev: &PhysicalDevice, required_capabilities: QueueFamilyCapabilities) -> Option<u32> {
@@ -212,7 +211,6 @@ fn buffer_creation_with_staging_buffer() {
             staging_buffer: Some(
                 super::BufferStagingBufferInfo {
                     buffer: &staging_buffer,
-                    offset: 0,
                     regions: &[
                         BufferCopy {
                             src_offset: 0,
