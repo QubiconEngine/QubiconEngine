@@ -381,6 +381,11 @@ impl InputDevice {
             return Err(nix::Error::EINVAL)
         }
 
+        // in theory, we can get out of memory there. By default, rust panics on out of memory.
+        // but idk how this would work. Linux can actualy overcommit memory and all that stuff.
+        // just let it be there
+        let event_buf = Vec::with_capacity(EVENT_BUF_CAPACITY as usize);
+
         // All operations are success ! No need for closing file
         core::mem::forget(_final);
 
@@ -399,7 +404,7 @@ impl InputDevice {
                 supported_keys,
                 supported_rel,
 
-                event_buf: Vec::with_capacity(EVENT_BUF_CAPACITY as usize),
+                event_buf,
                 current_event_idx: 0,
 
                 grabed: false
