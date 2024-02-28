@@ -1,5 +1,5 @@
 use keymaps::{Abs, Key};
-use q_input_server::{LinuxInputServer, ActionInputEntry, ActionEventType};
+use qubicon_input_server::{LinuxInputServer, ActionInputEntry, ActionEventType};
 
 fn main() {
     let mut server = LinuxInputServer::new().unwrap();

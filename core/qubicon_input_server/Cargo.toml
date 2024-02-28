@@ -1,5 +1,5 @@
 [package]
-name = "q_input_server"
+name = "qubicon_input_server"
 version = "0.0.0"
 edition = "2021"
 

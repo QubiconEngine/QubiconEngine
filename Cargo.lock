@@ -133,27 +133,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "q_audio_server"
+name = "q_rendering_server"
+version = "0.0.0"
+dependencies = [
+ "qubicon_vulkan",
+]
+
+[[package]]
+name = "qubicon_audio_server"
 version = "0.0.0"
 dependencies = [
  "libpulse-sys",
 ]
 
 [[package]]
-name = "q_input_server"
+name = "qubicon_input_server"
 version = "0.0.0"
 dependencies = [
  "arrayvec",
  "bitvec",
  "keymaps",
  "nix",
-]
-
-[[package]]
-name = "q_rendering_server"
-version = "0.0.0"
-dependencies = [
- "qubicon_vulkan",
 ]
 
 [[package]]
