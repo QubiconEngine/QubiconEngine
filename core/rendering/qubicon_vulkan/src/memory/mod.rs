@@ -86,10 +86,13 @@ pub struct ResourceFactory {
 }
 
 impl ResourceFactory {
-    pub fn init(device: &Device, transfer_queue: Queue, transfer_queue_family_index: u32) -> Result<Self, crate::Error> {
+    // TODO: Propper checks, graphics queue and a lot more
+    pub fn init(device: &Device, transfer_queue: Queue) -> Result<Self, crate::Error> {
         if !transfer_queue.get_capabilities().contains(QueueFamilyCapabilities::TRANSFER) {
             panic!("What the fuck you are doing!")
         }
+
+        let transfer_queue_family_index = transfer_queue.as_inner().family_index;
         
         Ok(
             Self {

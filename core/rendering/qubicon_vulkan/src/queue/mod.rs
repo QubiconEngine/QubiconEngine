@@ -39,6 +39,10 @@ impl From<Arc<inner::QueueInner>> for Queue {
 }
 
 impl Queue {
+    pub(crate) fn as_inner(&self) -> &Arc<inner::QueueInner> {
+        &self.inner
+    }
+
     pub fn get_family_index(&self) -> u32 {
         self.inner.family_index
     }
