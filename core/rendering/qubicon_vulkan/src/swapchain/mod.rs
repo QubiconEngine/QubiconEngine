@@ -4,7 +4,7 @@ use ash::vk::{
     SwapchainCreateInfoKHR as VkSwapchainCreateInfo
 };
 
-use crate::{surface::{Surface, ColorSpace, SurfaceTransformFlags, CompositeAlphaFlags, PresentMode}, device::inner::DeviceInner, memory::{alloc::{hollow_device_memory_allocator::{HollowDeviceMemoryAllocator, HollowMemoryFragment}, DeviceMemoryAllocator}, resources::{format::Format, image::{Image, ImageCreateInfo, ImageInner, ImageLayout, ImageSampleCountFlags, ImageTiling, ImageType, ImageUsageFlags, RawImage}, image_view::{ImageView, ImageViewCreateInfo, ImageViewType}, ResourceMemory}}, error::{ValidationError, VkError}, Error, queue::Submission, sync::{Semaphore, semaphore_types::SemaphoreType, Fence}};
+use crate::{surface::{Surface, ColorSpace, SurfaceTransformFlags, CompositeAlphaFlags, PresentMode}, device::inner::DeviceInner, memory::{alloc::{hollow_device_memory_allocator::{HollowDeviceMemoryAllocator, HollowMemoryFragment}, DeviceMemoryAllocator}, resources::{format::Format, image::{Image, ImageCreateInfo, ImageInner, ImageLayout, ImageSampleCountFlags, ImageTiling, ImageType, ImageUsageFlags, RawImage}, image_view::{ImageView, ImageViewCreateInfo, ImageViewType}, ResourceMemory}}, error::{ValidationError, VkError}, Error, queue::Submission, sync::{Semaphore, semaphore_types::{self, SemaphoreType}, Fence}};
 
 pub(crate) mod inner;
 
@@ -217,23 +217,26 @@ impl Swapchain {
         return Ok( () );
     }
 
-    /// # Safety
-    /// Should be provided fence or semaphore. 
-    pub unsafe fn acquare_next_image_unchecked<T: SemaphoreType>(
+    // TODO: Add device checking. Fence of semaphore can be from different devices
+    pub fn acquare_next_image(
         &mut self,
-        semaphore: Option<&Semaphore<T>>,
-        fence: Option<&Fence>,
+        sync_primitive: AcquireImageSyncPrimitive<impl SemaphoreType>,
         timeout: u64
     ) -> Result<SwapchainImage, Error> {
-        let semaphore = semaphore.map(| s | s.as_raw()).unwrap_or_default();
-        let fence = fence.map(| f | f.as_raw()).unwrap_or_default();
+        let (image_index, _suboptimal) = unsafe {
+            let (fence, semaphore) = match sync_primitive {
+                AcquireImageSyncPrimitive::Fence( f ) => (f.as_raw(), Default::default()),
+                AcquireImageSyncPrimitive::Semaphore( s ) => (Default::default(), s.as_raw()),
+                AcquireImageSyncPrimitive::Both(f, s) => (f.as_raw(), s.as_raw())
+            };
 
-        let (image_index, _suboptimal) = self.inner.device.swapchain.as_ref().unwrap_unchecked().acquire_next_image(
-            self.inner.swapchain,
-            timeout,
-            semaphore,
-            fence
-        ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
+            self.inner.device.swapchain.as_ref().unwrap_unchecked().acquire_next_image(
+                self.inner.swapchain,
+                timeout,
+                semaphore,
+                fence
+            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?
+        };
 
         return Ok(
             Image::from_inner_arc(
@@ -250,6 +253,12 @@ impl Swapchain {
 
         unsafe { Ok(inner.surface.take().unwrap_unchecked()) }
     }
+}
+
+pub enum AcquireImageSyncPrimitive<'a, ST: SemaphoreType = semaphore_types::Binary> {
+    Fence(&'a Fence),
+    Semaphore(&'a Semaphore<ST>),
+    Both(&'a Fence, &'a Semaphore<ST>)
 }
 
 fn _build_image_create_info(create_info: &SwapchainCreateInfo) -> ImageCreateInfo {

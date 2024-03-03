@@ -40,8 +40,7 @@ fn image_creation() {
     let allocator = StandartMemoryAllocator::new(&device);
     let resource_factory = ResourceFactory::init(
         &device,
-        device.get_queue(family_index, 0).unwrap(),
-        family_index
+        device.get_queue(family_index, 0).unwrap()
     ).unwrap();
 
     let mut order = resource_factory.create_order(Arc::clone(&allocator)).unwrap();
@@ -94,8 +93,7 @@ fn image_creation_with_staging_buffer() {
     let allocator = StandartMemoryAllocator::new(&device);
     let resource_factory = ResourceFactory::init(
         &device,
-        device.get_queue(family_index, 0).unwrap(),
-        family_index
+        device.get_queue(family_index, 0).unwrap()
     ).unwrap();
 
 
@@ -180,8 +178,7 @@ fn buffer_creation_with_staging_buffer() {
     let allocator = StandartMemoryAllocator::new(&device);
     let resource_factory = ResourceFactory::init(
         &device,
-        device.get_queue(family_index, 0).unwrap(),
-        family_index
+        device.get_queue(family_index, 0).unwrap()
     ).unwrap();
 
 

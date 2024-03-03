@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use qubicon_vulkan::{commands::command_buffers::{command_buffer_builder::{barrier::{AccessFlags, ImageMemoryBarrier}, PipelineBindPoint}, CommandBufferUsageFlags}, descriptors::{alloc::{descriptor_set::{DescriptorWrite, ImageWriteInfo}, DescriptorPoolSize}, DescriptorBinding, DescriptorPoolCreateInfo, DescriptorSetLayoutCreateInfo, DescriptorType}, device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::{creation_info::InstanceCreateInfo, physical_device::queue_info::QueueFamilyCapabilities}, memory::{alloc::hollow_device_memory_allocator::HollowDeviceMemoryAllocator, resources::{image::{ImageLayout, ImageUsageFlags}, image_view::{ImageAspect, ImageSubresourceRange, ImageViewCreateInfo, ImageViewType}}}, queue::{PresentInfo, PresentInfoSwapchainEntry}, shaders::{compute::ComputePipelineCreateInfo, PipelineShaderStageCreateInfo, PipelineStageFlags, ShaderStageFlags}, sync::{semaphore_types::SemaphoreType, FenceCreateFlags, FenceCreateInfo}, Instance};
+use qubicon_vulkan::{commands::command_buffers::{command_buffer_builder::{barrier::{AccessFlags, ImageMemoryBarrier}, PipelineBindPoint}, CommandBufferUsageFlags}, descriptors::{alloc::{descriptor_set::{DescriptorWrite, ImageWriteInfo}, DescriptorPoolSize}, DescriptorBinding, DescriptorPoolCreateInfo, DescriptorSetLayoutCreateInfo, DescriptorType}, device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::{creation_info::InstanceCreateInfo, physical_device::queue_info::QueueFamilyCapabilities}, memory::{alloc::hollow_device_memory_allocator::HollowDeviceMemoryAllocator, resources::{image::{ImageLayout, ImageUsageFlags}, image_view::{ImageAspect, ImageSubresourceRange, ImageViewCreateInfo, ImageViewType}}}, queue::{PresentInfo, PresentInfoSwapchainEntry}, shaders::{compute::ComputePipelineCreateInfo, PipelineShaderStageCreateInfo, PipelineStageFlags, ShaderStageFlags}, surface::PresentMode, swapchain::AcquireImageSyncPrimitive, sync::{semaphore_types, Fence, FenceCreateFlags, FenceCreateInfo}, Instance};
 use qubicon_windowing::{x11::{WindowEvent, WindowingServer}, AssociatedSwapchainCreateInfo};
 
 const SHADER_BIN: &[u8] = include_bytes!("shader_bin.spv");
@@ -92,6 +92,7 @@ fn main() {
     let command_pool = queue.create_command_pool().unwrap();
 
 
+    let mut acquire_fence = device.create_fence(Default::default()).unwrap();
     
     let window_id = win_server.create_window_vulkan(
         &device,
@@ -109,7 +110,7 @@ fn main() {
         },
 
         // dont care what format and what mode
-        | _ | true,
+        | mode | mode == PresentMode::FIFO,
         | _ | true
     ).unwrap();
 
@@ -143,9 +144,19 @@ fn main() {
 
         { // Rendering
             let swapchain = unsafe { window.swapchain_mut().unwrap_unchecked() };
-            let image = unsafe {
-                swapchain.acquare_next_image_unchecked::<qubicon_vulkan::sync::semaphore_types::Binary>(None, None, u64::MAX)
-            }.unwrap();
+            let image = loop {
+                let res = swapchain.acquare_next_image(
+                    AcquireImageSyncPrimitive::<semaphore_types::Binary>::Fence(&acquire_fence),
+                    u64::MAX
+                );
+
+                acquire_fence.wait(u64::MAX).unwrap();
+                acquire_fence = device.create_fence(Default::default()).unwrap();
+
+                if let Ok(image) = res {
+                    break image;
+                }
+            };
 
             let image_view = unsafe {
                 image.create_image_view_unchecked(

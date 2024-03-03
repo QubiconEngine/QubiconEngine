@@ -111,8 +111,6 @@ impl Fence {
 
 impl Drop for Fence {
     fn drop(&mut self) {
-        self.wait(0).unwrap();
-
         unsafe {
             self.device.destroy_fence(
                 self.fence,

@@ -1,3 +1,4 @@
+pub use keymaps;
 pub use input_server::*;
 pub use input_device::*;
 pub use device_manager::DeviceManager;
