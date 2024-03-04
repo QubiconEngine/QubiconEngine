@@ -405,11 +405,11 @@ impl<'a, Alloc: DeviceMemoryAllocator> OrderBuilder<'a, Alloc> {
             if let (Some(src_end_offset), Some(dst_end_offset)) = (src_end_offset, dst_end_offset) {
                 // offsets should be in bounds!
                 
-                if src_end_offset >= staging_buffer.buffer.size() {
+                if src_end_offset > staging_buffer.buffer.size() {
                     panic!("source offset is out of bounds")
                 }
 
-                if dst_end_offset >= request.size {
+                if dst_end_offset > request.size {
                     panic!("destination offset is out of bounds")
                 }
             }
