@@ -144,6 +144,7 @@ name = "qubicon_audio_server"
 version = "0.0.0"
 dependencies = [
  "libpulse-sys",
+ "thiserror",
 ]
 
 [[package]]
