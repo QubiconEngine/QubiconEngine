@@ -1,4 +1,4 @@
-pub use stream::PlaybackStream;
+pub use stream::{Format, PlaybackStream};
 pub use context::PulseContext;
 
 pub mod stream;
