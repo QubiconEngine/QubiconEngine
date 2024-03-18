@@ -29,39 +29,53 @@ impl AudioServer {
         Ok ( Self { data } )
     }
 
-    pub fn create_stream<F: Format>(&self, name: &str, rate: u32, channels: u8, preallocated_buffer_len: usize) -> Pin<Box<PlaybackStream<F>>> {
-        self.data.create_new_playback_stream(&CString::new(name.as_bytes()).unwrap(), rate, channels, preallocated_buffer_len)
+    pub fn create_stream<F: Format>(&self, name: &str, rate: u32, channels: u8) -> Result<Pin<Box<PlaybackStream<F>>>> {
+        self.data.create_new_playback_stream(&CString::new(name.as_bytes()).unwrap(), rate, channels)
     }
 
     pub fn update(&self) {
         self.data.update();
-    }    
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::AudioServer;
+    use super::raw::StreamWrite;
 
     #[test]
     fn init_test() {
-        AudioServer::init().unwrap();
+        AudioServer::init()
+            .expect("failed to init audio server");
     }
 
     #[test]
     fn stream_creation_test() {
-        let server = AudioServer::init().unwrap();
-        let mut stream = server.create_stream::<f32>("test", 44100, 1, 44100);
+        let server = AudioServer::init()
+            .expect("failed to init audio server");
+        let mut stream = server.create_stream::<f32>("test", 44100, 1)
+            .expect("failed to create stream");
 
-        unsafe {
-            let buf = stream.as_mut().get_unchecked_mut().buf();
-
-            for x in 0..44100 {
-                buf.push_back((x as f32 / 1000.0).sin() * 10.0);
-            }
-        }
+        let mut total_x = 0usize;
 
         loop {
             server.update();
+
+            if let Ok(ammount) = stream.as_ref().available_len() {
+                if ammount == 0 { continue; }
+
+                let mut buf = Vec::with_capacity(ammount);
+
+                for x in 0..ammount {
+                    let time = (total_x + x) as f32 / 44100.0;
+
+                    buf.push((time * 100.0).sin() * 10.0);
+                }
+
+                total_x += ammount;
+
+                let _ = stream.as_mut().write(&buf);
+            }
         }
     }
 }

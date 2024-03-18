@@ -61,8 +61,8 @@ impl PulseContext {
         unsafe { pa_mainloop_iterate(self.mainloop, 0, core::ptr::null_mut()) };
     }
 
-    pub fn create_new_playback_stream<F: Format>(&self, name: &CStr, rate: u32, channels: u8, preallocated_buffer_len: usize) -> Pin<Box<PlaybackStream<F>>> {
-        PlaybackStream::new(self.ctx, name, rate, channels, preallocated_buffer_len)
+    pub fn create_new_playback_stream<F: Format>(&self, name: &CStr, rate: u32, channels: u8) -> Result<Pin<Box<PlaybackStream<F>>>> {
+        PlaybackStream::new(self.ctx, name, rate, channels)
     }
 }
 
