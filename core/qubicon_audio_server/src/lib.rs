@@ -33,8 +33,8 @@ impl AudioServer {
         self.data.create_new_playback_stream(&CString::new(name.as_bytes()).unwrap(), rate, channels)
     }
 
-    pub fn update(&self) {
-        self.data.update();
+    pub fn update(&self) -> Result<()> {
+        self.data.update()
     }
 }
 
@@ -59,7 +59,7 @@ mod tests {
         let mut total_x = 0usize;
 
         loop {
-            server.update();
+            server.update().unwrap();
 
             if let Ok(ammount) = stream.as_ref().available_len() {
                 if ammount == 0 { continue; }

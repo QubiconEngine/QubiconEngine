@@ -36,7 +36,10 @@ impl PulseContext {
 
         this.ctx = pa_context_new(this.mainloop_api, name.as_ptr());
 
-        pa_context_connect(this.ctx, core::ptr::null(), Default::default(), core::ptr::null());
+        handle_pa_error!(pa_context_connect(this.ctx, core::ptr::null(), Default::default(), core::ptr::null()))
+            .inspect_err(| _ | { pa_context_unref(this.ctx); pa_mainloop_free(this.mainloop); })
+            .map_err(| e | Error::ContextConnectionFailed { pa_error: e })?;
+        
         pa_context_set_state_callback(this.ctx, Some(ctx_state_callback), (this as *mut Self).cast());
 
         
@@ -44,12 +47,14 @@ impl PulseContext {
         // ctx_state is changed in callback
         #[allow(clippy::while_immutable_condition)]
         while this.ctx_state != pa_context_state_t::Ready {
-            pa_mainloop_iterate(this.mainloop, 1, core::ptr::null_mut());
+            handle_pa_error!(pa_mainloop_iterate(this.mainloop, 1, core::ptr::null_mut()))
+                .inspect_err(| _ | this.destroy_resources())
+                .map_err(| e | Error::ContextConnectionFailed { pa_error: e })?;
             
             if !pa_context_is_good(this.ctx_state) {
                 this.destroy_resources();
 
-                return Err(Error::ContextConnectionFailed { ctx_state: this.ctx_state })
+                return Err(Error::ContextBadState { ctx_state: this.ctx_state })
             }
         }
 
@@ -57,8 +62,12 @@ impl PulseContext {
         Ok( () )
     }
 
-    pub fn update(&self) {
-        unsafe { pa_mainloop_iterate(self.mainloop, 0, core::ptr::null_mut()) };
+    pub fn update(&self) -> Result<()> {
+        unsafe {
+            handle_pa_error!(pa_mainloop_iterate(self.mainloop, 0, core::ptr::null_mut()))
+                .map(| _ | ())
+                .map_err(| e | Error::ContextUpdateFailed { pa_error: e })
+        }
     }
 
     pub fn create_new_playback_stream<F: Format>(&self, name: &CStr, rate: u32, channels: u8) -> Result<Pin<Box<PlaybackStream<F>>>> {

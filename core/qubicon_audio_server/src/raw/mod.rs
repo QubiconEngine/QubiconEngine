@@ -1,4 +1,4 @@
-pub use stream::{Format, StreamWrite, PlaybackStream};
+pub use stream::{Format, StreamRead, StreamWrite, PlaybackStream};
 pub use context::PulseContext;
 
 // unsafe macro. should not be used on non-pulse functions.
