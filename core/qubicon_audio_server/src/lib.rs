@@ -1,5 +1,4 @@
 use std::{ffi::CString, mem::MaybeUninit, pin::Pin};
-use libpulse_sys::*;
 
 mod raw;
 pub mod error;
@@ -30,7 +29,7 @@ impl AudioServer {
         Ok ( Self { data } )
     }
 
-    pub fn create_stream<F: Format>(&self, name: &str, rate: u32, channel_map: ChannelMap) -> Result<Pin<Box<PlaybackStream<F>>>> {
+    pub fn create_stream<F: Format>(&self, name: &str, rate: u32, channel_map: &ChannelMap) -> Result<Pin<Box<PlaybackStream<F>>>> {
         self.data.create_new_playback_stream(&CString::new(name.as_bytes()).unwrap(), rate, channel_map)
     }
 
@@ -55,7 +54,7 @@ mod tests {
     fn stream_creation_test() {
         let server = AudioServer::init()
             .expect("failed to init audio server");
-        let mut stream = server.create_stream::<f32>("test", 44100, ChannelMap::mono())
+        let mut stream = server.create_stream::<f32>("test", 44100, &ChannelMap::mono())
             .expect("failed to create stream");
 
         let mut total_x = 0usize;

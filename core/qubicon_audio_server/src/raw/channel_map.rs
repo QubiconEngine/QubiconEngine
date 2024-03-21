@@ -65,6 +65,12 @@ impl ChannelMap {
     }
 }
 
+impl Default for ChannelMap {
+    fn default() -> Self {
+        Self::mono()
+    }
+}
+
 impl Debug for ChannelMap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ChannelMap")
@@ -88,7 +94,7 @@ impl DerefMut for ChannelMap {
     }
 }
 
-impl Into<pa_channel_map> for ChannelMap {
+impl Into<pa_channel_map> for &ChannelMap {
     fn into(self) -> pa_channel_map {
         unsafe {
             #[allow(invalid_value, clippy::uninit_assumed_init)]

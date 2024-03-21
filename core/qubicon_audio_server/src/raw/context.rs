@@ -70,7 +70,7 @@ impl PulseContext {
         }
     }
 
-    pub fn create_new_playback_stream<F: Format>(&self, name: &CStr, rate: u32, channel_map: ChannelMap) -> Result<Pin<Box<PlaybackStream<F>>>> {
+    pub fn create_new_playback_stream<F: Format>(&self, name: &CStr, rate: u32, channel_map: &ChannelMap) -> Result<Pin<Box<PlaybackStream<F>>>> {
         PlaybackStream::new(self.ctx, name, rate, channel_map)
     }
 }
