@@ -1,7 +1,7 @@
 use core::{ pin::Pin, ffi::CStr };
 use libpulse_sys::*;
 
-use crate::{ Result, Error, raw::{ Format, PlaybackStream } };
+use crate::{ Result, Error, raw::{ Format, ChannelMap, PlaybackStream } };
 
 extern "C" fn ctx_state_callback(ctx: *mut pa_context, data: *mut core::ffi::c_void) {
     // its ffi, all code is unsafe
@@ -70,8 +70,8 @@ impl PulseContext {
         }
     }
 
-    pub fn create_new_playback_stream<F: Format>(&self, name: &CStr, rate: u32, channels: u8) -> Result<Pin<Box<PlaybackStream<F>>>> {
-        PlaybackStream::new(self.ctx, name, rate, channels)
+    pub fn create_new_playback_stream<F: Format>(&self, name: &CStr, rate: u32, channel_map: ChannelMap) -> Result<Pin<Box<PlaybackStream<F>>>> {
+        PlaybackStream::new(self.ctx, name, rate, channel_map)
     }
 }
 

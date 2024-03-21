@@ -7,6 +7,7 @@ pub mod error;
 use raw::{Format, PlaybackStream, PulseContext};
 
 pub use error::Error;
+pub use raw::{ ChannelMap, ChannelPosition };
 pub type Result<T> = core::result::Result<T, Error>;
 
 pub struct AudioServer {
@@ -29,8 +30,8 @@ impl AudioServer {
         Ok ( Self { data } )
     }
 
-    pub fn create_stream<F: Format>(&self, name: &str, rate: u32, channels: u8) -> Result<Pin<Box<PlaybackStream<F>>>> {
-        self.data.create_new_playback_stream(&CString::new(name.as_bytes()).unwrap(), rate, channels)
+    pub fn create_stream<F: Format>(&self, name: &str, rate: u32, channel_map: ChannelMap) -> Result<Pin<Box<PlaybackStream<F>>>> {
+        self.data.create_new_playback_stream(&CString::new(name.as_bytes()).unwrap(), rate, channel_map)
     }
 
     pub fn update(&self) -> Result<()> {
@@ -40,6 +41,7 @@ impl AudioServer {
 
 #[cfg(test)]
 mod tests {
+    use super::ChannelMap;
     use super::AudioServer;
     use super::raw::StreamWrite;
 
@@ -53,7 +55,7 @@ mod tests {
     fn stream_creation_test() {
         let server = AudioServer::init()
             .expect("failed to init audio server");
-        let mut stream = server.create_stream::<f32>("test", 44100, 1)
+        let mut stream = server.create_stream::<f32>("test", 44100, ChannelMap::mono())
             .expect("failed to create stream");
 
         let mut total_x = 0usize;

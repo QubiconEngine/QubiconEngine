@@ -5,6 +5,7 @@ use libpulse_sys::*;
 
 pub type ChannelPosition = pa_channel_position_t;
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct ChannelMap (ArrayVec<ChannelPosition, {PA_CHANNELS_MAX as usize}>);
 
 impl ChannelMap {
@@ -89,10 +90,16 @@ impl DerefMut for ChannelMap {
 
 impl Into<pa_channel_map> for ChannelMap {
     fn into(self) -> pa_channel_map {
-        pa_channel_map {
-            channels: self.0.len() as u8,
-            // actualy safe, because type dont impl Drop
-            map: unsafe { self.0.into_inner_unchecked() }
+        unsafe {
+            #[allow(invalid_value, clippy::uninit_assumed_init)]
+            let mut map: [pa_channel_position_t; PA_CHANNELS_MAX as usize] = MaybeUninit::uninit().assume_init();
+
+            core::ptr::copy_nonoverlapping(self.0.as_ptr(), map.as_mut_ptr(), self.0.len());
+            
+            pa_channel_map {
+                channels: self.0.len() as u8,
+                map
+            }
         }
     }
 }

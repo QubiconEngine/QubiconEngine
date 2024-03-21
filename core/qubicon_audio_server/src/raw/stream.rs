@@ -1,7 +1,7 @@
 use std::{ ffi::CStr, marker::PhantomData, pin::Pin, ops::Deref};
 use libpulse_sys::*;
 
-use crate::{Error, Result};
+use crate::{Error, Result, raw::ChannelMap};
 
 mod callbacks {
     use libpulse_sys::*;
@@ -116,7 +116,7 @@ pub struct BaseStream {
     stream: *mut pa_stream,
 
     rate: u32,
-    channels: u8,
+    channel_map: ChannelMap,
 
     paused: bool,
     _ph: std::marker::PhantomPinned
@@ -125,24 +125,21 @@ pub struct BaseStream {
 impl BaseStream {
     /// # Safety
     /// Ideally, value should be pinned to be safely usable in callbacks
-    pub unsafe fn new_unpinned(ctx: *mut pa_context, name: &CStr, format: pa_sample_format_t, rate: u32, channels: u8) -> Self {
-        if channels > PA_CHANNELS_MAX {
-            panic!("channel count is {}, but max is {}", channels, PA_CHANNELS_MAX);
-        }
-
+    pub unsafe fn new_unpinned(ctx: *mut pa_context, name: &CStr, format: pa_sample_format_t, rate: u32, channel_map: ChannelMap) -> Self {
         let sample_spec = pa_sample_spec {
             format,
 
             rate,
-            channels
+            channels: channel_map.len() as u8
         };
 
         unsafe {
+            let raw_channel_map = channel_map.clone().into();
             let stream = pa_stream_new_with_proplist(
                 ctx,
                 name.as_ptr(),
                 &sample_spec,
-                core::ptr::null(),
+                &raw_channel_map,
                 core::ptr::null_mut()
             );
 
@@ -150,7 +147,7 @@ impl BaseStream {
                 stream,
 
                 rate,
-                channels,
+                channel_map,
 
                 paused: false,
 
@@ -192,9 +189,9 @@ pub struct PlaybackStream<F: Format> {
 }
 
 impl<F: Format> PlaybackStream<F> {
-    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channels: u8) -> Result<Pin<Box<Self>>> {
+    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channel_map: ChannelMap) -> Result<Pin<Box<Self>>> {
         unsafe {
-            let base = BaseStream::new_unpinned(ctx, name, F::FORMAT, rate, channels);
+            let base = BaseStream::new_unpinned(ctx, name, F::FORMAT, rate, channel_map);
             let mut value = Box::pin( Self { base, _ph: Default::default() } );
 
             {
@@ -268,9 +265,9 @@ pub struct RecordStream<F: Format> {
 }
 
 impl<F: Format> RecordStream<F> {
-    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channels: u8) -> Result<Pin<Box<Self>>> {
+    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channel_map: ChannelMap) -> Result<Pin<Box<Self>>> {
         unsafe {
-            let base = BaseStream::new_unpinned(ctx, name, F::FORMAT, rate, channels);
+            let base = BaseStream::new_unpinned(ctx, name, F::FORMAT, rate, channel_map);
             let mut value = Box::pin(Self { base, _ph: Default::default() });
 
             {
