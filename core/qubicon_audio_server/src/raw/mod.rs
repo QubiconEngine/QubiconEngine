@@ -1,4 +1,5 @@
 pub use stream::{Format, StreamRead, StreamWrite, PlaybackStream};
+pub use channel_map::{ChannelMap, ChannelPosition};
 pub use context::PulseContext;
 
 // unsafe macro. should not be used on non-pulse functions.
@@ -23,3 +24,4 @@ macro_rules! handle_pa_error {
 
 pub mod stream;
 pub mod context;
+pub mod channel_map;

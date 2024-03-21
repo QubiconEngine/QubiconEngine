@@ -160,6 +160,7 @@ dependencies = [
 name = "qubicon_audio_server"
 version = "0.0.0"
 dependencies = [
+ "arrayvec",
  "libpulse-sys",
  "num-traits",
  "rand",
