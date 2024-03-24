@@ -8,6 +8,11 @@ pub type UpdateMode = pa_update_mode_t;
 pub struct Proplist (*mut pa_proplist);
 
 impl Proplist {
+    pub(crate) unsafe fn as_raw(&self) -> *mut pa_proplist {
+        self.0
+    }
+
+
     pub fn new() -> Self {
         unsafe { Self ( pa_proplist_new() ) }
     }
