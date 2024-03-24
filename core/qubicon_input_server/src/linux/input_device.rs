@@ -220,9 +220,10 @@ const EVENT_BUF_CAPACITY: u8 = 16;
 pub struct InputDevice {
     fd: i32,
 
-    name: String,
-    physical_path: String,
-    unique_name: Option<String>,
+    // maybe use Arc ?
+    name: Box<str>,
+    physical_path: Box<str>,
+    unique_name: Option<Box<str>>,
 
     device_id: libc::input_id,
     driver_version: i32,
@@ -240,7 +241,7 @@ pub struct InputDevice {
 
 impl InputDevice {
     pub fn open_from(path: impl AsRef<Path>) -> Result<Self> {
-        fn with_string_buffer<const CAP: usize>(op: impl Fn(&mut [u8]) -> Result<libc::c_int>) -> Result<String> {
+        fn with_string_buffer<const CAP: usize>(op: impl Fn(&mut [u8]) -> Result<libc::c_int>) -> Result<Box<str>> {
             // If result string greater than CAP, we are in a big trouble
             let mut buf = ArrayString::<CAP>::new();
 
@@ -255,7 +256,7 @@ impl InputDevice {
                 buf.set_len(libc::strlen(slice.as_ptr().cast()));
             }
 
-            Ok(buf.to_string())
+            Ok(buf.as_str().into())
         }
         fn with_type_buffer<T: Sized, R>(op: impl Fn(*mut T) -> Result<R>) -> Result<T> {
             unsafe {
@@ -323,7 +324,8 @@ impl InputDevice {
                 .into_iter()
                 .enumerate()
                 .map(| (abs, s) | (unsafe { Abs::from_raw(abs as u16) }, s))
-                .filter_map(| (abs, s) | s.then(|| abs))
+                .filter(| &(_, s) | s)
+                .map(| (abs, _) | abs)
                 .filter_map(| abs | {
                     let mut abs_into_raw: core::mem::MaybeUninit<libc::input_absinfo> = core::mem::MaybeUninit::uninit();
 

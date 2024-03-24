@@ -46,7 +46,7 @@ struct ActionState {
 pub struct LinuxInputServer {
     device_manager: DeviceManager,
     devices_state: HashMap<u16, DeviceState>,
-    input_actions: HashMap<String, ActionState>
+    input_actions: HashMap<Box<str>, ActionState>
 }
 
 impl LinuxInputServer {
@@ -67,9 +67,9 @@ impl LinuxInputServer {
         self.update_actions();
     }
 
-    pub fn add_input_action(&mut self, action: impl Into<String>, input_events: impl Into<Vec<ActionInputEntry>>) {
+    pub fn add_input_action(&mut self, action: impl AsRef<str>, input_events: impl Into<Vec<ActionInputEntry>>) {
         self.input_actions.insert(
-            action.into(),
+            action.as_ref().into(),
             ActionState {
                 action_force: 0.0,
                 input_events: input_events.into()
