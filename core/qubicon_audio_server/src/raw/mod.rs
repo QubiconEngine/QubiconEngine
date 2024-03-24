@@ -24,4 +24,5 @@ macro_rules! handle_pa_error {
 
 pub mod stream;
 pub mod context;
+pub mod proplist;
 pub mod channel_map;
