@@ -1,6 +1,6 @@
 pub use stream::{Format, StreamRead, StreamWrite, PlaybackStream};
+pub use proplist::{properties, Proplist, UpdateMode};
 pub use channel_map::{ChannelMap, ChannelPosition};
-pub use proplist::{Proplist, UpdateMode};
 pub use context::PulseContext;
 
 // unsafe macro. should not be used on non-pulse functions.
