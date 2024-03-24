@@ -22,6 +22,15 @@ macro_rules! handle_pa_error {
     };
 }
 
+fn with_c_string<R>(str: &str, op: impl FnOnce(&core::ffi::CStr) -> R) -> R {
+    use smallstr::SmallString;
+
+    let mut buf = SmallString::<[u8; 128]>::from_str(str);
+    buf.push('\0');
+
+    op(unsafe { core::ffi::CStr::from_ptr(buf.as_ptr().cast()) })
+} 
+
 pub mod stream;
 pub mod context;
 pub mod proplist;

@@ -164,6 +164,7 @@ dependencies = [
  "libpulse-sys",
  "num-traits",
  "rand",
+ "smallstr",
  "thiserror",
 ]
 

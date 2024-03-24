@@ -20,38 +20,44 @@ impl Proplist {
         unsafe { pa_proplist_isempty(self.0) > 0 }
     }
 
-    pub fn contains(&self, key: &CStr) -> bool {
-        unsafe { pa_proplist_contains(self.0, key.as_ptr()) == 1}
+    pub fn contains(&self, key: &str) -> bool {
+        unsafe {
+            super::with_c_string(key, | key | pa_proplist_contains(self.0, key.as_ptr()) == 1)
+        }
     }
 
-    pub fn get<'a>(&'a self, key: &CStr) -> Option<&'a [u8]> {
-        let (ptr, size) = unsafe {
-            let mut size = 0;
-            let mut ptr = core::ptr::null();
+    pub fn get<'a>(&'a self, key: &str) -> Option<&'a [u8]> {
+        super::with_c_string(key, | key | {
+            let (ptr, size) = unsafe {
+                let mut size = 0;
+                let mut ptr = core::ptr::null();
 
-            let res = pa_proplist_get(self.0, key.as_ptr(), &mut ptr, &mut size);
+                let res = pa_proplist_get(self.0, key.as_ptr(), &mut ptr, &mut size);
 
-            if res != 0 {
-                return None;
+                if res != 0 {
+                    return None;
+                }
+
+                (ptr, size)
+            };
+
+            Some( unsafe { core::slice::from_raw_parts(ptr.cast(), size) } )
+        })
+    }
+
+    pub fn get_string<'a>(&'a self, key: &str) -> Option<&'a str> {
+        super::with_c_string(key, | key | {
+            let str = unsafe { pa_proplist_gets(self.0, key.as_ptr()) };
+
+            if !str.is_null() {
+                let str = unsafe { CStr::from_ptr(str) };
+
+                // libpulse returns null if data is not in UTF-8
+                return Some( unsafe { core::str::from_utf8_unchecked(str.to_bytes()) } )
             }
 
-            (ptr, size)
-        };
-
-        Some( unsafe { core::slice::from_raw_parts(ptr.cast(), size) } )
-    }
-
-    pub fn get_string<'a>(&'a self, key: &CStr) -> Option<&'a str> {
-        let str = unsafe { pa_proplist_gets(self.0, key.as_ptr()) };
-
-        if !str.is_null() {
-            let str = unsafe { CStr::from_ptr(str) };
-
-            // libpulse returns null if data is not in UTF-8
-            return Some( unsafe { core::str::from_utf8_unchecked(str.to_bytes()) } )
-        }
-
-        None
+            None
+        })
     }
 
 
@@ -61,31 +67,40 @@ impl Proplist {
         unsafe { pa_proplist_clear(self.0) }
     }
 
-    pub fn set(&mut self, key: &CStr, value: &[u8]) -> Result<()> {
+    pub fn set(&mut self, key: &str, value: &[u8]) -> Result<()> {
         unsafe {
-            handle_pa_error!(pa_proplist_set(self.0, key.as_ptr(), value.as_ptr().cast(), value.len()))
-                .map(| _ | ())
-                .map_err(| _e | todo!())
+            super::with_c_string(key, | key | {
+                handle_pa_error!(pa_proplist_set(self.0, key.as_ptr(), value.as_ptr().cast(), value.len()))
+                    .map(| _ | ())
+                    .map_err(| _e | todo!())
+            })
         }
     }
 
-    pub fn set_string(&mut self, key: &CStr, value: &CStr) -> Result<()> {
+    pub fn set_string(&mut self, key: &str, value: &str) -> Result<()> {
         unsafe {
-            handle_pa_error!(pa_proplist_sets(self.0, key.as_ptr(), value.as_ptr()))
-                .map(| _ | ())
-                .map_err(| _e | todo!())
+            // heavy af
+            super::with_c_string(key, | key | {
+                super::with_c_string(value, | value | {
+                    handle_pa_error!(pa_proplist_sets(self.0, key.as_ptr(), value.as_ptr()))
+                        .map(| _ | ())
+                        .map_err(| _e | todo!())
+                })
+            })
         }
     }
 
-    pub fn unset(&mut self, key: &CStr) -> Result<()> {
+    pub fn unset(&mut self, key: &str) -> Result<()> {
         unsafe {
-            handle_pa_error!(pa_proplist_unset(self.0, key.as_ptr()))
-                .map(| _ | ())
-                .map_err(| _e | todo!())
+            super::with_c_string(key, | key | {
+                handle_pa_error!(pa_proplist_unset(self.0, key.as_ptr()))
+                    .map(| _ | ())
+                    .map_err(| _e | todo!())
+            })
         }
     }
 
-    /// Set is equal to clone in some way
+    /// UpdateMode::Set is equal to clone in some way
     pub fn update(&mut self, other: &Proplist, mode: UpdateMode) {
         unsafe { pa_proplist_update(self.0, mode, other.0); }
     }
