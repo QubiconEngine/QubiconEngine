@@ -129,3 +129,45 @@ impl Drop for Proplist {
         unsafe { pa_proplist_free(self.0); }
     }
 }
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::Proplist;
+
+    #[test]
+    #[should_panic]
+    fn string_and_raw_values_incompatibility() {
+        let mut proplist = Proplist::new();
+
+        proplist.set("some_entry", &[ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]).unwrap();
+
+        // should panic there
+        println!("{}", proplist.get_string("some_entry").unwrap())
+    }
+
+    #[test]
+    fn string_entry() {
+        let mut proplist = Proplist::new();
+
+        proplist.set_string("some_string_entry", "random string").unwrap();
+
+        assert_eq!(
+            proplist.get_string("some_string_entry").unwrap(),
+            "random string"
+        )
+    }
+
+    #[test]
+    fn raw_entry() {
+        let mut proplist = Proplist::new();
+
+        proplist.set("some_raw_value", &[1, 2, 3, 4, 5, 6, 7, 8]).unwrap();
+
+        assert_eq!(
+            proplist.get("some_raw_value").unwrap(),
+            &[1, 2, 3, 4, 5, 6, 7, 8]
+        )
+    }
+}
