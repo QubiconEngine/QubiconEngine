@@ -1,6 +1,6 @@
-use std::{fmt::Debug, mem::MaybeUninit, ops::{Deref, DerefMut}};
+use std::{ffi::{CStr, CString}, fmt::Debug, mem::MaybeUninit, ops::{Deref, DerefMut}, str::FromStr};
 
-use arrayvec::ArrayVec;
+use arrayvec::{ArrayString, ArrayVec};
 use libpulse_sys::*;
 
 pub type ChannelPosition = pa_channel_position_t;
@@ -51,6 +51,29 @@ impl ChannelMap {
         }
     }
 
+    pub fn from_name(name: &str) -> Option<Self> {
+        if name.len() + 1 > PA_CHANNEL_MAP_SNPRINT_MAX {
+            panic!("name is too long. len is {}, but max is {}", name.len(), PA_CHANNEL_MAP_SNPRINT_MAX - 1);
+        }
+
+        // save because check is done earlier
+        let mut c_name: ArrayString<PA_CHANNEL_MAP_SNPRINT_MAX> = unsafe { ArrayString::from_str(name).unwrap_unchecked() };
+        c_name.push('\0');
+
+        unsafe {
+            #[allow(invalid_value, clippy::uninit_assumed_init)]
+            let mut raw = MaybeUninit::uninit().assume_init();
+
+            let res = pa_channel_map_parse(&mut raw, c_name.as_bytes().as_ptr().cast());
+
+            if !res.is_null() {
+                return Some(raw.into());
+            }
+        }
+
+        None
+    }
+
     pub fn from_positions(positions: &[ChannelPosition]) -> Self {
         if positions.len() > PA_CHANNELS_MAX as usize {
             panic!("too much positions. max is {PA_CHANNELS_MAX}, but provided {}", positions.len());
@@ -62,6 +85,58 @@ impl ChannelMap {
 
             Self ( vec )
         }
+    }
+
+    pub fn valid(&self) -> bool {
+        let raw = self.into();
+
+        unsafe { pa_channel_map_valid(&raw) > 0 }
+    }
+
+    pub fn name(&self) -> Option<&CStr> {
+        let raw = self.into();
+        let str = unsafe { pa_channel_map_to_name(&raw) };
+
+        if !str.is_null() {
+            let str = unsafe { CStr::from_ptr(str) };
+            
+            return Some(str);
+        }
+        
+        None
+    }
+
+    pub fn pretty_name(&self) -> Option<&CStr> {
+        let raw = self.into();
+        let str = unsafe { pa_channel_map_to_pretty_name(&raw) };
+
+        if !str.is_null() {
+            let str = unsafe { CStr::from_ptr(str) };
+
+            return Some(str);
+        }
+
+        None
+    }
+
+    pub fn insert(&mut self, idx: u8, channel_position: ChannelPosition) {
+        if self.len() as u8 == PA_CHANNELS_MAX {
+            panic!("too much chunnels");
+        }
+        if idx > self.len() as u8 {
+            panic!("channel index is out of bounds. index is {idx}, but len is {}", self.len() as u8);
+        }
+        
+
+        self.0.insert(idx as usize, channel_position)
+    }
+
+    pub fn remove(&mut self, idx: u8) {
+        if idx >= self.len() as u8 {
+            panic!("channel index is out of bounds. index is {idx}, but len is {}", self.len() as u8);
+        }
+
+        self.0.remove(idx as usize);
     }
 }
 
