@@ -1,4 +1,5 @@
 use std::{ ffi::CStr, marker::PhantomData, pin::Pin, ops::Deref};
+use bitflags::bitflags;
 use libpulse_sys::*;
 
 use crate::{Error, Result, raw::{ ChannelMap, Proplist }};
@@ -100,6 +101,40 @@ mod format_trait_sealed {
     // TODO: more formats
 }
 
+bitflags! {
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct StreamFlags: u32 {
+        const START_CORKED = PA_STREAM_START_CORKED;
+        const INTERPOLATE_TIMING = PA_STREAM_INTERPOLATE_TIMING;
+        const NOT_MONOTONIC = PA_STREAM_NOT_MONOTONIC;
+        const AUTO_TIMING_UPDATE = PA_STREAM_AUTO_TIMING_UPDATE;
+        const NO_REMAP_CHANNELS = PA_STREAM_NO_REMAP_CHANNELS;
+        const NO_REMIX_CHANNELS = PA_STREAM_NO_REMIX_CHANNELS;
+        const FIX_FORMAT = PA_STREAM_FIX_FORMAT;
+        const FIX_RATE = PA_STREAM_FIX_RATE;
+        const FIX_CHANNELS = PA_STREAM_FIX_CHANNELS;
+        const DONT_MOVE = PA_STREAM_DONT_MOVE;
+        const VARIABLE_RATE = PA_STREAM_VARIABLE_RATE;
+        const PEAK_DETECT = PA_STREAM_PEAK_DETECT;
+        const START_MUTED = PA_STREAM_START_MUTED;
+        const ADJUST_LATENCY = PA_STREAM_ADJUST_LATENCY;
+        const EARLY_REQUESTS = PA_STREAM_EARLY_REQUESTS;
+        const DONT_INHIBIT_AUTO_SUSPEND = PA_STREAM_DONT_INHIBIT_AUTO_SUSPEND;
+        const START_UNMUTED = PA_STREAM_START_UNMUTED;
+        const FAIL_ON_SUSPEND = PA_STREAM_FAIL_ON_SUSPEND;
+        const RELATIVE_VOLUME = PA_STREAM_RELATIVE_VOLUME;
+        const PASSTHROUGH = PA_STREAM_PASSTHROUGH;
+    }
+}
+
+#[allow(clippy::from_over_into)]
+impl Into<pa_stream_flags_t> for StreamFlags {
+    fn into(self) -> pa_stream_flags_t {
+        self.bits()
+    }
+}
+
+
 
 pub trait StreamWrite<F> {
     fn available_len(self: Pin<&Self>) -> Result<usize>;
@@ -110,6 +145,7 @@ pub trait StreamRead<F> {
     fn available_len(self: Pin<&Self>) -> Result<usize>;
     fn read(self: Pin<&mut Self>, data: &mut [F]) -> Result<usize>;
 }
+
 
 
 pub struct BaseStream {
@@ -196,7 +232,7 @@ pub struct PlaybackStream<F: Format> {
 }
 
 impl<F: Format> PlaybackStream<F> {
-    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channel_map: &ChannelMap, properties: Option<&Proplist>) -> Result<Pin<Box<Self>>> {
+    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channel_map: &ChannelMap, flags: StreamFlags, properties: Option<&Proplist>) -> Result<Pin<Box<Self>>> {
         unsafe {
             let base = BaseStream::new_unpinned(ctx, name, F::FORMAT, rate, channel_map, properties);
             let mut value = Box::pin( Self { base, _ph: Default::default() } );
@@ -209,7 +245,7 @@ impl<F: Format> PlaybackStream<F> {
                         this.base.stream,
                         core::ptr::null(),
                         core::ptr::null(),
-                        Default::default(),
+                        flags.into(),
                         core::ptr::null(),
                         core::ptr::null_mut()
                     )
@@ -272,7 +308,7 @@ pub struct RecordStream<F: Format> {
 }
 
 impl<F: Format> RecordStream<F> {
-    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channel_map: &ChannelMap, properties: Option<&Proplist>) -> Result<Pin<Box<Self>>> {
+    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channel_map: &ChannelMap, flags: StreamFlags, properties: Option<&Proplist>) -> Result<Pin<Box<Self>>> {
         unsafe {
             let base = BaseStream::new_unpinned(ctx, name, F::FORMAT, rate, channel_map, properties);
             let mut value = Box::pin(Self { base, _ph: Default::default() });
@@ -285,7 +321,7 @@ impl<F: Format> RecordStream<F> {
                         this.stream,
                         core::ptr::null(),
                         core::ptr::null(),
-                        Default::default()
+                        flags.into()
                     )
                 ).unwrap();
 

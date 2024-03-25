@@ -161,6 +161,7 @@ name = "qubicon_audio_server"
 version = "0.0.0"
 dependencies = [
  "arrayvec",
+ "bitflags",
  "libpulse-sys",
  "num-traits",
  "rand",

@@ -1,4 +1,4 @@
-pub use stream::{Format, StreamRead, StreamWrite, PlaybackStream};
+pub use stream::{Format, StreamFlags, StreamRead, StreamWrite, PlaybackStream};
 pub use proplist::{properties, Proplist, UpdateMode};
 pub use channel_map::{ChannelMap, ChannelPosition};
 pub use context::PulseContext;
