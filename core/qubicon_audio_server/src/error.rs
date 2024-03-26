@@ -1,6 +1,7 @@
 use libpulse_sys::*;
 use thiserror::Error;
 
+// TODO: Change this shit. These errors dont tell any information at all
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Error)]
 pub enum Error {
     #[error("context connection failed. {pa_error:?}")]
@@ -18,4 +19,6 @@ pub enum Error {
     #[error("stream write error. {pa_error:?}")]
     StreamWriteError { pa_error: pa_error_code_t },
 
+    #[error("proplist edit error. {pa_error:?}")]
+    ProplistEditError { pa_error: pa_error_code_t }
 }

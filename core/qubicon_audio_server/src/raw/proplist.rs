@@ -160,7 +160,7 @@ impl Proplist {
             super::with_c_string(key, | key | {
                 handle_pa_error!(pa_proplist_set(self.0, key.as_ptr(), value.as_ptr().cast(), value.len()))
                     .map(| _ | ())
-                    .map_err(| _e | todo!())
+                    .map_err(| e | Error::ProplistEditError { pa_error: e })
             })
         }
     }
@@ -172,7 +172,7 @@ impl Proplist {
                 super::with_c_string(value, | value | {
                     handle_pa_error!(pa_proplist_sets(self.0, key.as_ptr(), value.as_ptr()))
                         .map(| _ | ())
-                        .map_err(| _e | todo!())
+                        .map_err(| e | Error::ProplistEditError { pa_error: e })
                 })
             })
         }
@@ -183,7 +183,7 @@ impl Proplist {
             super::with_c_string(key, | key | {
                 handle_pa_error!(pa_proplist_unset(self.0, key.as_ptr()))
                     .map(| _ | ())
-                    .map_err(| _e | todo!())
+                    .map_err(| e | Error::ProplistEditError { pa_error: e })
             })
         }
     }
@@ -191,6 +191,12 @@ impl Proplist {
     /// UpdateMode::Set is equal to clone in some way
     pub fn update(&mut self, other: &Proplist, mode: UpdateMode) {
         unsafe { pa_proplist_update(self.0, mode, other.0); }
+    }
+}
+
+impl Default for Proplist {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -223,6 +229,13 @@ impl Drop for Proplist {
 #[cfg(test)]
 mod tests {
     use super::Proplist;
+
+    #[test]
+    fn is_empty() {
+        let proplist = Proplist::new();
+
+        assert!(proplist.empty());
+    }
 
     #[test]
     #[should_panic]
