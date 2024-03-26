@@ -6,7 +6,7 @@ pub mod error;
 use raw::{Format, PlaybackStream, PulseContext};
 
 pub use error::Error;
-pub use raw::{ Proplist, UpdateMode, ChannelMap, ChannelPosition, StreamFlags };
+pub use raw::{ Proplist, UpdateMode, ChannelMap, ChannelPosition, StreamFlags, BufferAttributes };
 pub type Result<T> = core::result::Result<T, Error>;
 
 pub struct AudioServer {
@@ -35,9 +35,12 @@ impl AudioServer {
         rate: u32,
         channel_map: &ChannelMap,
         flags: StreamFlags,
-        properties: Option<&Proplist>
+        properties: Option<&Proplist>,
+        buffer_attributes: Option<&BufferAttributes>
     ) -> Result<Pin<Box<PlaybackStream<F>>>> {
-        self.data.create_new_playback_stream(&CString::new(name.as_bytes()).unwrap(), rate, channel_map, flags, properties)
+        raw::with_c_string(name, | name | {
+            self.data.create_new_playback_stream(name, rate, channel_map, flags, properties, buffer_attributes)
+        })
     }
 
     pub fn update(&self) -> Result<()> {
@@ -66,6 +69,7 @@ mod tests {
             44100,
             &ChannelMap::mono(),
             Default::default(),
+            None,
             None
         )
             .expect("failed to create stream");

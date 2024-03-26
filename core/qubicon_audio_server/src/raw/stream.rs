@@ -134,6 +134,28 @@ impl Into<pa_stream_flags_t> for StreamFlags {
     }
 }
 
+// literaly the same fields. Just with added derives
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BufferAttributes {
+    max_length: u32,
+    tlength: u32,
+    pre_buf: u32,
+    min_req: u32,
+    frag_size: u32
+}
+
+impl Into<pa_buffer_attr> for BufferAttributes {
+    fn into(self) -> pa_buffer_attr {
+        pa_buffer_attr {
+            maxlength: self.max_length,
+            tlength: self.tlength,
+            prebuf: self.pre_buf,
+            minreq: self.min_req,
+            fragsize: self.frag_size
+        }
+    }
+}
+
 
 
 pub trait StreamWrite<F> {
@@ -232,7 +254,15 @@ pub struct PlaybackStream<F: Format> {
 }
 
 impl<F: Format> PlaybackStream<F> {
-    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channel_map: &ChannelMap, flags: StreamFlags, properties: Option<&Proplist>) -> Result<Pin<Box<Self>>> {
+    pub fn new(
+        ctx: *mut pa_context,
+        name: &CStr,
+        rate: u32,
+        channel_map: &ChannelMap,
+        flags: StreamFlags,
+        properties: Option<&Proplist>,
+        buffer_attributes: Option<&BufferAttributes>
+    ) -> Result<Pin<Box<Self>>> {
         unsafe {
             let base = BaseStream::new_unpinned(ctx, name, F::FORMAT, rate, channel_map, properties);
             let mut value = Box::pin( Self { base, _ph: Default::default() } );
@@ -240,11 +270,13 @@ impl<F: Format> PlaybackStream<F> {
             {
                 let this = value.as_mut().get_unchecked_mut();
 
+                let raw_buffet_attributes = buffer_attributes.map(| &at | at.into());
+
                 handle_pa_error!(
                     pa_stream_connect_playback(
                         this.base.stream,
                         core::ptr::null(),
-                        core::ptr::null(),
+                        raw_buffet_attributes.as_ref().map(| at | at as *const _).unwrap_or(core::ptr::null()),
                         flags.into(),
                         core::ptr::null(),
                         core::ptr::null_mut()
@@ -308,7 +340,15 @@ pub struct RecordStream<F: Format> {
 }
 
 impl<F: Format> RecordStream<F> {
-    pub fn new(ctx: *mut pa_context, name: &CStr, rate: u32, channel_map: &ChannelMap, flags: StreamFlags, properties: Option<&Proplist>) -> Result<Pin<Box<Self>>> {
+    pub fn new(
+        ctx: *mut pa_context,
+        name: &CStr,
+        rate: u32,
+        channel_map: &ChannelMap,
+        flags: StreamFlags,
+        properties: Option<&Proplist>,
+        buffer_attributes: Option<&BufferAttributes>
+    ) -> Result<Pin<Box<Self>>> {
         unsafe {
             let base = BaseStream::new_unpinned(ctx, name, F::FORMAT, rate, channel_map, properties);
             let mut value = Box::pin(Self { base, _ph: Default::default() });
@@ -316,11 +356,13 @@ impl<F: Format> RecordStream<F> {
             {
                 let this = value.as_mut().get_unchecked_mut();
 
+                let raw_buffer_attributes = buffer_attributes.map(| &at | at.into());
+
                 handle_pa_error!(
                     pa_stream_connect_record(
                         this.stream,
                         core::ptr::null(),
-                        core::ptr::null(),
+                        raw_buffer_attributes.as_ref().map(| at | at as *const _).unwrap_or(core::ptr::null()),
                         flags.into()
                     )
                 ).unwrap();

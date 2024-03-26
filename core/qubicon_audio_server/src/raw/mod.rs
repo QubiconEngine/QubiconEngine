@@ -1,4 +1,4 @@
-pub use stream::{Format, StreamFlags, StreamRead, StreamWrite, PlaybackStream};
+pub use stream::{Format, StreamFlags, BufferAttributes, StreamRead, StreamWrite, PlaybackStream};
 pub use proplist::{properties, Proplist, UpdateMode};
 pub use channel_map::{ChannelMap, ChannelPosition};
 pub use context::PulseContext;
@@ -23,7 +23,7 @@ macro_rules! handle_pa_error {
     };
 }
 
-fn with_c_string<R>(str: &str, op: impl FnOnce(&core::ffi::CStr) -> R) -> R {
+pub(crate) fn with_c_string<R>(str: &str, op: impl FnOnce(&core::ffi::CStr) -> R) -> R {
     use smallstr::SmallString;
 
     let mut buf = SmallString::<[u8; 128]>::from_str(str);

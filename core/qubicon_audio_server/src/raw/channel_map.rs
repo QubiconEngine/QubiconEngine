@@ -1,4 +1,4 @@
-use std::{ffi::{CStr, CString}, fmt::Debug, mem::MaybeUninit, ops::{Deref, DerefMut}, str::FromStr};
+use std::{ffi::CStr, fmt::Debug, mem::MaybeUninit, ops::{Deref, DerefMut}, str::FromStr};
 
 use arrayvec::{ArrayString, ArrayVec};
 use libpulse_sys::*;
@@ -169,6 +169,7 @@ impl DerefMut for ChannelMap {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<pa_channel_map> for &ChannelMap {
     fn into(self) -> pa_channel_map {
         unsafe {
