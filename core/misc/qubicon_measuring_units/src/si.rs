@@ -3,13 +3,13 @@ pub mod base_units {
     use num_traits::FromPrimitive;
 
     generate_types!{
-        Second,
-        Metre,
-        KiloGram,
-        // Ampere
-        Kelvin,
-        // Mole
-        Candela
+        Second ("s"),
+        Metre ("m"),
+        KiloGram ("kg"),
+        // Ampere ("A")
+        Kelvin ("K"),
+        // Mole ("mol")
+        Candela ("cd")
     }
 
     impl<T: Num + FromPrimitive + Copy + 'static> From<derived_units::Celsius<T>> for Kelvin<T> {
@@ -24,28 +24,28 @@ pub mod derived_units {
     use num_traits::FromPrimitive;
 
     generate_types!{
-        // Radiant,
-        // Steradiant,
-        Hertz,
-        Newton,
-        Pascal,
-        Joule,
-        Watt,
-        // Coulomb,
-        Volt,
-        // Farad,
-        Ohm,
-        // Siemens,
-        // Weber,
-        // Tesla,
-        // Henry,
-        Celsius,
-        Lumen,
-        Lux
-        // Becquerel,
-        // Gray,
-        // Sievert,
-        // Katal
+        // Radiant ("rad"),
+        // Steradiant ("sr"),
+        Hertz ("Hz"),
+        Newton ("N"),
+        Pascal ("Pa"),
+        Joule ("J"),
+        Watt ("W"),
+        // Coulomb ("C"),
+        Volt ("V"),
+        // Farad ("F"),
+        Ohm ("\u{03A9}"),
+        // Siemens ("S"),
+        // Weber ("Wb"),
+        // Tesla ("T"),
+        // Henry ("H"),
+        Celsius ("\u{00B0}\u{0043}"),
+        Lumen ("lm"),
+        Lux ("lx")
+        // Becquerel ("Bq"),
+        // Gray ("Gy"),
+        // Sievert ("Sv"),
+        // Katal ("kat")
     }
 
     impl<T: Num + Copy + 'static> Hertz<T> {
@@ -166,5 +166,13 @@ mod tests {
         let lux = Lux::from_flux_and_area(lumens, area);
 
         assert_eq!(lux.as_(), lumens.as_() / area.as_());
+    }
+
+    #[test]
+    fn print() {
+        println!("{}", Celsius::from(36.6));
+        println!("{}", Metre::from(100.0));
+        println!("{}", Hertz::from(44100.0));
+        println!("{}", Ohm::from(2.5))
     }
 }

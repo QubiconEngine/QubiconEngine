@@ -1,5 +1,5 @@
 macro_rules! generate_types {
-    { $( $unit_name:ident ),+ } => {
+    { $( $unit_name:ident ( $symbol:literal ) ),+ } => {
         use num_traits::{Num, NumAssign, Bounded, MulAdd, AsPrimitive, One, Zero, Signed, FromBytes, ToBytes, Pow};
 
         $(
@@ -19,8 +19,17 @@ macro_rules! generate_types {
                 }
             }
 
+            impl<T: Num + core::fmt::Display> core::fmt::Display for $unit_name<T> {
+                fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                    write!(f, concat!("{} ", $symbol), self.0)
+                } 
+            }
 
 
+
+            // Some of these traits can be implemented by num-derive crate via macro
+            // But I dont give a shit 
+            // ---------------------------------------------------------------------
             impl<T: Num> One for $unit_name<T> {
                 fn one() -> Self {
                     Self ( T::one() )
