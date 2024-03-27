@@ -48,6 +48,18 @@ pub mod derived_units {
         // Katal
     }
 
+    impl<T: Num + Copy + 'static> Hertz<T> {
+        pub fn from_time_and_event_count(event_count: T, time: base_units::Second<T>) -> Self {
+            Self::from( event_count / time.as_() )
+        }
+    }
+
+    impl<T: Num + Copy + 'static> Pascal<T> {
+        pub fn from_force_and_area(force: Newton<T>, area: base_units::Metre<T>) -> Self {
+            Self::from( force.as_() / area.as_() )
+        }
+    }
+
     impl<T: Num + Copy + 'static> Joule<T> {
         pub fn from_force_and_distance(force: Newton<T>, dist: base_units::Metre<T>) -> Self {
             Self::from( force.as_() / dist.as_() )
@@ -65,12 +77,22 @@ pub mod derived_units {
             Self::from( value.as_() - FromPrimitive::from_f64(273.15).unwrap() )
         }
     }
+
+    impl<T: Num + Copy + 'static> Lumen<T> {
+        //pub fn from_intensity_and_angle() -> Self;
+    }
+
+    impl<T: Num + Copy + 'static> Lux<T> {
+        pub fn from_flux_and_area(flux: Lumen<T>, area: base_units::Metre<T>) -> Self {
+            Self::from( flux.as_() / area.as_() )
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{base_units::*, derived_units::*};
-    use num_traits::AsPrimitive;
+    use num_traits::{AsPrimitive, Pow};
 
     // this test is not for types generated there, but for macro what generates them
     #[test]
@@ -85,6 +107,26 @@ mod tests {
         {unit = unit * 2}
 
         assert_eq!(unit, Metre::from(128));
+    }
+
+    #[test]
+    fn seconds_and_event_count_2_hertz() {
+        let event_count = 880.0;
+        let time = Second::from(2.0);
+
+        let freq = Hertz::from_time_and_event_count(event_count, time);
+
+        assert_eq!(freq.as_(), event_count / time.as_());
+    }
+
+    #[test]
+    fn newtons_and_area_2_pascals() {
+        let force = Newton::from(2500.0); // average weight of discord mods
+        let area = Metre::from(3.0).pow(2);
+
+        let pressure = Pascal::from_force_and_area(force, area);
+
+        assert_eq!(pressure.as_(), force.as_() / area.as_());
     }
 
     #[test]
@@ -114,5 +156,15 @@ mod tests {
         let power = Watt::from_work_and_time(work, time);
 
         assert_eq!(power.as_(), 10.0 / 5.0);
+    }
+
+    #[test]
+    fn lumens_and_area_to_lux() {
+        let lumens = Lumen::from(1.0);
+        let area = Metre::from(1.0).pow(2);
+
+        let lux = Lux::from_flux_and_area(lumens, area);
+
+        assert_eq!(lux.as_(), lumens.as_() / area.as_());
     }
 }

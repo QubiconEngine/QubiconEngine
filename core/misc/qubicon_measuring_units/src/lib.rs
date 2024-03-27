@@ -1,6 +1,6 @@
 macro_rules! generate_types {
     { $( $unit_name:ident ),+ } => {
-        use num_traits::{Num, NumAssign, Bounded, MulAdd, AsPrimitive, One, Zero, Signed, FromBytes, ToBytes};
+        use num_traits::{Num, NumAssign, Bounded, MulAdd, AsPrimitive, One, Zero, Signed, FromBytes, ToBytes, Pow};
 
         $(
             #[repr(transparent)]
@@ -152,6 +152,14 @@ macro_rules! generate_types {
 
                 fn neg(self) -> Self::Output {
                     Self ( -self.0 )
+                }
+            }
+
+            impl<T: Num + Pow<U, Output=T>, U> Pow<U> for $unit_name<T> {
+                type Output = Self;
+
+                fn pow(self, rhs: U) -> Self::Output {
+                    Self ( self.0.pow(rhs) )
                 }
             }
 
