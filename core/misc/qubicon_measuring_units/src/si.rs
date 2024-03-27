@@ -69,15 +69,35 @@ pub mod derived_units {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{base_units::*, derived_units::*};
     use num_traits::AsPrimitive;
 
     #[test]
     fn kelvin_2_celsius() {
-        let t_c = derived_units::Celsius::from(36.6);
-        let t_k = base_units::Kelvin::<f32>::from(t_c);
+        let t_c = Celsius::from(36.6);
+        let t_k = Kelvin::<f32>::from(t_c);
 
         // of course comparing floats is UB in some way :)
         assert_eq!(t_k.as_(), 36.6 + 273.15);
+    }
+
+    #[test]
+    fn newtons_and_meters_2_joules() {
+        let dist = Metre::from(1.0);
+        let force = Newton::from(10.0);
+
+        let work = Joule::from_force_and_distance(force, dist);
+
+        assert_eq!(work.as_(), 10.0 / 1.0);
+    }
+
+    #[test]
+    fn joules_and_seconds_2_watts() {
+        let work = Joule::from(10.0);
+        let time = Second::from(5.0);
+
+        let power = Watt::from_work_and_time(work, time);
+
+        assert_eq!(power.as_(), 10.0 / 5.0);
     }
 }
