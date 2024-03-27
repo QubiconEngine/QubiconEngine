@@ -79,9 +79,23 @@ macro_rules! generate_types {
                 }
             }
 
+            impl<T: Num> core::ops::Mul<T> for $unit_name<T> {
+                type Output = Self;
+
+                fn mul(self, rhs: T) -> Self::Output {
+                    Self ( self.0 * rhs )
+                }
+            }
+
             impl<T: NumAssign> core::ops::MulAssign for $unit_name<T> {
                 fn mul_assign(&mut self, rhs: Self) {
                     self.0 *= rhs.0;
+                }
+            }
+
+            impl<T: NumAssign> core::ops::MulAssign<T> for $unit_name<T> {
+                fn mul_assign(&mut self, rhs: T) {
+                    self.0 *= rhs;
                 }
             }
 
@@ -95,9 +109,23 @@ macro_rules! generate_types {
                 }
             }
 
+            impl<T: Num> core::ops::Div<T> for $unit_name<T> {
+                type Output = Self;
+
+                fn div(self, rhs: T) -> Self::Output {
+                    Self ( self.0 / rhs )
+                }
+            }
+
             impl<T: NumAssign> core::ops::DivAssign for $unit_name<T> {
                 fn div_assign(&mut self, rhs: Self) {
                     self.0 /= rhs.0;
+                }
+            }
+
+            impl<T: NumAssign> core::ops::DivAssign<T> for $unit_name<T> {
+                fn div_assign(&mut self, rhs: T) {
+                    self.0 /= rhs;
                 }
             }
 

@@ -72,6 +72,21 @@ mod tests {
     use super::{base_units::*, derived_units::*};
     use num_traits::AsPrimitive;
 
+    // this test is not for types generated there, but for macro what generates them
+    #[test]
+    fn unit_types_compatibility_with_machine_types() {
+        let mut unit = Metre::from(32u16);
+
+        unit *= 2;
+
+        assert_eq!(unit, Metre::from(64));
+
+        #[allow(clippy::assign_op_pattern)]
+        {unit = unit * 2}
+
+        assert_eq!(unit, Metre::from(128));
+    }
+
     #[test]
     fn kelvin_2_celsius() {
         let t_c = Celsius::from(36.6);
