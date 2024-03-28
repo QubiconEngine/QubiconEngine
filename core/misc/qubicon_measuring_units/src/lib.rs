@@ -1,3 +1,7 @@
+pub mod prelude {
+    pub use super::si::symbolic::*;
+}
+
 macro_rules! generate_types {
     { $( $unit_name:ident ( $symbol:literal ) ),+ } => {
         use num_traits::{Num, NumAssign, Bounded, MulAdd, AsPrimitive, One, Zero, Signed, FromBytes, ToBytes, Pow};

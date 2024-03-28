@@ -8,5 +8,5 @@ members = [
     
     "core/rendering/qubicon_vulkan",
     "core/rendering/qubicon_windowing",
-    "core/rendering/qubicon_rendering_server", "core/misc/qubicon_measuring_units",
+    "core/rendering/qubicon_rendering_server",
 ]

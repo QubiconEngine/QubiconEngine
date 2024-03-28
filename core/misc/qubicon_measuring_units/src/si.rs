@@ -1,3 +1,29 @@
+/// Units of SI, but in a symbolic form.
+pub mod symbolic {
+    pub use super::{
+        base_units::{
+            Second as S,
+            Metre as M,
+            KiloGram as Kg,
+            Kelvin as K,
+            Candela as Cd
+        },
+        derived_units::{
+            Hertz as Hz,
+            Newton as N,
+            Pascal as Pa,
+            Joule as J,
+            Watt as W,
+            Volt as V,
+            Ohm as Ohm, // :)
+            Celsius as C,
+            Lumen as Lm,
+            Lux as Lx
+        }
+    };
+}
+
+/// Basic units of SI
 pub mod base_units {
     use super::*;
     use num_traits::FromPrimitive;
@@ -19,6 +45,7 @@ pub mod base_units {
     }
 }
 
+/// Units derived from basic units of SI
 pub mod derived_units {
     use super::*;
     use num_traits::FromPrimitive;
