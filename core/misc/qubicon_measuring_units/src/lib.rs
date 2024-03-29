@@ -3,10 +3,11 @@ pub mod prelude {
 }
 
 macro_rules! generate_types {
-    { $( $unit_name:ident ( $symbol:literal ) ),+ } => {
+    { $( $unit_name:ident ( $symbol:literal $(, $docs:literal)? ) ),+ } => {
         use num_traits::{Num, NumAssign, Bounded, MulAdd, AsPrimitive, One, Zero, Signed, FromBytes, ToBytes, Pow};
 
         $(
+            $( #[doc = include_str!($docs)] )?
             #[repr(transparent)]
             #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
             pub struct $unit_name<T: Num> (T);

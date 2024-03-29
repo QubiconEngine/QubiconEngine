@@ -33,7 +33,7 @@ pub mod base_units {
         Metre ("m"),
         KiloGram ("kg"),
         // Ampere ("A")
-        Kelvin ("K"),
+        Kelvin ("K", "../docs/si/kelvin.md"),
         // Mole ("mol")
         Candela ("cd")
     }
@@ -66,7 +66,7 @@ pub mod derived_units {
         // Weber ("Wb"),
         // Tesla ("T"),
         // Henry ("H"),
-        Celsius ("\u{00B0}\u{0043}"),
+        Celsius ("\u{00B0}\u{0043}", "../docs/si/celsius.md"),
         Lumen ("lm"),
         Lux ("lx")
         // Becquerel ("Bq"),
