@@ -14,7 +14,7 @@ More information on [wikipedia](https://en.wikipedia.org/wiki/Joule)
 let distance = Metre::from(3.0);
 let force = Newton::from(10.0);
 
-let work = Joule::from_force_and_distance(force, distance);
+let work = force / distance; // same as Joule::from_force_and_distance
 
 println!("{work}");
 ```

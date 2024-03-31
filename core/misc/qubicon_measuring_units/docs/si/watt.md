@@ -10,7 +10,7 @@ More information on [wikipedia](https://en.wikipedia.org/wiki/Watt)
 let work = Joule::from(15.0);
 let time = Second::from(3.0);
 
-let power = Watt::from_work_and_time(work, time);
+let power = work / time; // same as Watt::from_work_and_time
 
 println!("{power}");
 ```

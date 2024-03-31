@@ -75,11 +75,15 @@ pub mod derived_units {
         // Katal ("kat")
     }
 
+
+
     impl<T: Num + Copy + 'static> Hertz<T> {
         pub fn from_time_and_event_count(event_count: T, time: base_units::Second<T>) -> Self {
             Self::from( event_count / time.as_() )
         }
     }
+
+
 
     impl<T: Num + Copy + 'static> Pascal<T> {
         pub fn from_force_and_area(force: Newton<T>, area: base_units::Metre<T>) -> Self {
@@ -87,17 +91,45 @@ pub mod derived_units {
         }
     }
 
+
+
+    
+
     impl<T: Num + Copy + 'static> Joule<T> {
         pub fn from_force_and_distance(force: Newton<T>, dist: base_units::Metre<T>) -> Self {
-            Self::from( force.as_() / dist.as_() )
+            force / dist
         }
     }
 
-    impl<T: Num + Copy + 'static> Watt<T> {
-        pub fn from_work_and_time(work: Joule<T>, time: base_units::Second<T>) -> Self {
-            Self::from( work.as_() / time.as_() )
+    impl<T: Num + Copy + 'static> core::ops::Div<base_units::Metre<T>> for Newton<T> {
+        type Output = Joule<T>;
+
+        fn div(self, rhs: base_units::Metre<T>) -> Self::Output {
+            Joule::from( self.as_() / rhs.as_() )
         }
     }
+
+
+
+
+
+    impl<T: Num + Copy + 'static> Watt<T> {
+        pub fn from_work_and_time(work: Joule<T>, time: base_units::Second<T>) -> Self {
+            work / time
+        }
+    }
+
+    impl<T: Num + Copy + 'static> core::ops::Div<base_units::Second<T>> for Joule<T> {
+        type Output = Watt<T>;
+
+        fn div(self, rhs: base_units::Second<T>) -> Self::Output {
+            Watt::from( self.as_() / rhs.as_() )
+        }
+    }
+
+
+
+
 
     impl<T: Num + FromPrimitive + Copy + 'static> From<base_units::Kelvin<T>> for Celsius<T> {
         fn from(value: base_units::Kelvin<T>) -> Self {
