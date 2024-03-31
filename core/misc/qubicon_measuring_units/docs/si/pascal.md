@@ -4,7 +4,7 @@ Also used for internal preasure and stress.
 There also an atmospheric presure unit(**atm** for short). The **atm**
 unit is roughly equal to atmosperic presure on sea level(*101,325 Pa*).
 
-Derived as one [newton](crate::si::derived_units::Newton) per [meter](crate::si::base_units::Meter)<sup>2</sup>.
+Derived as one [newton](crate::si::derived_units::Newton) per [meter](crate::si::base_units::Metre)<sup>2</sup>.
 
 # Examples
 ```
