@@ -10,7 +10,6 @@ Derived as one [newton](crate::si::derived_units::Newton) per [meter](crate::si:
 ```
 # use num_traits::Pow;
 # use qubicon_measuring_units::si::{ base_units::Metre, derived_units::{ Newton, Pascal } };
-
 let area = Metre::from(1.0).pow(2);
 let force = Newton::from(1000.0); // Weight of 100 kg on Earth
 

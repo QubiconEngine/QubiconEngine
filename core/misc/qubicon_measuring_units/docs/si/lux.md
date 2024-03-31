@@ -7,7 +7,6 @@ per 1 [meter](crate::si::base_units::Metre)<sup>2</sup>.
 ```
 # use num_traits::Pow;
 # use qubicon_measuring_units::si::{ base_units::Metre, derived_units::{ Lumen, Lux } };
-
 let area = Metre::from(2.0).pow(2);
 let flux = Lumen::from(5.0);
 

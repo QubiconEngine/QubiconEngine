@@ -6,7 +6,6 @@ In difference to [Kelvins](crate::si::base_units::Kelvin), counting in Celsius s
 # Example
 ```
 # use qubicon_measuring_units::si::{ base_units::Kelvin, derived_units::Celsius };
-
 let t_c = Celsius::from(100.0f64);
 let t_k = Kelvin::<f64>::from(t_c);
 

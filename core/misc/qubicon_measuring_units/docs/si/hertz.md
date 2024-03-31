@@ -5,7 +5,6 @@ Equivalent to one event (or cycle) per [second](crate::si::base_units::Second).
 # Examples
 ```
 # use qubicon_measuring_units::si::{ base_units::Second, derived_units::Hertz };
-
 let event_count = 10.0;
 let time = Second::from(1.0);
 

@@ -9,7 +9,6 @@ of 1 [ohm](crate::si::derived_units::Ohm) for 1 [second](crate::si::base_units::
 # Examples
 ```
 # use qubicon_measuring_units::si::{ base_units::Metre, derived_units::{ Newton, Joule } };
-
 let distance = Metre::from(3.0);
 let force = Newton::from(10.0);
 

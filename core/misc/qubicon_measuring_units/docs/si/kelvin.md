@@ -7,7 +7,6 @@ The only difference is - counting starts at ice melting point(approximately **27
 # Examples
 ```
 # use qubicon_measuring_units::si::{ base_units::Kelvin, derived_units::Celsius };
-
 let t_k = Kelvin::from(273.15);
 let t_c = Celsius::<f64>::from(t_k);
 
