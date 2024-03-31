@@ -29,13 +29,13 @@ pub mod base_units {
     use num_traits::FromPrimitive;
 
     generate_types!{
-        Second ("s"),
-        Metre ("m"),
-        KiloGram ("kg"),
+        Second ("s", "../docs/si/second.md"),
+        Metre ("m", "../docs/si/metre.md"),
+        KiloGram ("kg", "../docs/si/kilogram.md"),
         // Ampere ("A")
         Kelvin ("K", "../docs/si/kelvin.md"),
         // Mole ("mol")
-        Candela ("cd")
+        Candela ("cd", "../docs/si/candela.md")
     }
 
     impl<T: Num + FromPrimitive + Copy + 'static> From<derived_units::Celsius<T>> for Kelvin<T> {
@@ -53,9 +53,9 @@ pub mod derived_units {
     generate_types!{
         // Radiant ("rad"),
         // Steradiant ("sr"),
-        Hertz ("Hz"),
-        Newton ("N"),
-        Pascal ("Pa"),
+        Hertz ("Hz", "../docs/si/hertz.md"),
+        Newton ("N", "../docs/si/newton.md"),
+        Pascal ("Pa", "../docs/si/pascal.md"),
         Joule ("J"),
         Watt ("W"),
         // Coulomb ("C"),
