@@ -6,6 +6,8 @@ unit is roughly equal to atmosperic presure on sea level(*101,325 Pa*).
 
 Derived as one [newton](crate::si::derived_units::Newton) per [meter](crate::si::base_units::Metre)<sup>2</sup>.
 
+More information on [wikipedia](https://en.wikipedia.org/wiki/Pascal_(unit))
+
 # Examples
 ```
 # use num_traits::Pow;

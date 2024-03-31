@@ -4,6 +4,8 @@ Counting starts from an absolute zero - the lowest temperature in all universe.
 [Celsius](crate::si::derived_units::Celsius) unit was derived from this system.
 The only difference is - counting starts at ice melting point(approximately **273.15 K**).
 
+More information on [wikipedia](https://en.wikipedia.org/wiki/Kelvin)
+
 # Examples
 ```
 # use qubicon_measuring_units::si::{ base_units::Kelvin, derived_units::Celsius };

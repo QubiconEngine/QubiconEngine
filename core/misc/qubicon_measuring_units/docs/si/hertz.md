@@ -2,6 +2,8 @@ Unit of frequency
 
 Equivalent to one event (or cycle) per [second](crate::si::base_units::Second).
 
+More information on [wikipedia](https://en.wikipedia.org/wiki/Hertz)
+
 # Examples
 ```
 # use qubicon_measuring_units::si::{ base_units::Second, derived_units::Hertz };
