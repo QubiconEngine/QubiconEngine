@@ -10,9 +10,9 @@ More information on [wikipedia](https://en.wikipedia.org/wiki/Pascal_(unit))
 
 # Examples
 ```
-# use num_traits::Pow;
 # use qubicon_measuring_units::si::{ base_units::Metre, derived_units::{ Newton, Pascal } };
-let area = Metre::from(1.0).pow(2);
+let area = Metre::from(1.0f64.powi(2)); // num-traits dont implement Pow for integers without std feature
+        // Metre::from(1.0).pow(2);
 let force = Newton::from(1000.0); // Weight of 100 kg on Earth
 
 let preasure = Pascal::from_force_and_area(force, area);

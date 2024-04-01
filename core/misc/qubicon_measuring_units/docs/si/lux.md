@@ -7,9 +7,9 @@ More information on [wikipedia](https://en.wikipedia.org/wiki/Lux)
 
 # Examples
 ```
-# use num_traits::Pow;
 # use qubicon_measuring_units::si::{ base_units::Metre, derived_units::{ Lumen, Lux } };
-let area = Metre::from(2.0).pow(2);
+let area = Metre::from(2.0f64.powi(2)); // num-traits dont implement Pow with integers without std feature
+        // Metre::from(2.0).pow(2);
 let flux = Lumen::from(5.0);
 
 let illuminance = Lux::from_flux_and_area(flux, area);

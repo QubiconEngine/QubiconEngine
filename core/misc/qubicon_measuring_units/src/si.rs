@@ -151,7 +151,7 @@ pub mod derived_units {
 #[cfg(test)]
 mod tests {
     use super::{base_units::*, derived_units::*};
-    use num_traits::{AsPrimitive, Pow};
+    use num_traits::AsPrimitive;
 
     // this test is not for types generated there, but for macro what generates them
     #[test]
@@ -181,7 +181,7 @@ mod tests {
     #[test]
     fn newtons_and_area_2_pascals() {
         let force = Newton::from(2500.0); // average weight of discord mods
-        let area = Metre::from(3.0).pow(2);
+        let area = Metre::from(3.0f64.powi(2)); // for some reason num-traits dont support Pow for integers without std feature
 
         let pressure = Pascal::from_force_and_area(force, area);
 
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn lumens_and_area_to_lux() {
         let lumens = Lumen::from(1.0);
-        let area = Metre::from(1.0).pow(2);
+        let area = Metre::from(1.0f64.powi(2)); // same as in newtons_and_area_2_pascals
 
         let lux = Lux::from_flux_and_area(lumens, area);
 
