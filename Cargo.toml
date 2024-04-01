@@ -5,6 +5,7 @@ members = [
     "core/qubicon_input_server",
 
     "core/misc/qubicon_measuring_units",
+    "core/misc/qubicon_short_floats",
     
     "core/rendering/qubicon_vulkan",
     "core/rendering/qubicon_windowing",
