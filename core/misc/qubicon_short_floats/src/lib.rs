@@ -78,7 +78,7 @@ impl Into<f32> for HalfF16 {
         out |= (sign as u32) << 31;
         out |= (exp_sign as u32) << 30;
         out |= ((exp & 0b1111) as u32) << 23;
-        out |= (mantis as u32) << 12;
+        out |= (mantis as u32) << 13;
 
         #[allow(clippy::transmute_int_to_float)]
         unsafe { core::mem::transmute(out) }
@@ -173,8 +173,6 @@ mod tests {
         let f_16 = HalfF16::from(f_32);
 
         let f_32_c: f32 = f_16.into();
-
-        println!("{f_32} {f_32_c}");
 
         let _dec = f_32_c.integer_decode();
 
