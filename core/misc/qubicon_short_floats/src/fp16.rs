@@ -3,6 +3,8 @@ use super::ShortFloat;
 #[derive(PartialEq, Clone, Copy)]
 pub struct HalfF16 (u16);
 
+impl_math_consts!(HalfF16);
+
 impl ShortFloat for HalfF16 {
     type Storage = u16;
 
@@ -92,11 +94,13 @@ impl From<HalfF16> for f32 {
 #[derive(PartialEq, Clone, Copy)]
 pub struct BF16 (u16);
 
+impl_math_consts!(BF16);
+
 impl ShortFloat for BF16 {
     type Storage = u16;
 
     const SIGN_BITS: Self::Storage =   0b1000_0000_0000_0000;
-    const EXPONENT_BITS: Self::Storage =    0b0111_1111_1000_0000;
+    const EXPONENT_BITS: Self::Storage = 0b0111_1111_1000_0000;
     const MANTISSA_BITS: Self::Storage = 0b0000_0000_0111_1111;
 
     fn sign(&self) -> Self::Storage {
