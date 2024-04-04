@@ -9,7 +9,7 @@ impl ShortFloat for HalfF16 {
     type Storage = u16;
 
     const SIGN_BITS: Self::Storage =   0b1000_0000_0000_0000;
-    const EXPONENT_BITS: Self::Storage =    0b0111_1100_0000_0000;
+    const EXPONENT_BITS: Self::Storage = 0b0111_1100_0000_0000;
     const MANTISSA_BITS: Self::Storage = 0b0000_0011_1111_1111;
 
     fn sign(&self) -> Self::Storage {
