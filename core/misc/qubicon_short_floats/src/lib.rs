@@ -6,8 +6,8 @@ pub trait ShortFloat: From<f32> + Into<f32> {
     type Storage: BitAnd + BitOr + BitXor;
 
     const SIGN_BITS: Self::Storage;
-    const EXP_BITS: Self::Storage;
-    const MANTIS_BITS: Self::Storage;
+    const EXPONENT_BITS: Self::Storage;
+    const MANTISSA_BITS: Self::Storage;
 
     fn sign(&self) -> Self::Storage;
     fn exponent(&self) -> Self::Storage;
