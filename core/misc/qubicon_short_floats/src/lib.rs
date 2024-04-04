@@ -10,12 +10,14 @@ pub trait ShortFloat: From<f32> + Into<f32> {
     const MANTIS_BITS: Self::Storage;
 
     fn sign(&self) -> Self::Storage;
-    fn exp(&self) -> Self::Storage;
-    fn mantis(&self) -> Self::Storage;
-
-    fn to_f64(self) -> f64 {
-        self.into() as f64
-    }
+    fn exponent(&self) -> Self::Storage;
+    fn mantissa(&self) -> Self::Storage;
 }
+
+// impl<T: ShortFloat> From<T> for f64 {
+//     fn from(value: T) -> Self {
+//         value.into() as f64
+//     }
+// }
 
 pub mod fp16;
