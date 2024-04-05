@@ -10,20 +10,21 @@ mod f32x4 {
     use super::super::SSE1;
     use core::{
         arch::x86_64::*,
-        ops::{ Add, Sub, Mul, Div, Deref, DerefMut }
+        ops::{ Add, Sub, Mul, Div }
     };
 
-    #[repr(align(16))]
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    pub struct F32x4 ( [f32; 4] );
+    #[repr(transparent)]
+    #[derive(Debug, Clone, Copy)]
+    pub struct F32x4 ( __m128 );
 
     impl F32x4 {
-        pub const fn new(elements: [f32; 4]) -> Self {
-            Self ( elements )
+        pub fn new(n1: f32, n2: f32, n3: f32, n4: f32) -> Self {
+            // Same as in F64x2. For some reason reverse is required for right order. Maybe its due to endian ?
+            Self ( unsafe { _mm_set_ps(n4, n3, n2, n1) } )
         }
 
-        pub const fn new_fill(value: f32) -> Self {
-            Self::new([value, value, value, value])
+        pub fn new_fill(value: f32) -> Self {
+            Self ( unsafe { _mm_set1_ps(value) } )
         }
     }
 
@@ -32,12 +33,7 @@ mod f32x4 {
 
         fn add(self, rhs: Self) -> Self::Output {
             unsafe {
-                let value = _mm_add_ps(
-                    core::mem::transmute(self.0),
-                    core::mem::transmute(rhs.0)
-                );
-
-                Self ( core::mem::transmute(value) )
+                Self ( _mm_add_ps(self.0, rhs.0) )
             }
         }
     }
@@ -47,12 +43,7 @@ mod f32x4 {
 
         fn sub(self, rhs: Self) -> Self::Output {
             unsafe {
-                let value = _mm_sub_ps(
-                    core::mem::transmute(self.0),
-                    core::mem::transmute(rhs.0)
-                );
-
-                Self ( core::mem::transmute(value) )
+                Self ( _mm_sub_ps(self.0, rhs.0) )
             }
         }
     }
@@ -62,12 +53,7 @@ mod f32x4 {
 
         fn mul(self, rhs: Self) -> Self::Output {
             unsafe {
-                let value = _mm_mul_ps(
-                    core::mem::transmute(self.0),
-                    core::mem::transmute(rhs.0)
-                );
-
-                Self ( core::mem::transmute(value) )
+                Self ( _mm_mul_ps(self.0, rhs.0) )
             }
         }
     }
@@ -77,94 +63,59 @@ mod f32x4 {
 
         fn div(self, rhs: Self) -> Self::Output {
             unsafe {
-                let value = _mm_div_ps(
-                    core::mem::transmute(self.0),
-                    core::mem::transmute(rhs.0)
-                );
-
-                Self ( core::mem::transmute(value) )
+                Self ( _mm_div_ps(self.0, rhs.0) )
             }
-        }
-    }
-
-    impl Deref for F32x4 {
-        type Target = [f32; 4];
-
-        fn deref(&self) -> &Self::Target {
-            &self.0
-        }
-    }
-
-    impl DerefMut for F32x4 {
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            &mut self.0
         }
     }
 
     unsafe impl SSE1 for F32x4 {
         fn rsqrt(self) -> Self {
             unsafe {
-                let value = _mm_rsqrt_ps(core::mem::transmute(self.0));
-
-                Self ( core::mem::transmute(value) )
+                Self ( _mm_rsqrt_ps(self.0) )
             }
         }
 
         fn sqrt(self) -> Self {
             unsafe {
-                let value = _mm_sqrt_ps(core::mem::transmute(self.0));
-
-                Self ( core::mem::transmute(value) )
+                Self ( _mm_sqrt_ps(self.0) )
             }
         }
 
         fn rcp(self) -> Self {
             unsafe {
-                let value = _mm_rcp_ps(core::mem::transmute(self.0));
-
-                Self ( core::mem::transmute(value) )
+                Self ( _mm_rcp_ps(self.0) )
             }
         }
 
 
         fn max(self, other: Self) -> Self {
             unsafe {
-                let value = _mm_max_ps(
-                    core::mem::transmute(self.0),
-                    core::mem::transmute(other.0)
-                );
-
-                Self ( core::mem::transmute(value) )
+                Self ( _mm_max_ps(self.0, other.0) )
             }
         }
 
         fn min(self, other: Self) -> Self {
             unsafe {
-                let value = _mm_min_ps(
-                    core::mem::transmute(self.0),
-                    core::mem::transmute(other.0)
-                );
-
-                Self ( core::mem::transmute(value) )
+                Self ( _mm_min_ps(self.0, other.0) )
             }
         }
     }
 
     impl From<[f32; 4]> for F32x4 {
         fn from(value: [f32; 4]) -> Self {
-            Self::new(value)
+            Self::new(value[0], value[1], value[2], value[3])
+        }
+    }
+
+    impl From<(f32, f32, f32, f32)> for F32x4 {
+        fn from((n1, n2, n3, n4): (f32, f32, f32, f32)) -> Self {
+            Self::new(n1, n2, n3, n4)
         }
     }
 
     impl From<f32> for F32x4 {
         fn from(value: f32) -> Self {
             Self::new_fill(value)
-        }
-    }
-
-    impl From<F32x4> for [f32; 4] {
-        fn from(value: F32x4) -> Self {
-            value.0
         }
     }
 
@@ -176,7 +127,7 @@ mod f32x4 {
 
         #[test]
         fn f32x4() {
-            let a = F32x4::new([10.0, 5.0, 3.15, -19.186]);
+            let a = F32x4::new(10.0, 5.0, 3.15, -19.186);
             let b = F32x4::new_fill(core::f32::consts::PI);
 
             println!("{:?}\n{:?}\n{:?}\n{:?}\n{:?}", a + b, a - b, a * b, a / b, (b * b).sqrt());
@@ -199,9 +150,9 @@ mod f64x2 {
     pub struct F64x2 ( __m128d );
 
     impl F64x2 {
-        pub fn new(elements: [f64; 2]) -> Self {
+        pub fn new(n1: f64, n2: f64) -> Self {
             // TODO: Better check. For my CPU there is reverse required. Maybe its endian ?
-            Self ( unsafe { _mm_set_pd(elements[1], elements[0]) } )
+            Self ( unsafe { _mm_set_pd(n2, n1) } )
         }
 
         pub fn new_fill(value: f64) -> Self {
@@ -277,7 +228,7 @@ mod f64x2 {
 
     impl From<[f64; 2]> for F64x2 {
         fn from(value: [f64; 2]) -> Self {
-            Self::new(value)
+            Self::new(value[0], value[1])
         }
     }
 
@@ -301,7 +252,7 @@ mod f64x2 {
 
         #[test]
         fn f64x2() {
-            let a = F64x2::new([5.0, 0.0]);
+            let a = F64x2::new(5.0, 0.0);
             let b = F64x2::new_fill(core::f64::consts::PI);
 
             println!("{:?}\n{:?}\n{:?}\n{:?}\n", a + b, a - b, a * b, a / b);
