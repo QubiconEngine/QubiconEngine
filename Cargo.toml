@@ -6,6 +6,7 @@ members = [
 
     "core/misc/qubicon_measuring_units",
     "core/misc/qubicon_short_floats",
+    "core/misc/qubicon_simd",
     
     "core/rendering/qubicon_vulkan",
     "core/rendering/qubicon_windowing",

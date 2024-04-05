@@ -194,6 +194,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "qubicon_simd"
+version = "0.0.0"
+
+[[package]]
 name = "qubicon_vulkan"
 version = "0.0.0"
 dependencies = [
