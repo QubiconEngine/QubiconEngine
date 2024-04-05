@@ -1,7 +1,10 @@
 use super::ShortFloat;
+// use num_traits::float::FloatCore;
 
 #[derive(PartialEq, Clone, Copy)]
 pub struct HalfF16 (u16);
+
+pub mod half16v;
 
 impl_math_consts!(HalfF16);
 
@@ -88,6 +91,65 @@ impl From<HalfF16> for f32 {
     }
 }
 
+// impl FloatCore for HalfF16 {
+//     fn infinity() -> Self {
+//         Self ( 0b0111_1100_0000_0000 )
+//     }
+
+//     fn neg_infinity() -> Self {
+//         Self ( 0b1111_1100_0000_0000 )
+//     }
+
+//     fn nan() -> Self {
+//         Self ( 0b0111_1100_1000_0000 )
+//     }
+
+//     fn neg_zero() -> Self {
+//         Self::from_f32(-0.0)
+//     }
+
+//     fn min_value() -> Self {
+//         Self ( 0b1011_1100_0000_0001 )
+//     }
+
+//     fn min_positive_value() -> Self {
+//         Self ( 0b0111_1000_0000_0001 )
+//     }
+
+//     fn epsilon() -> Self {
+//         Self::min_positive_value()
+//     }
+
+//     fn max_value() -> Self {
+//         Self ( 0b0011_1011_1111_1111 )
+//     }
+
+//     fn classify(self) -> core::num::FpCategory {
+//         todo!()
+//     }
+
+//     fn to_degrees(self) -> Self {
+//         todo!()
+//     }
+
+//     fn to_radians(self) -> Self {
+//         todo!()
+//     }
+
+//     fn integer_decode(self) -> (u64, i16, i8) {
+//         let sign = self.sign();
+//         let exponent = self.exponent();
+//         let mantissa = self.mantissa();
+
+//         let exponent_sign = (exponent & 0b1_0000) >> 4;
+//         let exponent = (exponent & 0b0_1111) as i16;
+
+//         let sign = if sign == 0 { 1i8 } else { -1i8 };
+//         let exponent = if exponent_sign == 0 { exponent } else { -exponent };
+
+//         (mantissa as u64, exponent, sign)
+//     }
+// }
 
 
 
