@@ -3,7 +3,18 @@ use core::{
     ops::{ Add, Sub, Mul, Div, Deref, DerefMut }
 };
 
-pub unsafe trait SSE1: Sized + Add<Self, Output = Self> + Sub<Self, Output = Self> + Mul<Self, Output = Self> + Div<Self, Output = Self> {}
+/// TODO: Comparison
+pub unsafe trait SSE1: Sized +
+    Add<Self, Output = Self> + Sub<Self, Output = Self> +
+    Mul<Self, Output = Self> + Div<Self, Output = Self>
+{
+    fn rsqrt(self) -> Self;
+    fn sqrt(self) -> Self;
+    fn rcp(self) -> Self;
+
+    fn max(self, other: Self) -> Self;
+    fn min(self, other: Self) -> Self;
+}
 
 #[repr(align(16))]
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -93,7 +104,54 @@ impl DerefMut for F32x4 {
     }
 }
 
-unsafe impl SSE1 for F32x4 {}
+unsafe impl SSE1 for F32x4 {
+    fn rsqrt(self) -> Self {
+        unsafe {
+            let value = _mm_rsqrt_ps(core::mem::transmute(self.0));
+
+            Self ( core::mem::transmute(value) )
+        }
+    }
+
+    fn sqrt(self) -> Self {
+        unsafe {
+            let value = _mm_sqrt_ps(core::mem::transmute(self.0));
+
+            Self ( core::mem::transmute(value) )
+        }
+    }
+
+    fn rcp(self) -> Self {
+        unsafe {
+            let value = _mm_rcp_ps(core::mem::transmute(self.0));
+
+            Self ( core::mem::transmute(value) )
+        }
+    }
+
+    
+    fn max(self, other: Self) -> Self {
+        unsafe {
+            let value = _mm_max_ps(
+                core::mem::transmute(self.0),
+                core::mem::transmute(other.0)
+            );
+
+            Self ( core::mem::transmute(value) )
+        }
+    }
+
+    fn min(self, other: Self) -> Self {
+        unsafe {
+            let value = _mm_min_ps(
+                core::mem::transmute(self.0),
+                core::mem::transmute(other.0)
+            );
+
+            Self ( core::mem::transmute(value) )
+        }
+    }
+}
 
 impl From<[f32; 4]> for F32x4 {
     fn from(value: [f32; 4]) -> Self {
@@ -122,6 +180,6 @@ mod tests {
         let a = F32x4::new([10.0, 5.0, 3.15, -19.186]);
         let b = F32x4::new_fill(core::f32::consts::PI);
 
-        println!("{:?}\n{:?}\n{:?}\n{:?}", a + b, a - b, a * b, a / b);
+        println!("{:?}\n{:?}\n{:?}\n{:?}\n{:?}", a + b, a - b, a * b, a / b, (b * b).sqrt());
     }
 }
