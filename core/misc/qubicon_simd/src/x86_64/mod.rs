@@ -1,4 +1,6 @@
-use core::ops::{ Add, Sub, Mul, Div, Deref, DerefMut };
+use core::ops::{ Add, Sub, Mul, Div };
+
+pub use floats::*;
 
 mod floats;
 
