@@ -8,12 +8,19 @@ pub use i32x4::I32x4;
 pub use i64x2::I64x2;
 
 
+use super::Vector;
+use core::{
+    arch::x86_64::*,
+    ops::{ Add, Sub, BitAnd, BitOr, BitXor }
+};
+
+
+pub trait IntegerVector: Vector + BitAnd<Output = Self> + BitOr<Output = Self> + BitXor<Output = Self> {}
+
+
 #[cfg(target_feature = "sse2")]
 mod i8x16 {
-    use core::{
-        arch::x86_64::*,
-        ops::{ Add, Sub }
-    };
+    use super::*;
 
     #[repr(transparent)]
     #[derive(Clone, Copy)]
@@ -53,6 +60,30 @@ mod i8x16 {
         }
     }
 
+    impl BitAnd for I8x16 {
+        type Output = Self;
+        
+        fn bitand(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_and_si128(self.0, rhs.0) ) }
+        }
+    }
+
+    impl BitOr for I8x16 {
+        type Output = Self;
+
+        fn bitor(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_or_si128(self.0, rhs.0) ) }
+        }
+    }
+
+    impl BitXor for I8x16 {
+        type Output = Self;
+
+        fn bitxor(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_xor_si128(self.0, rhs.0) ) }
+        }
+    }
+
     // ———————————No mul and div?———————————
     // ⠀⣞⢽⢪⢣⢣⢣⢫⡺⡵⣝⡮⣗⢷⢽⢽⢽⣮⡷⡽⣜⣜⢮⢺⣜⢷⢽⢝⡽⣝
     // ⠸⡸⠜⠕⠕⠁⢁⢇⢏⢽⢺⣪⡳⡝⣎⣏⢯⢞⡿⣟⣷⣳⢯⡷⣽⢽⢯⣳⣫⠇
@@ -80,14 +111,20 @@ mod i8x16 {
             Self::new_fill(value)
         }
     }
+
+
+
+    impl Vector for I8x16 {
+        type ElementType = i8;
+        const ELEMENTS_COUNT: usize = 16;
+    }
+
+    impl IntegerVector for I8x16 {}
 }
 
 #[cfg(target_feature = "sse2")]
 mod i16x8 {
-    use core::{
-        arch::x86_64::*,
-        ops::{ Add, Sub }
-    };
+    use super::*;
 
     #[repr(transparent)]
     #[derive(Clone, Copy)]
@@ -123,6 +160,30 @@ mod i16x8 {
         }
     }
 
+    impl BitAnd for I16x8 {
+        type Output = Self;
+
+        fn bitand(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_and_si128(self.0, rhs.0) ) }
+        }
+    }
+
+    impl BitOr for I16x8 {
+        type Output = Self;
+
+        fn bitor(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_or_si128(self.0, rhs.0) ) }
+        }
+    }
+
+    impl BitXor for I16x8 {
+        type Output = Self;
+
+        fn bitxor(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_xor_si128(self.0, rhs.0) ) }
+        }
+    }
+
     // Multiple instructions for this. What to use ?
     // impl Mul<Self> for I16x8 {
     //     type Output = Self;
@@ -144,14 +205,20 @@ mod i16x8 {
             Self::new_fill(value)
         }
     }
+
+
+
+    impl Vector for I16x8 {
+        type ElementType = i16;
+        const ELEMENTS_COUNT: usize = 8;
+    }
+
+    impl IntegerVector for I16x8 {}
 }
 
 #[cfg(target_feature = "sse2")]
 mod i32x4 {
-    use core::{
-        arch::x86_64::*,
-        ops::{ Add, Sub, Mul }
-    };
+    use super::*;
 
     #[repr(transparent)]
     #[derive(Clone, Copy)]
@@ -187,15 +254,39 @@ mod i32x4 {
         }
     }
 
-    impl Mul<Self> for I32x4 {
+    impl BitAnd for I32x4 {
         type Output = Self;
 
-        fn mul(self, rhs: Self) -> Self::Output {
-            unsafe {
-                Self ( _mm_mul_epi32(self.0, rhs.0) )
-            }
+        fn bitand(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_and_si128(self.0, rhs.0) ) }
         }
     }
+
+    impl BitOr for I32x4 {
+        type Output = Self;
+        
+        fn bitor(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_or_si128(self.0, rhs.0) ) }
+        }
+    }
+
+    impl BitXor for I32x4 {
+        type Output = Self;
+
+        fn bitxor(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_xor_si128(self.0, rhs.0) ) }
+        }
+    }
+
+    // Its actualy for SSE4.1
+    // impl Mul<Self> for I32x4 {
+    //     type Output = Self;
+    //     fn mul(self, rhs: Self) -> Self::Output {
+    //         unsafe {
+    //             Self ( _mm_mul_epi32(self.0, rhs.0) )
+    //         }
+    //     }
+    // }
 
     impl From<[i32; 4]> for I32x4 {
         fn from(value: [i32; 4]) -> Self {
@@ -214,14 +305,20 @@ mod i32x4 {
             Self::new_fill(value)
         }
     }
+
+
+
+    impl Vector for I32x4 {
+        type ElementType = i32;
+        const ELEMENTS_COUNT: usize = 4;
+    }
+
+    impl IntegerVector for I32x4 {}
 }
 
 #[cfg(target_feature = "sse2")]
 mod i64x2 {
-    use core::{
-        arch::x86_64::*,
-        ops::{ Add, Sub }
-    };
+    use super::*;
 
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy)]
@@ -258,6 +355,30 @@ mod i64x2 {
         }
     }
 
+    impl BitAnd for I64x2 {
+        type Output = Self;
+
+        fn bitand(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_and_si128(self.0, rhs.0) ) }
+        }
+    }
+
+    impl BitOr for I64x2 {
+        type Output = Self;
+        
+        fn bitor(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_or_si128(self.0, rhs.0) ) }
+        }
+    }
+
+    impl BitXor for I64x2 {
+        type Output = Self;
+
+        fn bitxor(self, rhs: Self) -> Self::Output {
+            unsafe { Self ( _mm_xor_si128(self.0, rhs.0) ) }
+        }
+    }
+
     // fuck, no Mul and Div again ?
 
     impl From<[i64; 2]> for I64x2 {
@@ -277,4 +398,13 @@ mod i64x2 {
             Self::new_fill(value)
         }
     }
+
+
+
+    impl Vector for I64x2 {
+        type ElementType = i64;
+        const ELEMENTS_COUNT: usize = 4;
+    }
+
+    impl IntegerVector for I64x2 {}
 }

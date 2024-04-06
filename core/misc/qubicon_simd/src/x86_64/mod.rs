@@ -6,16 +6,13 @@ pub use integers::*;
 mod floats;
 mod integers;
 
-/// TODO: Comparison
-pub unsafe trait SSE1: Sized +
-    Add<Self, Output = Self> + Sub<Self, Output = Self> +
-    Mul<Self, Output = Self> + Div<Self, Output = Self>
-{
-    fn rsqrt(self) -> Self;
-    fn sqrt(self) -> Self;
-    fn rcp(self) -> Self;
 
-    fn max(self, other: Self) -> Self;
-    fn min(self, other: Self) -> Self;
+// Trait names are cringe af
+pub trait Vector: Sized + Add<Self, Output = Self> + Sub<Self, Output = Self> {
+    type ElementType: Add<Output = Self::ElementType> + Sub<Output = Self::ElementType>;
+    const ELEMENTS_COUNT: usize;
 }
 
+pub trait VectorExt: Vector + Mul<Self, Output = Self> + Div<Self, Output = Self>
+    where Self::ElementType: Mul<Output = Self::ElementType> + Div<Output = Self::ElementType>
+{}

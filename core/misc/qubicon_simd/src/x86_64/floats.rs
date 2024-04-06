@@ -5,13 +5,36 @@ pub use f64x2::F64x2;
 
 
 
+use super::{ Vector, VectorExt };
+use core::{
+    arch::x86_64::*,
+    ops::{ Add, Sub, Mul, Div }
+};
+
+
+// What the fuck ?
+pub trait FloatVector: VectorExt
+    where Self::ElementType: Mul<Output = Self::ElementType> + Div<Output = Self::ElementType>
+{
+    fn sqrt(self) -> Self;
+    
+    fn max(self, orher: Self) -> Self;
+    fn min(self, other: Self) -> Self;
+}
+
+pub trait FloatVectorExt: FloatVector
+    where Self::ElementType: Mul<Output = Self::ElementType> + Div<Output =  Self::ElementType>
+{
+    fn rsqrt(self) -> Self;
+    fn rcp(self) -> Self;
+}
+
+
+
+
 #[cfg(target_feature = "sse")]
 mod f32x4 {
-    use super::super::SSE1;
-    use core::{
-        arch::x86_64::*,
-        ops::{ Add, Sub, Mul, Div }
-    };
+    use super::*;
 
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy)]
@@ -67,39 +90,6 @@ mod f32x4 {
         }
     }
 
-    unsafe impl SSE1 for F32x4 {
-        fn rsqrt(self) -> Self {
-            unsafe {
-                Self ( _mm_rsqrt_ps(self.0) )
-            }
-        }
-
-        fn sqrt(self) -> Self {
-            unsafe {
-                Self ( _mm_sqrt_ps(self.0) )
-            }
-        }
-
-        fn rcp(self) -> Self {
-            unsafe {
-                Self ( _mm_rcp_ps(self.0) )
-            }
-        }
-
-
-        fn max(self, other: Self) -> Self {
-            unsafe {
-                Self ( _mm_max_ps(self.0, other.0) )
-            }
-        }
-
-        fn min(self, other: Self) -> Self {
-            unsafe {
-                Self ( _mm_min_ps(self.0, other.0) )
-            }
-        }
-    }
-
     impl From<[f32; 4]> for F32x4 {
         fn from(value: [f32; 4]) -> Self {
             Self::new(value[0], value[1], value[2], value[3])
@@ -115,6 +105,49 @@ mod f32x4 {
     impl From<f32> for F32x4 {
         fn from(value: f32) -> Self {
             Self::new_fill(value)
+        }
+    }
+
+
+
+
+    impl Vector for F32x4 {
+        type ElementType = f32;
+        const ELEMENTS_COUNT: usize = 4;
+    }
+    impl VectorExt for F32x4 {}
+
+
+    impl FloatVector for F32x4 {
+        fn sqrt(self) -> Self {
+            unsafe {
+                Self ( _mm_sqrt_ps(self.0) )
+            }
+        }
+
+        fn max(self, other: Self) -> Self {
+            unsafe {
+                Self ( _mm_max_ps(self.0, other.0) )
+            }
+        }
+
+        fn min(self, other: Self) -> Self {
+            unsafe {
+                Self ( _mm_min_ps(self.0, other.0) )
+            }
+        }
+    }
+    impl FloatVectorExt for F32x4 {
+        fn rsqrt(self) -> Self {
+            unsafe {
+                Self ( _mm_rsqrt_ps(self.0) )
+            }
+        }
+
+        fn rcp(self) -> Self {
+            unsafe {
+                Self ( _mm_rcp_ps(self.0) )
+            }
         }
     }
 
@@ -138,11 +171,7 @@ mod f32x4 {
 
 #[cfg(target_feature = "sse2")]
 mod f64x2 {
-    use super::super::SSE1;
-    use core::{
-        arch::x86_64::*,
-        ops::{ Add, Sub, Mul, Div }
-    };
+    use super::*;
 
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy)]
@@ -198,32 +227,6 @@ mod f64x2 {
         }
     }
 
-    unsafe impl SSE1 for F64x2 {
-        /// Requires additional division, so not that effective as on f32
-        fn rsqrt(self) -> Self {
-            Self::new_fill(1.0) / self.sqrt()
-        }
-
-        fn sqrt(self) -> Self {
-            unsafe { Self ( _mm_sqrt_pd(self.0) ) }
-        }
-
-        /// Requires additional division, so not that effective as on f32
-        fn rcp(self) -> Self {
-            Self::new_fill(1.0) / self
-        }
-
-
-
-        fn min(self, other: Self) -> Self {
-            unsafe { Self ( _mm_min_pd(self.0, other.0) ) }
-        }
-
-        fn max(self, other: Self) -> Self {
-            unsafe { Self ( _mm_max_pd(self.0, other.0) ) }
-        }
-    }
-
     impl From<[f64; 2]> for F64x2 {
         fn from(value: [f64; 2]) -> Self {
             Self::new(value[0], value[1])
@@ -239,6 +242,29 @@ mod f64x2 {
     impl From<F64x2> for [f64; 2] {
         fn from(value: F64x2) -> Self {
             unsafe { core::mem::transmute(value) }
+        }
+    }
+
+
+
+    impl Vector for F64x2 {
+        type ElementType = f64;
+        const ELEMENTS_COUNT: usize = 2;
+    }
+    impl VectorExt for F64x2 {}
+
+
+    impl FloatVector for F64x2 {
+        fn sqrt(self) -> Self {
+            unsafe { Self ( _mm_sqrt_pd(self.0) ) }
+        }
+
+        fn min(self, other: Self) -> Self {
+            unsafe { Self ( _mm_min_pd(self.0, other.0) ) }
+        }
+
+        fn max(self, other: Self) -> Self {
+            unsafe { Self ( _mm_max_pd(self.0, other.0) ) }
         }
     }
 
