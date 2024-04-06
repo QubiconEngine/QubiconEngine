@@ -4,8 +4,8 @@ pub use f32x4::F32x4;
 pub use f64x2::F64x2;
 
 
-
-use super::{ Vector, VectorExt };
+#[allow(unused_imports)]
+use super::{ Vector, VectorExt, HorizontalAdd, HorizontalSub };
 use core::{
     arch::x86_64::*,
     ops::{ Add, Sub, Mul, Div }
@@ -108,6 +108,20 @@ mod f32x4 {
         }
     }
 
+
+    #[cfg(target_feature = "sse3")]
+    impl HorizontalAdd for F32x4 {
+        fn hadd(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_hadd_ps(self.0, rhs.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "sse3")]
+    impl HorizontalSub for F32x4 {
+        fn hsub(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_hsub_ps(self.0, rhs.0) ) }
+        }
+    }
 
 
 
@@ -242,6 +256,21 @@ mod f64x2 {
     impl From<F64x2> for [f64; 2] {
         fn from(value: F64x2) -> Self {
             unsafe { core::mem::transmute(value) }
+        }
+    }
+
+
+    #[cfg(target_feature = "sse3")]
+    impl HorizontalAdd for F64x2 {
+        fn hadd(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_hadd_pd(self.0, rhs.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "sse3")]
+    impl HorizontalSub for F64x2 {
+        fn hsub(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_hsub_pd(self.0, rhs.0) ) }
         }
     }
 

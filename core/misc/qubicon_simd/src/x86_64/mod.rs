@@ -6,6 +6,13 @@ pub use integers::*;
 mod floats;
 mod integers;
 
+pub trait HorizontalAdd {
+    fn hadd(self, rhs: Self) -> Self;
+}
+
+pub trait HorizontalSub {
+    fn hsub(self, rhs: Self) -> Self;
+}
 
 // Trait names are cringe af
 pub trait Vector: Sized + Add<Self, Output = Self> + Sub<Self, Output = Self> {
