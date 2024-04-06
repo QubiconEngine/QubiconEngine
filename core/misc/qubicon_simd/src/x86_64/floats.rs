@@ -19,7 +19,6 @@ mod f32x4 {
 
     impl F32x4 {
         pub fn new(n1: f32, n2: f32, n3: f32, n4: f32) -> Self {
-            // Same as in F64x2. For some reason reverse is required for right order. Maybe its due to endian ?
             Self ( unsafe { _mm_set_ps(n4, n3, n2, n1) } )
         }
 
@@ -151,7 +150,6 @@ mod f64x2 {
 
     impl F64x2 {
         pub fn new(n1: f64, n2: f64) -> Self {
-            // TODO: Better check. For my CPU there is reverse required. Maybe its endian ?
             Self ( unsafe { _mm_set_pd(n2, n1) } )
         }
 

@@ -1,8 +1,10 @@
 use core::ops::{ Add, Sub, Mul, Div };
 
 pub use floats::*;
+pub use integers::*;
 
 mod floats;
+mod integers;
 
 /// TODO: Comparison
 pub unsafe trait SSE1: Sized +
