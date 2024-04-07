@@ -9,7 +9,7 @@ pub use i64x2::I64x2;
 
 
 #[allow(unused_imports)]
-use super::{ Vector, HorizontalAdd, HorizontalSub, Abs };
+use super::{ Vector, HorizontalAdd, HorizontalSub, Abs, MinMax };
 use core::{
     arch::x86_64::*,
     ops::{ Add, Sub, BitAnd, BitOr, BitXor }
@@ -118,6 +118,17 @@ mod i8x16 {
     impl Abs for I8x16 {
         fn abs(self) -> Self {
             unsafe { Self ( _mm_abs_epi8(self.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "sse4.1")]
+    impl MinMax for I8x16 {
+        fn max(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_min_epi8(self.0, rhs.0) ) }
+        }
+
+        fn min(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_max_epi8(self.0, rhs.0) ) }
         }
     }
 
@@ -234,6 +245,17 @@ mod i16x8 {
     impl Abs for I16x8 {
         fn abs(self) -> Self {
             unsafe { Self ( _mm_abs_epi16(self.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "sse4.1")]
+    impl MinMax for I16x8 {
+        fn max(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_max_epi16(self.0, rhs.0) ) }
+        }
+
+        fn min(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_min_epi16(self.0, rhs.0) ) }
         }
     }
 
@@ -362,6 +384,17 @@ mod i32x4 {
     impl Abs for I32x4 {
         fn abs(self) -> Self {
             unsafe { Self ( _mm_abs_epi32(self.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "sse4.1")]
+    impl MinMax for I32x4 {
+        fn max(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_max_epi32(self.0, rhs.0) ) }
+        }
+
+        fn min(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_min_epi32(self.0, rhs.0) ) }
         }
     }
 

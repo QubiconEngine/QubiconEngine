@@ -1,4 +1,4 @@
-// TODO: SSE3 ADDSUB
+// TODO: SSE3 ADDSUB, more conversions
 
 use core::ops::{ Add, Sub, Mul, Div };
 
@@ -18,6 +18,11 @@ pub trait HorizontalSub {
 
 pub trait Abs {
     fn abs(self) -> Self;
+}
+
+pub trait MinMax {
+    fn max(self, rhs: Self) -> Self;
+    fn min(self, rhs: Self) -> Self;
 }
 
 // Trait names are cringe af

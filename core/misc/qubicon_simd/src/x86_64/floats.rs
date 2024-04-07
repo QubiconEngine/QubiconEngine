@@ -5,7 +5,7 @@ pub use f64x2::F64x2;
 
 
 #[allow(unused_imports)]
-use super::{ Vector, VectorExt, HorizontalAdd, HorizontalSub };
+use super::{ Vector, VectorExt, HorizontalAdd, HorizontalSub, MinMax };
 use core::{
     arch::x86_64::*,
     ops::{ Add, Sub, Mul, Div }
@@ -13,13 +13,10 @@ use core::{
 
 
 // What the fuck ?
-pub trait FloatVector: VectorExt
+pub trait FloatVector: VectorExt + MinMax
     where Self::ElementType: Mul<Output = Self::ElementType> + Div<Output = Self::ElementType>
 {
     fn sqrt(self) -> Self;
-    
-    fn max(self, orher: Self) -> Self;
-    fn min(self, other: Self) -> Self;
 }
 
 pub trait FloatVectorExt: FloatVector
@@ -130,6 +127,20 @@ mod f32x4 {
         }
     }
 
+    impl MinMax for F32x4 {
+        fn max(self, other: Self) -> Self {
+            unsafe {
+                Self ( _mm_max_ps(self.0, other.0) )
+            }
+        }
+
+        fn min(self, other: Self) -> Self {
+            unsafe {
+                Self ( _mm_min_ps(self.0, other.0) )
+            }
+        }
+    }
+
 
 
     impl Vector for F32x4 {
@@ -143,18 +154,6 @@ mod f32x4 {
         fn sqrt(self) -> Self {
             unsafe {
                 Self ( _mm_sqrt_ps(self.0) )
-            }
-        }
-
-        fn max(self, other: Self) -> Self {
-            unsafe {
-                Self ( _mm_max_ps(self.0, other.0) )
-            }
-        }
-
-        fn min(self, other: Self) -> Self {
-            unsafe {
-                Self ( _mm_min_ps(self.0, other.0) )
             }
         }
     }
@@ -281,6 +280,16 @@ mod f64x2 {
         }
     }
 
+    impl MinMax for F64x2 {
+        fn min(self, other: Self) -> Self {
+            unsafe { Self ( _mm_min_pd(self.0, other.0) ) }
+        }
+
+        fn max(self, other: Self) -> Self {
+            unsafe { Self ( _mm_max_pd(self.0, other.0) ) }
+        }
+    }
+
 
 
     impl Vector for F64x2 {
@@ -293,14 +302,6 @@ mod f64x2 {
     impl FloatVector for F64x2 {
         fn sqrt(self) -> Self {
             unsafe { Self ( _mm_sqrt_pd(self.0) ) }
-        }
-
-        fn min(self, other: Self) -> Self {
-            unsafe { Self ( _mm_min_pd(self.0, other.0) ) }
-        }
-
-        fn max(self, other: Self) -> Self {
-            unsafe { Self ( _mm_max_pd(self.0, other.0) ) }
         }
     }
 
