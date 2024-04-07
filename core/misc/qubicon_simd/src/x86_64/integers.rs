@@ -9,7 +9,7 @@ pub use i64x2::I64x2;
 
 
 #[allow(unused_imports)]
-use super::{Vector, HorizontalAdd, HorizontalSub};
+use super::{ Vector, HorizontalAdd, HorizontalSub, Abs };
 use core::{
     arch::x86_64::*,
     ops::{ Add, Sub, BitAnd, BitOr, BitXor }
@@ -110,6 +110,14 @@ mod i8x16 {
     impl From<i8> for I8x16 {
         fn from(value: i8) -> Self {
             Self::new_fill(value)
+        }
+    }
+
+    
+    #[cfg(target_feature = "ssse3")]
+    impl Abs for I8x16 {
+        fn abs(self) -> Self {
+            unsafe { Self ( _mm_abs_epi8(self.0) ) }
         }
     }
 
@@ -219,6 +227,13 @@ mod i16x8 {
     impl HorizontalSub for I16x8 {
         fn hsub(self, rhs: Self) -> Self {
             unsafe { Self ( _mm_hsub_epi16(self.0, rhs.0) ) }
+        }
+    }
+    
+    #[cfg(target_feature = "ssse3")]
+    impl Abs for I16x8 {
+        fn abs(self) -> Self {
+            unsafe { Self ( _mm_abs_epi16(self.0) ) }
         }
     }
 
@@ -334,6 +349,13 @@ mod i32x4 {
     impl HorizontalSub for I32x4 {
         fn hsub(self, rhs: Self) -> Self {
             unsafe { Self ( _mm_hsub_epi32(self.0, rhs.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "ssse3")]
+    impl Abs for I32x4 {
+        fn abs(self) -> Self {
+            unsafe { Self ( _mm_abs_epi32(self.0) ) }
         }
     }
 

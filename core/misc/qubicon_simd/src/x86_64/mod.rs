@@ -16,6 +16,10 @@ pub trait HorizontalSub {
     fn hsub(self, rhs: Self) -> Self;
 }
 
+pub trait Abs {
+    fn abs(self) -> Self;
+}
+
 // Trait names are cringe af
 pub trait Vector: Sized + Add<Self, Output = Self> + Sub<Self, Output = Self> {
     type ElementType: Add<Output = Self::ElementType> + Sub<Output = Self::ElementType>;
