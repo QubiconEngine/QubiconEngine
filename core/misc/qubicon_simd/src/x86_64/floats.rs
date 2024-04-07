@@ -38,7 +38,7 @@ mod f32x4 {
 
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy)]
-    pub struct F32x4 ( __m128 );
+    pub struct F32x4 ( pub(crate) __m128 );
 
     impl F32x4 {
         pub fn new(n1: f32, n2: f32, n3: f32, n4: f32) -> Self {
@@ -105,6 +105,13 @@ mod f32x4 {
     impl From<f32> for F32x4 {
         fn from(value: f32) -> Self {
             Self::new_fill(value)
+        }
+    }
+
+    #[cfg(target_feature = "sse2")]
+    impl From<super::super::I32x4> for F32x4 {
+        fn from(value: super::super::I32x4) -> Self {
+            unsafe { Self ( _mm_cvtepi32_ps(value.0) ) }
         }
     }
 
@@ -189,7 +196,7 @@ mod f64x2 {
 
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy)]
-    pub struct F64x2 ( __m128d );
+    pub struct F64x2 ( pub(crate) __m128d );
 
     impl F64x2 {
         pub fn new(n1: f64, n2: f64) -> Self {

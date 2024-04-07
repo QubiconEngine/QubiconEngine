@@ -25,7 +25,7 @@ mod i8x16 {
 
     #[repr(transparent)]
     #[derive(Clone, Copy)]
-    pub struct I8x16 ( __m128i );
+    pub struct I8x16 ( pub(crate) __m128i );
 
     impl I8x16 {
         // :(
@@ -137,7 +137,7 @@ mod i16x8 {
 
     #[repr(transparent)]
     #[derive(Clone, Copy)]
-    pub struct I16x8 ( __m128i );
+    pub struct I16x8 ( pub(crate) __m128i );
 
     impl I16x8 {
         pub fn new(n: [i16; 8]) -> Self {
@@ -253,7 +253,7 @@ mod i32x4 {
 
     #[repr(transparent)]
     #[derive(Clone, Copy)]
-    pub struct I32x4 ( __m128i );
+    pub struct I32x4 ( pub(crate) __m128i );
 
     impl I32x4 {
         pub fn new(n1: i32, n2: i32, n3: i32, n4: i32) -> Self {
@@ -337,6 +337,12 @@ mod i32x4 {
         }
     }
 
+    impl From<super::super::F32x4> for I32x4 {
+        fn from(value: super::super::F32x4) -> Self {
+            unsafe { Self ( _mm_cvtps_epi32(value.0) ) }
+        }
+    }
+
 
     #[cfg(target_feature = "ssse3")]
     impl HorizontalAdd for I32x4 {
@@ -375,7 +381,7 @@ mod i64x2 {
 
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy)]
-    pub struct I64x2 ( __m128i );
+    pub struct I64x2 ( pub(crate) __m128i );
 
     impl I64x2 {
         pub fn new(n1: i64, n2: i64) -> Self {
