@@ -34,3 +34,9 @@ pub trait Vector: Sized + Add<Self, Output = Self> + Sub<Self, Output = Self> {
 pub trait VectorExt: Vector + Mul<Self, Output = Self> + Div<Self, Output = Self>
     where Self::ElementType: Mul<Output = Self::ElementType> + Div<Output = Self::ElementType>
 {}
+
+pub trait Extract: Vector {
+    // i32 is due to lack of static assert and const expressions.
+    // For i32 there is a static assert inside _mm_extract_** functions.
+    fn get<const IDX: i32>(&self) -> Self::ElementType;
+}

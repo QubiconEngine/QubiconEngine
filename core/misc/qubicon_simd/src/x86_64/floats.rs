@@ -5,7 +5,7 @@ pub use f64x2::F64x2;
 
 
 #[allow(unused_imports)]
-use super::{ Vector, VectorExt, HorizontalAdd, HorizontalSub, MinMax };
+use super::{ Vector, VectorExt, HorizontalAdd, HorizontalSub, MinMax, Extract };
 use core::{
     arch::x86_64::*,
     ops::{ Add, Sub, Mul, Div }
@@ -149,6 +149,13 @@ mod f32x4 {
     }
     impl VectorExt for F32x4 {}
 
+    #[cfg(target_feature = "sse4.1")]
+    impl Extract for F32x4 {
+        // TODO: static assert
+        fn get<const IDX: i32>(&self) -> Self::ElementType {
+            f32::from_bits( unsafe { _mm_extract_ps::<IDX>(self.0) } as u32 )
+        }
+    }
 
     impl FloatVector for F32x4 {
         fn sqrt(self) -> Self {

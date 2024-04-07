@@ -9,7 +9,7 @@ pub use i64x2::I64x2;
 
 
 #[allow(unused_imports)]
-use super::{ Vector, HorizontalAdd, HorizontalSub, Abs, MinMax };
+use super::{ Vector, HorizontalAdd, HorizontalSub, Abs, MinMax, Extract };
 use core::{
     arch::x86_64::*,
     ops::{ Add, Sub, BitAnd, BitOr, BitXor }
@@ -129,6 +129,13 @@ mod i8x16 {
 
         fn min(self, rhs: Self) -> Self {
             unsafe { Self ( _mm_max_epi8(self.0, rhs.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "sse4.1")]
+    impl Extract for I8x16 {
+        fn get<const IDX: i32>(&self) -> Self::ElementType {
+            unsafe { _mm_extract_epi8::<IDX>(self.0) as i8 }
         }
     }
 
@@ -256,6 +263,13 @@ mod i16x8 {
 
         fn min(self, rhs: Self) -> Self {
             unsafe { Self ( _mm_min_epi16(self.0, rhs.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "sse4.1")]
+    impl Extract for I16x8 {
+        fn get<const IDX: i32>(&self) -> Self::ElementType {
+            unsafe { _mm_extract_epi16::<IDX>(self.0) as i16 }
         }
     }
 
@@ -398,6 +412,13 @@ mod i32x4 {
         }
     }
 
+    #[cfg(target_feature = "sse4.1")]
+    impl Extract for I32x4 {
+        fn get<const IDX: i32>(&self) -> Self::ElementType {
+            unsafe { _mm_extract_epi32::<IDX>(self.0) }
+        }
+    }
+
 
 
     impl Vector for I32x4 {
@@ -488,6 +509,13 @@ mod i64x2 {
     impl From<i64> for I64x2 {
         fn from(value: i64) -> Self {
             Self::new_fill(value)
+        }
+    }
+
+    #[cfg(target_feature = "sse4.1")]
+    impl Extract for I64x2 {
+        fn get<const IDX: i32>(&self) -> Self::ElementType {
+            unsafe { _mm_extract_epi64::<IDX>(self.0) }
         }
     }
 
