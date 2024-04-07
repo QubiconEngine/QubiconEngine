@@ -1,3 +1,5 @@
+// TODO: SSE3 ADDSUB
+
 use core::ops::{ Add, Sub, Mul, Div };
 
 pub use floats::*;

@@ -8,7 +8,8 @@ pub use i32x4::I32x4;
 pub use i64x2::I64x2;
 
 
-use super::Vector;
+#[allow(unused_imports)]
+use super::{Vector, HorizontalAdd, HorizontalSub};
 use core::{
     arch::x86_64::*,
     ops::{ Add, Sub, BitAnd, BitOr, BitXor }
@@ -207,6 +208,21 @@ mod i16x8 {
     }
 
 
+    #[cfg(target_feature = "ssse3")]
+    impl HorizontalAdd for I16x8 {
+        fn hadd(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_hadd_epi16(self.0, rhs.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "ssse3")]
+    impl HorizontalSub for I16x8 {
+        fn hsub(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_hsub_epi16(self.0, rhs.0) ) }
+        }
+    }
+
+
 
     impl Vector for I16x8 {
         type ElementType = i16;
@@ -303,6 +319,21 @@ mod i32x4 {
     impl From<i32> for I32x4 {
         fn from(value: i32) -> Self {
             Self::new_fill(value)
+        }
+    }
+
+
+    #[cfg(target_feature = "ssse3")]
+    impl HorizontalAdd for I32x4 {
+        fn hadd(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_hadd_epi32(self.0, rhs.0) ) }
+        }
+    }
+
+    #[cfg(target_feature = "ssse3")]
+    impl HorizontalSub for I32x4 {
+        fn hsub(self, rhs: Self) -> Self {
+            unsafe { Self ( _mm_hsub_epi32(self.0, rhs.0) ) }
         }
     }
 
