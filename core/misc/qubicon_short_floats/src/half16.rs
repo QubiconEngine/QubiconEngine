@@ -1,10 +1,10 @@
-use super::ShortFloat;
+use super::{ ShortFloat, CastError };
 // use num_traits::float::FloatCore;
 
 #[derive(PartialEq, Clone, Copy)]
 pub struct Half16 (u16);
 
-impl_math_consts!(Half16);
+//impl_math_consts!(Half16);
 
 impl ShortFloat for Half16 {
     type Storage = u16;
@@ -28,20 +28,37 @@ impl ShortFloat for Half16 {
 
 // Rust doesnt allow const in traits, so let it be there
 impl Half16 {
-    pub const fn from_f32(value: f32) -> Self {
+    pub fn from_f32(value: f32) -> Self {
         #[allow(clippy::transmute_float_to_int)]
         let value: u32 = unsafe { core::mem::transmute(value) };
+
+
+        let sign = (value >> 31) & 0b1 == 1;
+        let mut exponent = (value >> 21) as i8;
+
+        let mantissa_low = value as u16 & 0b1_1111_1111_1111;
+        let mut mantissa_high = (value >> 13) as u16 & Self::MANTISSA_BITS;
+
+        if mantissa_low > 0x40 {
+            mantissa_high += 1;
+        }
+
+        if mantissa_high > 0x400 {
+            mantissa_high = 0b10_0000_0000;
+            exponent += 1;
+        }
+
 
         let mut out = 0u16;
 
         // sign
-        out |= ((value >> 31) as u16) << 15;
+        out |= (sign as u16) << 15;
         // exponent sign
-        out |= (((value >> 30) as u16) & 0b01) << 14;
+        out |= (exponent.is_positive() as u16) << 14;
         // exponent itself
-        out |= (((value >> 23) as u16) & 0b1111) << 10;
+        out |= ((exponent as u16) & 0b1111) << 10;
         // and offcourse the mantissa
-        out |= ((value >> 13) as u16) & Self::MANTISSA_BITS;
+        out |= mantissa_high;
 
         Self ( out )
     }
@@ -77,9 +94,11 @@ impl Half16 {
     }
 }
 
-impl From<f32> for Half16 {
-    fn from(value: f32) -> Self {
-        Self::from_f32(value)
+impl TryFrom<f32> for Half16 {
+    type Error = CastError;
+
+    fn try_from(value: f32) -> Result<Self, Self::Error> {
+        Ok ( Self::from_f32(value) )
     }
 }
 
@@ -187,6 +206,10 @@ mod tests {
 
     #[test]
     fn half16() {
+        let t = Half16::from_f32(0.0000000000000000001);
+
+        println!("{}", t.into_f32());
+
         test_utils::check_stability::<Half16>();
     }
 }

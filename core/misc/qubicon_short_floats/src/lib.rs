@@ -2,7 +2,10 @@
 
 use core::ops::{ BitAnd, BitOr, BitXor, Shl, Shr };
 
-pub trait ShortFloat: From<f32> + Into<f32> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CastError {}
+
+pub trait ShortFloat: TryFrom<f32, Error = CastError> + Into<f32> {
     type Storage: BitAnd + BitOr + BitXor + Shl + Shr;
 
     const SIGN_BITS: Self::Storage;
@@ -105,9 +108,9 @@ mod test_utils {
     use super::ShortFloat;
 
     pub fn check_stability<T: ShortFloat + PartialEq + Copy>() {
-        let num = T::from(-19.0);
+        let num = T::try_from(-1.67).unwrap();
         let num_f32: f32 = num.into();
-        let num_r = T::from(num_f32);
+        let num_r = T::try_from(num_f32).unwrap();
 
         assert!(num == num_r);
     }

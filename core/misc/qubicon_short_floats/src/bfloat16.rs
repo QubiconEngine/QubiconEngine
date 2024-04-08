@@ -1,4 +1,4 @@
-use super::ShortFloat;
+use super::{ ShortFloat, CastError };
 
 #[derive(PartialEq, Clone, Copy)]
 pub struct BF16 (u16);
@@ -67,9 +67,11 @@ impl BF16 {
     }
 }
 
-impl From<f32> for BF16 {
-    fn from(value: f32) -> Self {
-        Self::from_f32(value)
+impl TryFrom<f32> for BF16 {
+    type Error = CastError;
+
+    fn try_from(value: f32) -> Result<Self, Self::Error> {
+        Ok ( Self::from_f32(value) )
     }
 }
 
