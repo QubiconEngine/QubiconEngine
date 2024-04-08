@@ -149,6 +149,17 @@ impl From<Half16> for f32 {
 //     }
 // }
 
+#[cfg(feature = "vectors")]
+mod vec {
+    //use super::*;
+    //use qubicon_simd::F32x4;
+    use core::arch::x86_64::*;
+
+    #[repr(transparent)]
+    #[derive(Clone, Copy)]
+    pub struct Half16x8 ( __m128i );
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
