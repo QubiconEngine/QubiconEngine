@@ -152,8 +152,28 @@ impl From<Half16> for f32 {
 #[cfg(feature = "vectors")]
 mod vec {
     //use super::*;
-    //use qubicon_simd::F32x4;
+    use qubicon_simd::F32x4;
     use core::arch::x86_64::*;
+
+    #[repr(transparent)]
+    #[derive(Clone, Copy)]
+    pub struct Half16x4 ( u64 );
+
+    #[cfg(target_feature = "f16c")]
+    impl From<F32x4> for Half16x4 {
+        fn from(value: F32x4) -> Self {
+            unsafe {
+                let m = _mm_cvtps_ph::<_MM_FROUND_TRUNC>( core::mem::transmute(value) );
+
+                #[cfg(target_feature = "sse4.1")]
+                let m = _mm_extract_epi64::<0>(m);
+                #[cfg(not( target_feature = "sse4.1" ))]
+                let m = core::mem::transmute::<_, [u64; 2]>(m)[0];
+                
+                Self ( m as u64 )
+            }
+        }
+    }
 
     #[repr(transparent)]
     #[derive(Clone, Copy)]
