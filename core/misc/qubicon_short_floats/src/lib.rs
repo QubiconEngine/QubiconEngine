@@ -1,9 +1,9 @@
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
 
-use core::ops::{ BitAnd, BitOr, BitXor };
+use core::ops::{ BitAnd, BitOr, BitXor, Shl, Shr };
 
 pub trait ShortFloat: From<f32> + Into<f32> {
-    type Storage: BitAnd + BitOr + BitXor;
+    type Storage: BitAnd + BitOr + BitXor + Shl + Shr;
 
     const SIGN_BITS: Self::Storage;
     const EXPONENT_BITS: Self::Storage;
@@ -97,4 +97,18 @@ macro_rules! impl_math_consts {
     };
 }
 
-pub mod fp16;
+pub mod half16;
+pub mod bfloat16;
+
+#[cfg(test)]
+mod test_utils {
+    use super::ShortFloat;
+
+    pub fn check_stability<T: ShortFloat + PartialEq + Copy>() {
+        let num = T::from(-19.0);
+        let num_f32: f32 = num.into();
+        let num_r = T::from(num_f32);
+
+        assert!(num == num_r);
+    }
+}
