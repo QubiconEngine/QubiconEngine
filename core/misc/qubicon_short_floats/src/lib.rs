@@ -2,10 +2,20 @@
 
 use core::ops::{ BitAnd, BitOr, BitXor, Shl, Shr };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CastError {}
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CompressionError;
 
-pub trait ShortFloat: TryFrom<f32, Error = CastError> + Into<f32> {
+#[cfg(feature = "std")]
+impl std::error::Error for CompressionError {}
+
+impl core::fmt::Display for CompressionError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "out of range conversion from f32 to short float attemped")
+    }
+}
+
+
+pub trait ShortFloat: TryFrom<f32, Error = CompressionError> + Into<f32> {
     type Storage: BitAnd + BitOr + BitXor + Shl + Shr;
 
     const SIGN_BITS: Self::Storage;
@@ -27,7 +37,7 @@ macro_rules! def_math_constants {
     ( $ty:ident, $( $name:ident ),+ ) => {
         impl $ty {
             $(
-                pub const $name: Self = Self::from_f32(core::f32::consts::$name);
+                pub const $name: Self = Self::from_f32_flawless(core::f32::consts::$name);
             )+
         }
     };

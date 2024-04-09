@@ -1,10 +1,10 @@
-use super::{ ShortFloat, CastError };
+use super::{ ShortFloat, CompressionError };
 // use num_traits::float::FloatCore;
 
 #[derive(PartialEq, Clone, Copy)]
 pub struct Half16 (u16);
 
-//impl_math_consts!(Half16);
+impl_math_consts!(Half16);
 
 impl ShortFloat for Half16 {
     type Storage = u16;
@@ -28,32 +28,51 @@ impl ShortFloat for Half16 {
 
 // Rust doesnt allow const in traits, so let it be there
 impl Half16 {
-    pub fn from_f32(value: f32) -> Self {
+    pub const fn from_f32(value: f32) -> Result<Self, CompressionError> {
         #[allow(clippy::transmute_float_to_int)]
         let value: u32 = unsafe { core::mem::transmute(value) };
 
+
+        // unbiased exponent
         let exponent = ((value >> 23) & 0xff) as i16 - 127;
 
-        if !(-0x10..=0xf).contains(&exponent) { panic!("exponent out of range!") }
+        // check if it fits in range, what can be represented by 5 bits
+        if -0x10 > exponent || exponent > 0xf {
+            return Err( CompressionError )
+        }
 
+
+
+        // rebias exponent
         let exponent = (exponent + 0xf) as u16;
+
 
         let mut out = 0u16;
 
         // sign
         out |= ((value >> 31) as u16) << 15;
-        out |= exponent << 10;
+        // exponent
+        out |= (exponent as u16) << 10;
         // and offcourse the mantissa
         out |= ((value >> 13) as u16) & Self::MANTISSA_BITS;
 
-        //println!("{value:b}\n{out:b}\n{exponent}");
 
-        Self ( out )
+
+        Ok ( Self ( out ) )
     }
 
+    /// Returns NaN instead of error
+    pub const fn from_f32_flawless(value: f32) -> Self {
+        // unwrap_or is not available in const fn's :(
+        match Self::from_f32(value) {
+            Ok ( v ) => v,
+            Err ( _ ) => Self ( 0b0111_1100_1000_0000 )
+        }
+    } 
+
     pub const fn into_f32(self) -> f32 {
-        let exponent = self.exponent() as i16 - 0xf;
-        let exponent = (exponent + 127) as u32;
+        // rebias exponent
+        let exponent = (self.exponent() as i16 - 0xf + 0x7f) as u32;
 
         let mut out = 0u32;
 
@@ -82,10 +101,10 @@ impl Half16 {
 }
 
 impl TryFrom<f32> for Half16 {
-    type Error = CastError;
+    type Error = CompressionError;
 
     fn try_from(value: f32) -> Result<Self, Self::Error> {
-        Ok ( Self::from_f32(value) )
+        Self::from_f32(value)
     }
 }
 
@@ -193,8 +212,9 @@ mod tests {
 
     #[test]
     fn half16() {
-        let t = Half16::from_f32(65535.0);
-        let f: f32 = t.into_f32();
+        let t = Half16::from_f32(56.1267).unwrap();
+
+        println!("{}", t.into_f32());
 
         test_utils::check_stability::<Half16>();
     }

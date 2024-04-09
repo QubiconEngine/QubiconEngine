@@ -1,4 +1,4 @@
-use super::{ ShortFloat, CastError };
+use super::{ ShortFloat, CompressionError };
 
 #[derive(PartialEq, Clone, Copy)]
 pub struct BF16 (u16);
@@ -27,7 +27,7 @@ impl ShortFloat for BF16 {
 
 // Same as in HalfF32. Rust doesnt allow const in traits
 impl BF16 {
-    pub const fn from_f32(value: f32) -> Self {
+    pub const fn from_f32_flawless(value: f32) -> Self {
         #[allow(clippy::transmute_float_to_int)]
         let value: u32 = unsafe { core::mem::transmute(value) };
 
@@ -68,10 +68,10 @@ impl BF16 {
 }
 
 impl TryFrom<f32> for BF16 {
-    type Error = CastError;
+    type Error = CompressionError;
 
     fn try_from(value: f32) -> Result<Self, Self::Error> {
-        Ok ( Self::from_f32(value) )
+        Ok ( Self::from_f32_flawless(value) )
     }
 }
 
