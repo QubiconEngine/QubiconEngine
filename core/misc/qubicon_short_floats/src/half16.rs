@@ -33,32 +33,37 @@ impl Half16 {
         let value: u32 = unsafe { core::mem::transmute(value) };
 
 
-        let sign = (value >> 31) & 0b1 == 1;
-        let mut exponent = (value >> 21) as i8;
+        //let sign = (value >> 31) & 0b1 == 1;
+        let exponent = ((value >> 23) & 0xff) as i16 - 127;
 
-        let mantissa_low = value as u16 & 0b1_1111_1111_1111;
-        let mut mantissa_high = (value >> 13) as u16 & Self::MANTISSA_BITS;
+        // let mantissa_low = value as u16 & 0b1_1111_1111_1111;
+        // let mut mantissa_high = (value >> 13) as u16 & Self::MANTISSA_BITS;
 
-        if mantissa_low > 0x40 {
-            mantissa_high += 1;
-        }
+        // if mantissa_low > 0x40 {
+        //     mantissa_high += 1;
+        // }
 
-        if mantissa_high > 0x400 {
-            mantissa_high = 0b10_0000_0000;
-            exponent += 1;
-        }
+        // if mantissa_high > 0x400 {
+        //     mantissa_high = 0b10_0000_0000;
+        //     exponent += 1;
+        // }
 
+        if !(-0x10..=0xf).contains(&exponent) { panic!("exponent out of range!") }
 
         let mut out = 0u16;
 
         // sign
-        out |= (sign as u16) << 15;
+        //out |= (sign as u16) << 15;
+        out |= ((value >> 31) as u16) << 15;
         // exponent sign
-        out |= (exponent.is_positive() as u16) << 14;
+        //out |= (exponent.is_positive() as u16) << 14;
+        out |= (((value >> 30) as u16) & 0b01) << 14;
         // exponent itself
-        out |= ((exponent as u16) & 0b1111) << 10;
+        //out |= ((exponent as u16) & 0b1111) << 10;
+        out |= (((value >> 24) as u16) & 0b1111) << 10;
         // and offcourse the mantissa
-        out |= mantissa_high;
+        //out |= mantissa_high;
+        out |= ((value >> 13) as u16) & Self::MANTISSA_BITS;
 
         Self ( out )
     }
@@ -206,9 +211,7 @@ mod tests {
 
     #[test]
     fn half16() {
-        let t = Half16::from_f32(0.0000000000000000001);
-
-        println!("{}", t.into_f32());
+        let _t = Half16::from_f32(65000.0);
 
         test_utils::check_stability::<Half16>();
     }
