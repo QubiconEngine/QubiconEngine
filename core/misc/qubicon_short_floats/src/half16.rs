@@ -9,7 +9,7 @@ pub struct Half16 (u16);
 impl ShortFloat for Half16 {
     type Storage = u16;
 
-    const SIGN_BITS: Self::Storage =   0b1000_0000_0000_0000;
+    const SIGN_BITS: Self::Storage =     0b1000_0000_0000_0000;
     const EXPONENT_BITS: Self::Storage = 0b0111_1100_0000_0000;
     const MANTISSA_BITS: Self::Storage = 0b0000_0011_1111_1111;
 
@@ -32,53 +32,35 @@ impl Half16 {
         #[allow(clippy::transmute_float_to_int)]
         let value: u32 = unsafe { core::mem::transmute(value) };
 
-
-        //let sign = (value >> 31) & 0b1 == 1;
         let exponent = ((value >> 23) & 0xff) as i16 - 127;
 
-        // let mantissa_low = value as u16 & 0b1_1111_1111_1111;
-        // let mut mantissa_high = (value >> 13) as u16 & Self::MANTISSA_BITS;
-
-        // if mantissa_low > 0x40 {
-        //     mantissa_high += 1;
-        // }
-
-        // if mantissa_high > 0x400 {
-        //     mantissa_high = 0b10_0000_0000;
-        //     exponent += 1;
-        // }
-
         if !(-0x10..=0xf).contains(&exponent) { panic!("exponent out of range!") }
+
+        let exponent = (exponent + 0xf) as u16;
 
         let mut out = 0u16;
 
         // sign
-        //out |= (sign as u16) << 15;
         out |= ((value >> 31) as u16) << 15;
-        // exponent sign
-        //out |= (exponent.is_positive() as u16) << 14;
-        out |= (((value >> 30) as u16) & 0b01) << 14;
-        // exponent itself
-        //out |= ((exponent as u16) & 0b1111) << 10;
-        out |= (((value >> 24) as u16) & 0b1111) << 10;
+        out |= exponent << 10;
         // and offcourse the mantissa
-        //out |= mantissa_high;
         out |= ((value >> 13) as u16) & Self::MANTISSA_BITS;
+
+        //println!("{value:b}\n{out:b}\n{exponent}");
 
         Self ( out )
     }
 
     pub const fn into_f32(self) -> f32 {
-        let exponent = self.exponent();
+        let exponent = self.exponent() as i16 - 0xf;
+        let exponent = (exponent + 127) as u32;
 
         let mut out = 0u32;
 
         // sign
         out |= (self.sign() as u32) << 31;
-        // exponent sign
-        out |= ((exponent & 0b1_0000) as u32) << 26;
         // exponent
-        out |= ((exponent & 0b1111) as u32) << 23;
+        out |= exponent << 23;
         // mantissa
         out |= (self.mantissa() as u32) << 13; 
 
@@ -211,7 +193,8 @@ mod tests {
 
     #[test]
     fn half16() {
-        let _t = Half16::from_f32(65000.0);
+        let t = Half16::from_f32(65535.0);
+        let f: f32 = t.into_f32();
 
         test_utils::check_stability::<Half16>();
     }
