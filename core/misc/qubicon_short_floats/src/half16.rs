@@ -223,6 +223,23 @@ mod vec {
         #[derive(Clone, Copy)]
         pub struct Half16x4 ( u64 );
 
+        impl Half16x4 {
+            pub const fn new(n1: Half16, n2: Half16, n3: Half16, n4: Half16) -> Self {
+                let mut inner = 0u64;
+
+                inner |= n1.0 as u64;
+                inner |= (n2.0 as u64) << 0x10;
+                inner |= (n3.0 as u64) << 0x20;
+                inner |= (n4.0 as u64) << 0x30;
+
+                Self ( inner )
+            }
+
+            pub const fn new_fill(value: Half16) -> Self {
+                Self::new(value, value, value, value)
+            }
+        }
+
         impl Vector for Half16x4 {
             type ElementType = Half16;
             const ELEMENTS_COUNT: usize = 4;
@@ -273,8 +290,49 @@ mod vec {
 
         #[cfg(all( not(target_feature = "f16c"), target_feature = "sse" ))]
         impl From<Half16x4> for F32x4 {
-            fn from(value: F32x4) -> Self {
+            fn from(value: Half16x4) -> Self {
                 todo!("conversion from half16x4 to f32x4 without f16c")
+            }
+        }
+
+
+
+        #[cfg(test)]
+        mod tests {
+            use super::*;
+            
+            #[test]
+            fn half16x4_extract() {
+                let n1 = 1.0.try_into().unwrap();
+                let n2 = 2.0.try_into().unwrap();
+                let n3 = 3.0.try_into().unwrap();
+                let n4 = 4.0.try_into().unwrap();
+
+
+                let f = Half16x4::new(n1, n2, n3, n4);
+
+
+                // currently Debug is not implemented, so no assert_eq
+                assert!(f.get::<0>() == n1);
+                assert!(f.get::<1>() == n2);
+                assert!(f.get::<2>() == n3);
+                assert!(f.get::<3>() == n4);
+            }
+
+            #[test]
+            #[cfg(target_feature = "f16c")]
+            fn f32x4_to_half16x4_viceversa() {
+                let f32 = F32x4::new(1.0, 2.0, 3.0, 4.0);
+
+
+                let f: Half16x4 = f32.into();
+                let f32_back: F32x4 = f.into();
+
+
+                assert_eq!(f32_back.get::<0>(), 1.0);
+                assert_eq!(f32_back.get::<1>(), 2.0);
+                assert_eq!(f32_back.get::<2>(), 3.0);
+                assert_eq!(f32_back.get::<3>(), 4.0);
             }
         }
     }
