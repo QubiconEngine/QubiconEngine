@@ -22,9 +22,9 @@ pub trait ShortFloat: TryFrom<f32, Error = CompressionError> + Into<f32> {
     const EXPONENT_BITS: Self::Storage;
     const MANTISSA_BITS: Self::Storage;
 
-    fn sign(&self) -> Self::Storage;
-    fn exponent(&self) -> Self::Storage;
-    fn mantissa(&self) -> Self::Storage;
+    fn sign(&self) -> i8;
+    fn exponent(&self) -> i16;
+    fn mantissa(&self) -> u32;
 }
 
 // impl<T: ShortFloat> From<T> for f64 {

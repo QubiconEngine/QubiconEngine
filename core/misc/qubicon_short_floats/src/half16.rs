@@ -13,16 +13,16 @@ impl ShortFloat for Half16 {
     const EXPONENT_BITS: Self::Storage = 0b0111_1100_0000_0000;
     const MANTISSA_BITS: Self::Storage = 0b0000_0011_1111_1111;
 
-    fn sign(&self) -> Self::Storage {
-        self.sign()
+    fn sign(&self) -> i8 {
+        if self.sign_bits() == 0 { 1 } else { -1 }
     }
 
-    fn exponent(&self) -> Self::Storage {
-        self.exponent()
+    fn exponent(&self) -> i16 {
+        self.exponent_bits() as i16 - 0xf
     }
 
-    fn mantissa(&self) -> Self::Storage {
-        self.mantissa()
+    fn mantissa(&self) -> u32 {
+        self.mantissa_bits() as u32
     }
 }
 
@@ -33,7 +33,7 @@ impl Half16 {
 
 
         // unbiased exponent
-        let exponent = ((value >> 23) & 0xff) as i16 - 127;
+        let exponent = ((value >> 23) & 0xff) as i16 - 0x7f;
 
         // check if it fits in range, what can be represented by 5 bits
         if -0x10 > exponent || exponent > 0xf {
@@ -71,30 +71,30 @@ impl Half16 {
 
     pub const fn into_f32_const(self) -> f32 {
         // rebias exponent
-        let exponent = (self.exponent() as i16 - 0xf + 0x7f) as u32;
+        let exponent = (self.exponent_bits() as i16 - 0xf + 0x7f) as u32;
 
         let mut out = 0u32;
 
         // sign
-        out |= (self.sign() as u32) << 31;
+        out |= (self.sign_bits() as u32) << 31;
         // exponent
         out |= exponent << 23;
         // mantissa
-        out |= (self.mantissa() as u32) << 13; 
+        out |= (self.mantissa_bits() as u32) << 13; 
 
         #[allow(clippy::transmute_int_to_float)]
         unsafe { core::mem::transmute(out) }
     }
 
-    pub const fn sign(&self) -> u16 {
+    pub const fn sign_bits(&self) -> u16 {
         (self.0 & Self::SIGN_BITS) >> 15
     }
 
-    pub const fn exponent(&self) -> u16 {
+    pub const fn exponent_bits(&self) -> u16 {
         (self.0 & Self::EXPONENT_BITS) >> 10
     }
 
-    pub const fn mantissa(&self) -> u16 {
+    pub const fn mantissa_bits(&self) -> u16 {
         self.0 & Self::MANTISSA_BITS
     }
 }
