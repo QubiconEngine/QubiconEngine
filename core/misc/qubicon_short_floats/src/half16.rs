@@ -131,10 +131,8 @@ impl From<Half16> for f32 {
                 let m = _mm_set1_epi16(value.0 as i16);
                 let m = _mm_cvtph_ps(m);
 
-                #[cfg(target_feature = "sse4.1")]
+                // sse4.1 is implicitly enabled by f16c
                 return f32::from_bits(_mm_extract_ps::<0>(m) as u32);
-                #[cfg(not(target_feature = "sse4.1"))]
-                return core::mem::transmute::<_, [f32; 4]>(m)[0];
             }
         }
 
@@ -205,33 +203,61 @@ impl From<Half16> for f32 {
 
 #[cfg(feature = "vectors")]
 mod vec {
-    //use super::*;
-    use qubicon_simd::F32x4;
-    use core::arch::x86_64::*;
+    #[cfg(target_arch = "x86_64")]
+    pub use x86_64::*;
 
-    #[repr(transparent)]
-    #[derive(Clone, Copy)]
-    pub struct Half16x4 ( u64 );
 
-    #[cfg(target_feature = "f16c")]
-    impl From<F32x4> for Half16x4 {
-        fn from(value: F32x4) -> Self {
-            unsafe {
-                let m = _mm_cvtps_ph::<_MM_FROUND_TRUNC>( core::mem::transmute(value) );
+    
+    #[cfg(target_arch = "x86_64")]
+    mod x86_64 {
+        use qubicon_simd::F32x4;
+        use core::arch::x86_64::*;
 
-                #[cfg(target_feature = "sse4.1")]
-                let m = _mm_extract_epi64::<0>(m);
-                #[cfg(not( target_feature = "sse4.1" ))]
-                let m = core::mem::transmute::<_, [u64; 2]>(m)[0];
+        #[repr(transparent)]
+        #[derive(Clone, Copy)]
+        pub struct Half16x4 ( u64 );
+
+        #[cfg(target_feature = "f16c")]
+        impl From<F32x4> for Half16x4 {
+            fn from(value: F32x4) -> Self {
+                unsafe {
+                    let m = _mm_cvtps_ph::<_MM_FROUND_TRUNC>( core::mem::transmute(value) );
+
+                    // f16c enables avx, avx - sse4.2 and sse4.2 - sse4.1
+                    let m = _mm_extract_epi64::<0>(m);
                 
-                Self ( m as u64 )
+                    Self ( m as u64 )
+                }
+            }
+        }
+
+        #[cfg(target_feature = "f16c")]
+        impl From<Half16x4> for F32x4 {
+            fn from(value: Half16x4) -> Self {
+                unsafe {
+                    let m = _mm_set1_epi64x(value.0 as i64);
+                    let m = _mm_cvtph_ps(m);
+
+                    core::mem::transmute(m)
+                }
+            }
+        }
+
+        // compile error because I dont want panic in runtime
+        #[cfg(not( target_feature = "f16c" ))]
+        impl From<F32x4> for Half16x4 {
+            fn from(value: F32x4) -> Self {
+                compile_error!("TODO: conversion from f32x4 to half16x4 without f16c")
+            }
+        }
+
+        #[cfg(not( target_feature = "f16c" ))]
+        impl From<Half16x4> for F32x4 {
+            fn from(value: F32x4) -> Self {
+                compile_error!("TODO: conversion from half16x4 to f32x4 without f16c")
             }
         }
     }
-
-    #[repr(transparent)]
-    #[derive(Clone, Copy)]
-    pub struct Half16x8 ( __m128i );
 }
 
 #[cfg(test)]
