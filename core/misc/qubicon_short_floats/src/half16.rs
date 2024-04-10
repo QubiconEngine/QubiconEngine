@@ -216,7 +216,7 @@ mod vec {
         #[allow(unused_imports)]
         #[cfg(target_feature = "sse")]
         use qubicon_simd::F32x4;
-        use qubicon_simd::Vector;
+        use qubicon_simd::{ Extract, Vector };
         use core::arch::x86_64::*;
 
         #[repr(transparent)]
@@ -226,6 +226,16 @@ mod vec {
         impl Vector for Half16x4 {
             type ElementType = Half16;
             const ELEMENTS_COUNT: usize = 4;
+        }
+
+        // TODO: Check how this will work on big endian
+        impl Extract for Half16x4 {
+            fn get<const IDX: i32>(&self) -> Self::ElementType {
+                // cant use static assert :[
+                if !(0..4).contains(&IDX) { panic!("invalid element index: {IDX}") }
+
+                Half16 ( (self.0 >> (16 * IDX)) as u16 )
+            }
         }
 
         #[cfg(target_feature = "f16c")]
@@ -254,18 +264,17 @@ mod vec {
             }
         }
 
-        // compile error because I dont want panic in runtime
         #[cfg(all( not(target_feature = "f16c"), target_feature = "sse" ))]
         impl From<F32x4> for Half16x4 {
             fn from(value: F32x4) -> Self {
-                compile_error!("TODO: conversion from f32x4 to half16x4 without f16c")
+                todo!("conversion from f32x4 to half16x4 without f16c")
             }
         }
 
         #[cfg(all( not(target_feature = "f16c"), target_feature = "sse" ))]
         impl From<Half16x4> for F32x4 {
             fn from(value: F32x4) -> Self {
-                compile_error!("TODO: conversion from half16x4 to f32x4 without f16c")
+                todo!("conversion from half16x4 to f32x4 without f16c")
             }
         }
     }
