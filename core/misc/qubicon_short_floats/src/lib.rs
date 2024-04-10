@@ -37,7 +37,7 @@ macro_rules! def_math_constants {
     ( $ty:ident, $( $name:ident ),+ ) => {
         impl $ty {
             $(
-                pub const $name: Self = Self::from_f32_flawless(core::f32::consts::$name);
+                pub const $name: Self = Self::from_f32_flawless_const(core::f32::consts::$name);
             )+
         }
     };

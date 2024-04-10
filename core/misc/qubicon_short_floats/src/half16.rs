@@ -1,7 +1,7 @@
 use super::{ ShortFloat, CompressionError };
 // use num_traits::float::FloatCore;
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(Default, PartialEq, Clone, Copy)]
 pub struct Half16 (u16);
 
 impl_math_consts!(Half16);
@@ -26,9 +26,8 @@ impl ShortFloat for Half16 {
     }
 }
 
-// Rust doesnt allow const in traits, so let it be there
 impl Half16 {
-    pub const fn from_f32(value: f32) -> Result<Self, CompressionError> {
+    pub const fn from_f32_const(value: f32) -> Result<Self, CompressionError> {
         #[allow(clippy::transmute_float_to_int)]
         let value: u32 = unsafe { core::mem::transmute(value) };
 
@@ -62,15 +61,15 @@ impl Half16 {
     }
 
     /// Returns NaN instead of error
-    pub const fn from_f32_flawless(value: f32) -> Self {
+    pub const fn from_f32_flawless_const(value: f32) -> Self {
         // unwrap_or is not available in const fn's :(
-        match Self::from_f32(value) {
+        match Self::from_f32_const(value) {
             Ok ( v ) => v,
             Err ( _ ) => Self ( 0b0111_1100_1000_0000 )
         }
     } 
 
-    pub const fn into_f32(self) -> f32 {
+    pub const fn into_f32_const(self) -> f32 {
         // rebias exponent
         let exponent = (self.exponent() as i16 - 0xf + 0x7f) as u32;
 
@@ -104,13 +103,43 @@ impl TryFrom<f32> for Half16 {
     type Error = CompressionError;
 
     fn try_from(value: f32) -> Result<Self, Self::Error> {
-        Self::from_f32(value)
+        #[cfg(target_arch = "x86_64")] {
+            #[cfg(target_feature = "f16c")] unsafe {
+                use core::arch::x86_64::*;
+
+                let m = _mm_set1_ps(value);
+                let m = _mm_cvtps_ph::<_MM_FROUND_TRUNC>(m);
+
+                let m = _mm_extract_epi16::<0>(m);
+
+                return Ok ( Self ( m as u16 ) );
+            }
+        }
+
+
+        #[allow(unreachable_code)]
+        Self::from_f32_const(value)
     }
 }
 
 impl From<Half16> for f32 {
     fn from(value: Half16) -> Self {
-        value.into_f32()
+        #[cfg(target_arch = "x86_64")] {
+            #[cfg(target_feature = "f16c")] unsafe {
+                use core::arch::x86_64::*;
+
+                let m = _mm_set1_epi16(value.0 as i16);
+                let m = _mm_cvtph_ps(m);
+
+                #[cfg(target_feature = "sse4.1")]
+                return f32::from_bits(_mm_extract_ps::<0>(m) as u32);
+                #[cfg(not(target_feature = "sse4.1"))]
+                return core::mem::transmute::<_, [f32; 4]>(m)[0];
+            }
+        }
+
+        #[allow(unreachable_code)]
+        value.into_f32_const()
     }
 }
 
@@ -212,9 +241,9 @@ mod tests {
 
     #[test]
     fn half16() {
-        let t = Half16::from_f32(56.1267).unwrap();
+        let t = Half16::from_f32_const(56.1267).unwrap();
 
-        println!("{}", t.into_f32());
+        println!("{}", t.into_f32_const());
 
         test_utils::check_stability::<Half16>();
     }
