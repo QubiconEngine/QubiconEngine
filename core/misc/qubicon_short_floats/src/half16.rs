@@ -202,6 +202,9 @@ impl From<Half16> for f32 {
 // }
 
 #[cfg(feature = "vectors")]
+pub use vec::*;
+
+#[cfg(feature = "vectors")]
 mod vec {
     #[cfg(target_arch = "x86_64")]
     pub use x86_64::*;
@@ -292,6 +295,24 @@ mod vec {
         impl From<Half16x4> for F32x4 {
             fn from(value: Half16x4) -> Self {
                 todo!("conversion from half16x4 to f32x4 without f16c")
+            }
+        }
+
+        impl From<[Half16; 4]> for Half16x4 {
+            fn from(value: [Half16; 4]) -> Self {
+                Self::new(value[0], value[1], value[2], value[3])
+            }
+        }
+
+        impl From<(Half16, Half16, Half16, Half16)> for Half16x4 {
+            fn from((n1, n2, n3, n4): (Half16, Half16, Half16, Half16)) -> Self {
+                Self::new(n1, n2, n3, n4)
+            }
+        }
+
+        impl From<Half16> for Half16x4 {
+            fn from(value: Half16) -> Self {
+                Self::new_fill(value)
             }
         }
 
