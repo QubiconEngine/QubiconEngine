@@ -9,7 +9,7 @@ pub use i64x2::I64x2;
 
 
 #[allow(unused_imports)]
-use super::{ Vector, HorizontalAdd, HorizontalSub, Abs, MinMax, Extract };
+use super::{ Vector, VectorOps, HorizontalAdd, HorizontalSub, Abs, MinMax, Extract };
 use core::{
     arch::x86_64::*,
     ops::{ Add, Sub, BitAnd, BitOr, BitXor }
@@ -145,6 +145,7 @@ mod i8x16 {
         type ElementType = i8;
         const ELEMENTS_COUNT: usize = 16;
     }
+    impl VectorOps for I8x16 {}
 
     impl IntegerVector for I8x16 {}
 }
@@ -279,6 +280,7 @@ mod i16x8 {
         type ElementType = i16;
         const ELEMENTS_COUNT: usize = 8;
     }
+    impl VectorOps for I16x8 {}
 
     impl IntegerVector for I16x8 {}
 }
@@ -425,6 +427,7 @@ mod i32x4 {
         type ElementType = i32;
         const ELEMENTS_COUNT: usize = 4;
     }
+    impl VectorOps for I32x4 {}
 
     impl IntegerVector for I32x4 {}
 }
@@ -525,6 +528,7 @@ mod i64x2 {
         type ElementType = i64;
         const ELEMENTS_COUNT: usize = 4;
     }
+    impl VectorOps for I64x2 {}
 
     impl IntegerVector for I64x2 {}
 }

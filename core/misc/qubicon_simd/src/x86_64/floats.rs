@@ -5,7 +5,7 @@ pub use f64x2::F64x2;
 
 
 #[allow(unused_imports)]
-use super::{ Vector, VectorExt, HorizontalAdd, HorizontalSub, MinMax, Extract };
+use super::{ Vector, VectorOps, VectorOpsExt, HorizontalAdd, HorizontalSub, MinMax, Extract };
 use core::{
     arch::x86_64::*,
     ops::{ Add, Sub, Mul, Div }
@@ -13,7 +13,7 @@ use core::{
 
 
 // What the fuck ?
-pub trait FloatVector: VectorExt + MinMax
+pub trait FloatVector: VectorOpsExt + MinMax
     where Self::ElementType: Mul<Output = Self::ElementType> + Div<Output = Self::ElementType>
 {
     fn sqrt(self) -> Self;
@@ -147,7 +147,8 @@ mod f32x4 {
         type ElementType = f32;
         const ELEMENTS_COUNT: usize = 4;
     }
-    impl VectorExt for F32x4 {}
+    impl VectorOps for F32x4 {}
+    impl VectorOpsExt for F32x4 {}
 
     #[cfg(target_feature = "sse4.1")]
     impl Extract for F32x4 {
@@ -303,7 +304,8 @@ mod f64x2 {
         type ElementType = f64;
         const ELEMENTS_COUNT: usize = 2;
     }
-    impl VectorExt for F64x2 {}
+    impl VectorOps for F64x2 {}
+    impl VectorOpsExt for F64x2 {}
 
 
     impl FloatVector for F64x2 {

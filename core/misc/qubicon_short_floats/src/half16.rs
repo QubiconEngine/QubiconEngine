@@ -207,15 +207,26 @@ mod vec {
     pub use x86_64::*;
 
 
+    use super::*;
     
     #[cfg(target_arch = "x86_64")]
     mod x86_64 {
+        use super::*;
+
+        #[allow(unused_imports)]
+        #[cfg(target_feature = "sse")]
         use qubicon_simd::F32x4;
+        use qubicon_simd::Vector;
         use core::arch::x86_64::*;
 
         #[repr(transparent)]
         #[derive(Clone, Copy)]
         pub struct Half16x4 ( u64 );
+
+        impl Vector for Half16x4 {
+            type ElementType = Half16;
+            const ELEMENTS_COUNT: usize = 4;
+        }
 
         #[cfg(target_feature = "f16c")]
         impl From<F32x4> for Half16x4 {
@@ -244,14 +255,14 @@ mod vec {
         }
 
         // compile error because I dont want panic in runtime
-        #[cfg(not( target_feature = "f16c" ))]
+        #[cfg(all( not(target_feature = "f16c"), target_feature = "sse" ))]
         impl From<F32x4> for Half16x4 {
             fn from(value: F32x4) -> Self {
                 compile_error!("TODO: conversion from f32x4 to half16x4 without f16c")
             }
         }
 
-        #[cfg(not( target_feature = "f16c" ))]
+        #[cfg(all( not(target_feature = "f16c"), target_feature = "sse" ))]
         impl From<Half16x4> for F32x4 {
             fn from(value: F32x4) -> Self {
                 compile_error!("TODO: conversion from half16x4 to f32x4 without f16c")

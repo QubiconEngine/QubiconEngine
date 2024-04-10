@@ -26,12 +26,16 @@ pub trait MinMax {
 }
 
 // Trait names are cringe af
-pub trait Vector: Sized + Add<Self, Output = Self> + Sub<Self, Output = Self> {
-    type ElementType: Add<Output = Self::ElementType> + Sub<Output = Self::ElementType>;
+pub trait Vector: Sized {
+    type ElementType: Sized;
     const ELEMENTS_COUNT: usize;
 }
 
-pub trait VectorExt: Vector + Mul<Self, Output = Self> + Div<Self, Output = Self>
+pub trait VectorOps: Vector + Add<Output = Self> + Sub<Output = Self>
+    where Self::ElementType: Add<Output = Self::ElementType> + Sub<Output = Self::ElementType>
+{}
+
+pub trait VectorOpsExt: Vector + Mul<Output = Self> + Div<Output = Self>
     where Self::ElementType: Mul<Output = Self::ElementType> + Div<Output = Self::ElementType>
 {}
 
