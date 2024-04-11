@@ -110,6 +110,18 @@ macro_rules! impl_math_consts {
     };
 }
 
+macro_rules! impl_display {
+    ($ty:ident) => {
+        impl core::fmt::Display for $ty {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                let f32: f32 = (*self).into();
+                
+                write!(f, "{}", f32)
+            }
+        }
+    };
+}
+
 pub mod half16;
 pub mod bfloat16;
 

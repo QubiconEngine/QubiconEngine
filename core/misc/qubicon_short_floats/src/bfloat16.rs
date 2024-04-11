@@ -3,6 +3,7 @@ use super::{ ShortFloat, CompressionError };
 #[derive(Default, PartialEq, Clone, Copy)]
 pub struct BF16 (u16);
 
+impl_display!(BF16);
 impl_math_consts!(BF16);
 
 impl ShortFloat for BF16 {
@@ -78,6 +79,18 @@ impl TryFrom<f32> for BF16 {
 impl From<BF16> for f32 {
     fn from(value: BF16) -> Self {
         value.into_f32_const()
+    }
+}
+
+
+
+impl PartialOrd for BF16 {
+    // TODO: write a comparison instead of casting
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        let self_: f32 = (*self).into();
+        let other: f32 = (*other).into();
+
+        self_.partial_cmp(&other)
     }
 }
 

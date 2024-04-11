@@ -5,6 +5,7 @@ use super::{ ShortFloat, CompressionError };
 #[derive(Default, PartialEq, Clone, Copy)]
 pub struct Half16 (u16);
 
+impl_display!(Half16);
 impl_math_consts!(Half16);
 
 impl ShortFloat for Half16 {
@@ -143,6 +144,16 @@ impl From<Half16> for f32 {
 }
 
 
+
+impl PartialOrd for Half16 {
+    // TODO: write a comparison instead of casting
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        let self_: f32 = (*self).into();
+        let other: f32 = (*other).into();
+
+        self_.partial_cmp(&other)
+    }
+}
 
 impl Neg for Half16 {
     type Output = Self;
