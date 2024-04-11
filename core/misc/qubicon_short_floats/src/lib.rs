@@ -130,8 +130,14 @@ macro_rules! impl_assign_ops {
     };
 }
 
-macro_rules! impl_display {
+macro_rules! impl_fmt {
     ($ty:ident) => {
+        impl core::fmt::Debug for $ty {
+            fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                <Self as core::fmt::Display>::fmt(self, fmt)
+            }
+        }
+        
         impl core::fmt::Display for $ty {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 let f32: f32 = (*self).into();
@@ -149,11 +155,11 @@ pub mod bfloat16;
 mod test_utils {
     use super::ShortFloat;
 
-    pub fn check_stability<T: ShortFloat + PartialEq + Copy>() {
+    pub fn check_stability<T: ShortFloat + PartialEq + Copy + core::fmt::Debug>() {
         let num = T::try_from(-1.67).unwrap();
         let num_f32: f32 = num.into();
         let num_r = T::try_from(num_f32).unwrap();
 
-        assert!(num == num_r);
+        assert_eq!(num, num_r);
     }
 }

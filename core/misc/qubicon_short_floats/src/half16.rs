@@ -5,7 +5,7 @@ use super::{ ShortFloat, CompressionError };
 #[derive(Default, PartialEq, Clone, Copy)]
 pub struct Half16 (u16);
 
-impl_display!(Half16);
+impl_fmt!(Half16);
 impl_assign_ops!(Half16);
 impl_math_consts!(Half16);
 
@@ -484,11 +484,10 @@ mod vec {
                 let f = Half16x4::new(n1, n2, n3, n4);
 
 
-                // currently Debug is not implemented, so no assert_eq
-                assert!(f.get::<0>() == n1);
-                assert!(f.get::<1>() == n2);
-                assert!(f.get::<2>() == n3);
-                assert!(f.get::<3>() == n4);
+                assert_eq!(f.get::<0>(), n1);
+                assert_eq!(f.get::<1>(), n2);
+                assert_eq!(f.get::<2>(), n3);
+                assert_eq!(f.get::<3>(), n4);
             }
 
             #[test]
@@ -530,5 +529,17 @@ mod tests {
 
         assert_eq!(f_pos, 1.0);
         assert_eq!(f_neg, -1.0);
+    }
+
+    #[test]
+    fn half16_math() {
+        let n1 = Half16::from_f32_flawless_const(56.0);
+        let n2 = Half16::from_f32_flawless_const(45.0);
+        
+        let mut n3 = n1 + n2;
+
+        n3 *= n2;
+
+        assert!(!n3.is_nan())
     }
 }

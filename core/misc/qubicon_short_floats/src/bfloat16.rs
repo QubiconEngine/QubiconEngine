@@ -3,7 +3,7 @@ use super::{ ShortFloat, CompressionError };
 #[derive(Default, PartialEq, Clone, Copy)]
 pub struct BF16 (u16);
 
-impl_display!(BF16);
+impl_fmt!(BF16);
 impl_math_consts!(BF16);
 
 impl ShortFloat for BF16 {
