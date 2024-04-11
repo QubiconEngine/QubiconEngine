@@ -110,6 +110,26 @@ macro_rules! impl_math_consts {
     };
 }
 
+macro_rules! impl_assign_op {
+    ($ty:ident, $tr:path, $func_name:ident, $op:tt) => {
+        impl $tr for $ty {
+            fn $func_name(&mut self, rhs: Self) {
+                *self = *self $op rhs;
+            }
+        }
+    }
+}
+
+macro_rules! impl_assign_ops {
+    ($ty:ident) => {
+        impl_assign_op!($ty, core::ops::AddAssign, add_assign, +);
+        impl_assign_op!($ty, core::ops::SubAssign, sub_assign, -);
+        impl_assign_op!($ty, core::ops::MulAssign, mul_assign, *);
+        impl_assign_op!($ty, core::ops::DivAssign, div_assign, /);
+        impl_assign_op!($ty, core::ops::RemAssign, rem_assign, %);
+    };
+}
+
 macro_rules! impl_display {
     ($ty:ident) => {
         impl core::fmt::Display for $ty {

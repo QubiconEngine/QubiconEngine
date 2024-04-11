@@ -1,11 +1,12 @@
-use core::ops::Neg;
-use num_traits::{ float::FloatCore, NumCast, ToPrimitive };
+use core::ops::{ Add, Sub, Div, Mul, Rem, Neg };
+use num_traits::{ float::FloatCore, Num, NumCast, ToPrimitive };
 use super::{ ShortFloat, CompressionError };
 
 #[derive(Default, PartialEq, Clone, Copy)]
 pub struct Half16 (u16);
 
 impl_display!(Half16);
+impl_assign_ops!(Half16);
 impl_math_consts!(Half16);
 
 impl ShortFloat for Half16 {
@@ -140,6 +141,63 @@ impl From<Half16> for f32 {
 
         #[allow(unreachable_code)]
         value.into_f32_const()
+    }
+}
+
+
+
+impl Add for Half16 {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let self_: f32 = self.into();
+        let rhs: f32 = rhs.into();
+
+        (self_ + rhs).try_into().unwrap_or(Self::E)
+    }
+}
+
+impl Sub for Half16 {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let self_: f32 = self.into();
+        let rhs: f32 = rhs.into();
+
+        (self_ - rhs).try_into().unwrap_or(Self::E)
+    }
+}
+
+impl Mul for Half16 {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let self_: f32 = self.into();
+        let rhs: f32 = rhs.into();
+
+        (self_ * rhs).try_into().unwrap_or(Self::E)
+    }
+}
+
+impl Div for Half16 {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        let self_: f32 = self.into();
+        let rhs: f32 = rhs.into();
+
+        (self_ / rhs).try_into().unwrap_or(Self::E)        
+    }
+}
+
+impl Rem for Half16 {
+    type Output = Self;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        let self_: f32 = self.into();
+        let rhs: f32 = rhs.into();
+
+        (self_ % rhs).try_into().unwrap_or(Self::E)
     }
 }
 
