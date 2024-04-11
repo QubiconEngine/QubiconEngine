@@ -317,6 +317,29 @@ mod vec {
         }
 
 
+        impl From<Half16x4> for (Half16, Half16, Half16, Half16) {
+            fn from(value: Half16x4) -> Self {
+                (
+                    value.get::<0>(),
+                    value.get::<1>(),
+                    value.get::<2>(),
+                    value.get::<3>()
+                )
+            }
+        }
+
+        impl From<Half16x4> for [Half16; 4] {
+            fn from(value: Half16x4) -> Self {
+                [
+                    value.get::<0>(),
+                    value.get::<1>(),
+                    value.get::<2>(),
+                    value.get::<3>()
+                ]
+            }
+        }
+
+
 
         #[cfg(test)]
         mod tests {
