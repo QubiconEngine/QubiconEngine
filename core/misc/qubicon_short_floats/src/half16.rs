@@ -1,5 +1,5 @@
 use core::ops::{ Add, Sub, Div, Mul, Rem, Neg };
-use num_traits::{ float::FloatCore, Num, NumCast, ToPrimitive };
+use num_traits::{ float::FloatCore, Num, NumCast, ToPrimitive, One, Zero };
 use super::{ ShortFloat, CompressionError };
 
 #[derive(Default, PartialEq, Clone, Copy)]
@@ -153,7 +153,7 @@ impl Add for Half16 {
         let self_: f32 = self.into();
         let rhs: f32 = rhs.into();
 
-        (self_ + rhs).try_into().unwrap_or(Self::E)
+        (self_ + rhs).try_into().unwrap_or(Self::nan())
     }
 }
 
@@ -164,7 +164,7 @@ impl Sub for Half16 {
         let self_: f32 = self.into();
         let rhs: f32 = rhs.into();
 
-        (self_ - rhs).try_into().unwrap_or(Self::E)
+        (self_ - rhs).try_into().unwrap_or(Self::nan())
     }
 }
 
@@ -175,7 +175,7 @@ impl Mul for Half16 {
         let self_: f32 = self.into();
         let rhs: f32 = rhs.into();
 
-        (self_ * rhs).try_into().unwrap_or(Self::E)
+        (self_ * rhs).try_into().unwrap_or(Self::nan())
     }
 }
 
@@ -186,7 +186,7 @@ impl Div for Half16 {
         let self_: f32 = self.into();
         let rhs: f32 = rhs.into();
 
-        (self_ / rhs).try_into().unwrap_or(Self::E)        
+        (self_ / rhs).try_into().unwrap_or(Self::nan())
     }
 }
 
@@ -197,7 +197,7 @@ impl Rem for Half16 {
         let self_: f32 = self.into();
         let rhs: f32 = rhs.into();
 
-        (self_ % rhs).try_into().unwrap_or(Self::E)
+        (self_ % rhs).try_into().unwrap_or(Self::nan())
     }
 }
 
@@ -251,55 +251,82 @@ impl NumCast for Half16 {
     }
 }
 
-// impl FloatCore for Half16 {
-//     fn infinity() -> Self {
-//         Self ( 0b0111_1100_0000_0000 )
-//     }
 
-//     fn neg_infinity() -> Self {
-//         Self ( 0b1111_1100_0000_0000 )
-//     }
 
-//     fn nan() -> Self {
-//         Self ( 0b0111_1100_1000_0000 )
-//     }
+impl One for Half16 {
+    fn one() -> Self {
+        Self::from_f32_flawless_const(1.0)
+    }
+}
 
-//     fn neg_zero() -> Self {
-//         Self::from_f32(-0.0)
-//     }
+impl Zero for Half16 {
+    fn zero() -> Self {
+        Self::from_f32_flawless_const(0.0)
+    }
 
-//     fn min_value() -> Self {
-//         Self ( 0b1011_1100_0000_0001 )
-//     }
+    fn is_zero(&self) -> bool {
+        *self == Self::zero()
+    }
+}
 
-//     fn min_positive_value() -> Self {
-//         Self ( 0b0111_1000_0000_0001 )
-//     }
+impl Num for Half16 {
+    type FromStrRadixErr = <f32 as Num>::FromStrRadixErr;
 
-//     fn epsilon() -> Self {
-//         Self::min_positive_value()
-//     }
+    fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
+        <f32 as Num>::from_str_radix(str, radix)
+            .map(| n | n.try_into().unwrap_or(Self::nan()))
+    }
+}
 
-//     fn max_value() -> Self {
-//         Self ( 0b0011_1011_1111_1111 )
-//     }
+impl FloatCore for Half16 {
+    fn infinity() -> Self {
+        Self ( 0b0111_1100_0000_0000 )
+    }
 
-//     fn classify(self) -> core::num::FpCategory {
-//         todo!()
-//     }
+    fn neg_infinity() -> Self {
+        Self ( 0b1111_1100_0000_0000 )
+    }
 
-//     fn to_degrees(self) -> Self {
-//         todo!()
-//     }
+    fn nan() -> Self {
+        Self ( 0b0111_1100_1000_0000 )
+    }
 
-//     fn to_radians(self) -> Self {
-//         todo!()
-//     }
+    fn neg_zero() -> Self {
+        Self::from_f32_flawless_const(-0.0)
+    }
 
-//     fn integer_decode(self) -> (u64, i16, i8) {
-//         (self.mantissa() as u64, self.exponent(), self.sign())
-//     }
-// }
+    fn min_value() -> Self {
+        Self ( 0b1011_1100_0000_0001 )
+    }
+
+    fn min_positive_value() -> Self {
+        Self ( 0b0111_1000_0000_0001 )
+    }
+
+    fn epsilon() -> Self {
+        Self::min_positive_value()
+    }
+
+    fn max_value() -> Self {
+        Self ( 0b0011_1011_1111_1111 )
+    }
+
+    fn classify(self) -> core::num::FpCategory {
+        todo!()
+    }
+
+    fn to_degrees(self) -> Self {
+        todo!()
+    }
+
+    fn to_radians(self) -> Self {
+        todo!()
+    }
+
+    fn integer_decode(self) -> (u64, i16, i8) {
+        (self.mantissa() as u64, self.exponent(), self.sign())
+    }
+}
 
 #[cfg(feature = "vectors")]
 pub use vec::*;
