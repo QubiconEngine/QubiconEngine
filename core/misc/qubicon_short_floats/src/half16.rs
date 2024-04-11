@@ -1,5 +1,6 @@
+use core::ops::Neg;
+use num_traits::{ float::FloatCore, NumCast, ToPrimitive };
 use super::{ ShortFloat, CompressionError };
-// use num_traits::float::FloatCore;
 
 #[derive(Default, PartialEq, Clone, Copy)]
 pub struct Half16 (u16);
@@ -141,6 +142,46 @@ impl From<Half16> for f32 {
     }
 }
 
+
+
+impl Neg for Half16 {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self ( self.0 ^ 0x8000 )
+    }
+}
+
+impl ToPrimitive for Half16 {
+    fn to_u64(&self) -> Option<u64> {
+        let f: f32 = (*self).into();
+
+        f.to_u64()
+    }
+
+    fn to_i64(&self) -> Option<i64> {
+        let f: f32 = (*self).into();
+
+        f.to_i64()
+    }
+
+    fn to_f32(&self) -> Option<f32> {
+        Some( (*self).into() )
+    }
+
+    fn to_f64(&self) -> Option<f64> {
+        let f: f32 = (*self).into();
+
+        f.to_f64()
+    }
+}
+
+impl NumCast for Half16 {
+    fn from<T: num_traits::ToPrimitive>(n: T) -> Option<Self> {
+        n.to_f32()?.try_into().ok()
+    }
+}
+
 // impl FloatCore for Half16 {
 //     fn infinity() -> Self {
 //         Self ( 0b0111_1100_0000_0000 )
@@ -187,17 +228,7 @@ impl From<Half16> for f32 {
 //     }
 
 //     fn integer_decode(self) -> (u64, i16, i8) {
-//         let sign = self.sign();
-//         let exponent = self.exponent();
-//         let mantissa = self.mantissa();
-
-//         let exponent_sign = (exponent & 0b1_0000) >> 4;
-//         let exponent = (exponent & 0b0_1111) as i16;
-
-//         let sign = if sign == 0 { 1i8 } else { -1i8 };
-//         let exponent = if exponent_sign == 0 { exponent } else { -exponent };
-
-//         (mantissa as u64, exponent, sign)
+//         (self.mantissa() as u64, self.exponent(), self.sign())
 //     }
 // }
 
@@ -214,9 +245,10 @@ mod vec {
     
     #[cfg(target_arch = "x86_64")]
     mod x86_64 {
+        #![allow(unused_imports)]
+
         use super::*;
 
-        #[allow(unused_imports)]
         #[cfg(target_feature = "sse")]
         use qubicon_simd::F32x4;
         use qubicon_simd::{ Extract, Vector };
@@ -286,14 +318,14 @@ mod vec {
 
         #[cfg(all( not(target_feature = "f16c"), target_feature = "sse" ))]
         impl From<F32x4> for Half16x4 {
-            fn from(value: F32x4) -> Self {
+            fn from(_value: F32x4) -> Self {
                 todo!("conversion from f32x4 to half16x4 without f16c")
             }
         }
 
         #[cfg(all( not(target_feature = "f16c"), target_feature = "sse" ))]
         impl From<Half16x4> for F32x4 {
-            fn from(value: Half16x4) -> Self {
+            fn from(_value: Half16x4) -> Self {
                 todo!("conversion from half16x4 to f32x4 without f16c")
             }
         }
@@ -388,11 +420,19 @@ mod tests {
     use crate::test_utils;
 
     #[test]
-    fn half16() {
-        let t = Half16::from_f32_const(56.1267).unwrap();
-
-        println!("{}", t.into_f32_const());
-
+    fn half16_stability() {
         test_utils::check_stability::<Half16>();
+    }
+
+    #[test]
+    fn half16_neg() {
+        let pos = Half16::from_f32_flawless_const(1.0);
+        let neg = -pos;
+
+        let f_pos: f32 = pos.into();
+        let f_neg: f32 = neg.into();
+
+        assert_eq!(f_pos, 1.0);
+        assert_eq!(f_neg, -1.0);
     }
 }
