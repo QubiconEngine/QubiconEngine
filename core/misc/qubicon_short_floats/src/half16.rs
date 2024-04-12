@@ -172,18 +172,30 @@ impl Mul for Half16 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let sign = self.sign_bits() ^ rhs.sign_bits();
-        let exponent = self.exponent() + rhs.exponent();
-        let mantissa = self.mantissa() + rhs.mantissa() + self.mantissa() * rhs.mantissa();
+        // fuck this shit
+        // let sign = self.sign_bits() ^ rhs.sign_bits();
+        // let mut exponent = self.exponent() + rhs.exponent();
+        // let mut mantissa = self.mantissa() * rhs.mantissa();
 
-        let mut out = 0;
+        // let lz = mantissa.leading_zeros();
+        // let mantiss_bits_count = 32 - lz;
+        // let offset = mantiss_bits_count as i16 - 10;
 
-        out |= sign << 15;
-        out |= ((exponent + 0xf) as u16) << 10;
-        // TODO: Calculate offset dynamicaly. This just dont work
-        out |= (mantissa >> 15) as u16;
+        // if offset > 0 {
+        //     exponent += offset;
+        //     mantissa >>= offset;
+        // }
 
-        Self ( out )
+        // let mut out = 0;
+
+        // out |= sign << 15;
+        // out |= ((exponent + 0xf) as u16) << 10;
+        // out |= mantissa as u16;
+
+        let self_: f32 = self.into();
+        let rhs: f32 = rhs.into();
+
+        ( self_ * rhs ).try_into().unwrap_or(Self::nan())
     }
 }
 
@@ -554,7 +566,7 @@ mod tests {
     #[test]
     fn half16_multiply() {
         let n1 = Half16::from_f32_flawless_const(2.0);
-        let n2 = Half16::from_f32_flawless_const(3.0);
+        let n2 = Half16::from_f32_flawless_const(6.0);
 
         let n3 = n1 * n2;
 
