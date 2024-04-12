@@ -172,10 +172,18 @@ impl Mul for Half16 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let self_: f32 = self.into();
-        let rhs: f32 = rhs.into();
+        let sign = self.sign_bits() ^ rhs.sign_bits();
+        let exponent = self.exponent() + rhs.exponent();
+        let mantissa = self.mantissa() + rhs.mantissa() + self.mantissa() * rhs.mantissa();
 
-        (self_ * rhs).try_into().unwrap_or(Self::nan())
+        let mut out = 0;
+
+        out |= sign << 15;
+        out |= ((exponent + 0xf) as u16) << 10;
+        // TODO: Calculate offset dynamicaly. This just dont work
+        out |= (mantissa >> 15) as u16;
+
+        Self ( out )
     }
 }
 
@@ -541,5 +549,15 @@ mod tests {
         n3 *= n2;
 
         assert!(!n3.is_nan())
+    }
+
+    #[test]
+    fn half16_multiply() {
+        let n1 = Half16::from_f32_flawless_const(2.0);
+        let n2 = Half16::from_f32_flawless_const(3.0);
+
+        let n3 = n1 * n2;
+
+        println!("{n3}");
     }
 }
