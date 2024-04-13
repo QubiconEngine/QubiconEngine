@@ -69,7 +69,7 @@ impl PhysicalDevice {
     pub fn create_logical_device<T: Into<Box<[QueueFamilyUsage]>>>(
         self,
         create_info: crate::device::DeviceCreateInfo
-    ) -> Result<crate::device::Device, Error> {
+    ) -> Result<Arc<crate::device::Device>, Error> {
         crate::device::Device::from_physical_device(create_info, self)
     }
 }
