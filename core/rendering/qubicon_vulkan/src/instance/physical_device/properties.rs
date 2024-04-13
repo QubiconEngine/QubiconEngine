@@ -19,11 +19,10 @@ pub struct DeviceProperties {
     pub device_name: ArrayString<256>,
     pub pipeline_chache_uuid: [u8; ash::vk::UUID_SIZE],
 
-    // TODO: limits
+    pub limits: DeviceLimits
     // TODO: sparse properties
 }
 
-/// For internal use only
 impl From<ash::vk::PhysicalDeviceProperties> for DeviceProperties {
     fn from(value: ash::vk::PhysicalDeviceProperties) -> Self {    
         Self {
@@ -32,12 +31,13 @@ impl From<ash::vk::PhysicalDeviceProperties> for DeviceProperties {
             device_id: value.device_id,
             device_type: value.device_type.into(),
             device_name: ArrayString::from_byte_string(unsafe { core::mem::transmute(&value.device_name) }).unwrap(),
-            pipeline_chache_uuid: value.pipeline_cache_uuid
+            pipeline_chache_uuid: value.pipeline_cache_uuid,
+
+            limits: value.limits.into()
         }
     }
 }
 
-/// For internal use only
 impl From<ash::vk::PhysicalDeviceType> for DeviceType {
     fn from(value: ash::vk::PhysicalDeviceType) -> Self {
         unsafe {core::mem::transmute(value.as_raw() as u8)}

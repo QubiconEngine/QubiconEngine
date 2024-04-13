@@ -9,13 +9,13 @@ use crate::{
 };
 
 pub use features::DeviceFeatures;
-pub use properties::{ DeviceProperties, DeviceType };
 pub use queue_info::{ QueueFamilyCapabilities, QueueFamily };
+pub use properties::{ DeviceProperties, DeviceLimits, DeviceType };
 pub use memory_properties::{ MemoryHeap, MemoryType, MemoryHeapProperties, MemoryTypeProperties, DeviceMemoryProperties };
 
 mod features;
-mod properties;
 mod queue_info;
+mod properties;
 mod memory_properties;
 
 #[derive(Clone)]
