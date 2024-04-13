@@ -1,4 +1,4 @@
-use crate::instance::physical_device::features::DeviceFeatures;
+use crate::instance::physical_device::DeviceFeatures;
 
 pub struct DeviceCreateInfo {
     pub queue_families: Vec<QueueFamilyUsage>,

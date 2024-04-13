@@ -1,7 +1,7 @@
 pub use create_info::*;
 
 use std::sync::Arc;
-use crate::instance::physical_device::{ features::DeviceFeatures, PhysicalDevice };
+use crate::instance::physical_device::{ DeviceFeatures, PhysicalDevice };
 
 mod create_info;
 

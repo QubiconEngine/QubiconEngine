@@ -8,10 +8,15 @@ use crate::{
     device::QueueFamilyUsage
 };
 
-pub mod features;
-pub mod properties;
-pub mod queue_info;
-pub mod memory_properties;
+pub use features::DeviceFeatures;
+pub use properties::{ DeviceProperties, DeviceType };
+pub use queue_info::{ QueueFamilyCapabilities, QueueFamily };
+pub use memory_properties::{ MemoryHeap, MemoryType, MemoryHeapProperties, MemoryTypeProperties, DeviceMemoryProperties };
+
+mod features;
+mod properties;
+mod queue_info;
+mod memory_properties;
 
 #[derive(Clone)]
 pub struct PhysicalDevice {
