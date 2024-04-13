@@ -41,7 +41,7 @@ impl Device {
                 .build();
 
             unsafe {
-                physical_device.instance.create_device(
+                physical_device.instance.as_raw().create_device(
                     physical_device.dev,
                     &create_info,
                     None

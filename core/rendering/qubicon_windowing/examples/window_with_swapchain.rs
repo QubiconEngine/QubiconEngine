@@ -1,6 +1,6 @@
 // Currently causes lots of errors from validation layers
 
-use qubicon_vulkan::{device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::{creation_info::InstanceCreateInfo, physical_device::{queue_info::QueueFamilyCapabilities, PhysicalDevice}}, memory::resources::image::ImageUsageFlags, surface::{ColorSpace, CompositeAlphaFlags, SurfaceTransformFlags}, swapchain::SwapchainCreateInfo, Instance};
+use qubicon_vulkan::{device::create_info::{DeviceCreateInfo, QueueFamilyUsage}, instance::{create_info::InstanceCreateInfo, physical_device::{queue_info::QueueFamilyCapabilities, PhysicalDevice}}, memory::resources::image::ImageUsageFlags, surface::{ColorSpace, CompositeAlphaFlags, SurfaceTransformFlags}, swapchain::SwapchainCreateInfo, Instance};
 use qubicon_windowing::{x11::{WindowEvent, WindowingServer}, AssociatedSwapchainCreateInfo};
 
 fn find_family_index(dev: &PhysicalDevice) -> Option<u32> {

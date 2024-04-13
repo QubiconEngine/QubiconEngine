@@ -11,31 +11,51 @@ use crate::{
 #[cfg(feature = "windowing")]
 use crate::surface::Surface;
 
-pub mod error;
-pub mod creation_info;
+pub mod create_info;
 pub mod physical_device;
-pub(crate) mod inner;
 
 pub struct Instance {
-    inner: Arc<inner::InstanceInner>
+    _entry: ash::Entry,
+    instance: ash::Instance
 }
 
 impl Instance {
-    pub fn create(create_info: &creation_info::InstanceCreateInfo) -> Result<Self, error::InstanceError> {
-        Ok(
+    pub(crate) unsafe fn as_raw(&self) -> &ash::Instance {
+        &self.instance
+    }
+
+    pub fn new(create_info: &create_info::InstanceCreateInfo) -> Arc<Self> {
+        let (_entry, instance) = unsafe {
+            let entry = ash::Entry::load().unwrap(); // TODO: Error handling
+
+            let create_info = ash::vk::InstanceCreateInfo::builder()
+                //.application_info(application_info)
+                //.enabled_layer_names(enabled_layer_names)
+                //.enabled_extension_names(enabled_extension_names)
+                //.flags(flags)
+                .build();
+
+            let instance = entry.create_instance(&create_info, None);
+
+            (entry, instance)
+        };
+
+        Arc::new(
             Self {
-                inner: Arc::new(inner::InstanceInner::create(create_info)?)
+                _entry,
+                instance: instance.unwrap() // TODO: Error handling
             }
         )
     }
 
-    pub fn enumerate_devices(&self) -> ash::prelude::VkResult<impl Iterator<Item = PhysicalDevice>> {
-        let inner = Arc::clone(&self.inner);
-        let iter = unsafe { self.inner.enumerate_physical_devices()? }
+    // TODO: Change error type
+    pub fn enumerate_devices(self: &Arc<Self>) -> ash::prelude::VkResult<impl Iterator<Item = PhysicalDevice>> {
+        let self_ = Arc::clone(self);
+        let iter = unsafe { self.instance.enumerate_physical_devices()? }
             .into_iter()
             .map(move | dev | unsafe {
                 PhysicalDevice::from_instance_and_raw_physical_device(
-                    Arc::clone(&inner),
+                    Arc::clone(&self_),
                     dev
                 )
             });
@@ -44,38 +64,38 @@ impl Instance {
     }
 }
 
-impl Instance {
-    pub(crate) fn from_inner(inner: Arc<inner::InstanceInner>) -> Self {
-        Self { inner }
+impl Drop for Instance {
+    fn drop(&mut self) {
+        unsafe { self.instance.destroy_instance(None) }
     }
 }
 
-impl Instance {
-    #[cfg(feature = "x11")]
-    /// # Safety
-    /// *display* and *window* must be valid X objects
-    pub unsafe fn create_surface_x11(&self, display: *mut x11::xlib::Display, window: x11::xlib::Window) -> Result<Surface, Error> {
-        use ash::vk::XlibSurfaceCreateInfoKHR;
+// impl Instance {
+//     #[cfg(feature = "x11")]
+//     /// # Safety
+//     /// *display* and *window* must be valid X objects
+//     pub unsafe fn create_surface_x11(&self, display: *mut x11::xlib::Display, window: x11::xlib::Window) -> Result<Surface, Error> {
+//         use ash::vk::XlibSurfaceCreateInfoKHR;
 
-        if let Some(x_surface_ext_calls) = self.inner.x_surface.as_ref() {
-            unsafe {
-                let raw_surface = x_surface_ext_calls.create_xlib_surface(
-                    &XlibSurfaceCreateInfoKHR {
-                        dpy: display.cast(),
-                        window,
+//         if let Some(x_surface_ext_calls) = self.inner.x_surface.as_ref() {
+//             unsafe {
+//                 let raw_surface = x_surface_ext_calls.create_xlib_surface(
+//                     &XlibSurfaceCreateInfoKHR {
+//                         dpy: display.cast(),
+//                         window,
 
-                        ..Default::default()
-                    },
-                    None
-                ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
+//                         ..Default::default()
+//                     },
+//                     None
+//                 ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
 
-                return Ok(Surface::from_raw(Arc::clone(&self.inner), raw_surface));
-            }
-        }
+//                 return Ok(Surface::from_raw(Arc::clone(&self.inner), raw_surface));
+//             }
+//         }
 
-        return Err(ValidationError::NoWindowingEnabled.into());
-    }
-}
+//         return Err(ValidationError::NoWindowingEnabled.into());
+//     }
+// }
 
 impl Debug for Instance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
