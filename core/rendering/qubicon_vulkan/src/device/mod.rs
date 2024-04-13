@@ -1,7 +1,7 @@
 pub use create_info::*;
 
 
-use crate::instance::physical_device::{features::DeviceFeatures, PhysicalDevice};
+use crate::instance::physical_device::{ features::DeviceFeatures, PhysicalDevice };
 
 mod create_info;
 
@@ -9,6 +9,7 @@ pub struct Device {
     enabled_features: DeviceFeatures,
     queue_families: Box<[QueueFamilyUsage]>,
 
+    physical_device: PhysicalDevice,
     device: ash::Device
 }
 
@@ -54,8 +55,21 @@ impl Device {
             enabled_features: create_info.features,
             queue_families,
 
+            physical_device,
             device: device.unwrap() // TODO: Add error handling
         }
+    }
+
+    pub fn enabled_features(&self) -> &DeviceFeatures {
+        &self.enabled_features
+    }
+
+    pub fn queue_families(&self) -> &[QueueFamilyUsage] {
+        &self.queue_families
+    }
+
+    pub fn physical_device(&self) -> &PhysicalDevice {
+        &self.physical_device
     }
 }
 

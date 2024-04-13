@@ -5,7 +5,7 @@ use std::sync::{
 };
 use crate::{
     Error,
-    device::create_info::QueueFamilyUsage
+    device::QueueFamilyUsage
 };
 
 pub mod features;
@@ -17,7 +17,7 @@ pub mod memory_properties;
 pub struct PhysicalDevice {
     pub(crate) instance: Arc<super::inner::InstanceInner>,
     pub(crate) dev: VkPhysicalDevice,
-    queues: OnceLock<Vec<queue_info::QueueFamily>>
+    queues: OnceLock<Box<[queue_info::QueueFamily]>>
 }
 
 impl PhysicalDevice {
@@ -68,9 +68,9 @@ impl PhysicalDevice {
     #[inline]
     pub fn create_logical_device<T: Into<Box<[QueueFamilyUsage]>>>(
         self,
-        create_info: crate::device::create_info::DeviceCreateInfo<T>
+        create_info: crate::device::DeviceCreateInfo
     ) -> Result<crate::device::Device, Error> {
-        crate::device::Device::create_from_physical_device(create_info, self)
+        crate::device::Device::from_physical_device(create_info, self)
     }
 }
 
