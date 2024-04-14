@@ -74,6 +74,17 @@ impl core::str::FromStr for Version {
     }
 }
 
+impl PartialOrd for Version {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let result = self.variant().cmp(&other.variant())
+            .then_with(|| self.variant().cmp(&other.variant()))
+            .then_with(|| self.minor().cmp(&other.minor()))
+            .then_with(|| self.patch().cmp(&other.patch()));
+
+        Some( result )
+    }
+}
+
 impl From<Version> for u32 {
     fn from(value: Version) -> Self {
         value.0
