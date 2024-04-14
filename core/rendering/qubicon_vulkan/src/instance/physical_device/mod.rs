@@ -8,10 +8,10 @@ use crate::{
     device::QueueFamilyUsage
 };
 
-pub use features::DeviceFeatures;
-pub use queue_info::{ QueueFamilyCapabilities, QueueFamily };
-pub use properties::{ DeviceProperties, DeviceLimits, DeviceType };
-pub use memory_properties::{ MemoryHeap, MemoryType, MemoryHeapProperties, MemoryTypeProperties, DeviceMemoryProperties };
+pub use features::*;
+pub use queue_info::*;
+pub use properties::*;
+pub use memory_properties::*;
 
 mod features;
 mod queue_info;

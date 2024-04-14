@@ -1,5 +1,4 @@
-use std::{sync::Arc, fmt::Debug};
-use physical_device::PhysicalDevice;
+use std::{ffi::CString, fmt::Debug, sync::Arc};
 use crate::{
     Error,
     error::{
@@ -11,7 +10,9 @@ use crate::{
 #[cfg(feature = "windowing")]
 use crate::surface::Surface;
 
-pub mod create_info;
+pub use create_info::*;
+
+mod create_info;
 pub mod physical_device;
 
 pub struct Instance {
@@ -28,13 +29,21 @@ impl Instance {
         let (_entry, instance) = unsafe {
             let entry = ash::Entry::load().unwrap(); // TODO: Error handling
 
-            let app_info = ash::vk::ApplicationInfo::builder()
+
+            // TODO: store on stack
+            let app_name: CString = create_info.app_id.app_name.into();
+            let engine_name: CString = create_info.app_id.engine_name.into();
+
+            let application_info = ash::vk::ApplicationInfo::builder()
                 .api_version(create_info.app_id.vulkan_version.into())
                 .engine_version(create_info.app_id.engine_version.into())
-                .application_version(create_info.app_id.app_version.into());
+                .application_version(create_info.app_id.app_version.into())
+                .engine_name(&engine_name)
+                .application_name(&app_name)
+                .build();
 
             let create_info = ash::vk::InstanceCreateInfo::builder()
-                //.application_info(application_info)
+                .application_info(&application_info)
                 //.enabled_layer_names(enabled_layer_names)
                 //.enabled_extension_names(enabled_extension_names)
                 //.flags(flags)
@@ -54,12 +63,12 @@ impl Instance {
     }
 
     // TODO: Change error type
-    pub fn enumerate_devices(self: &Arc<Self>) -> ash::prelude::VkResult<impl Iterator<Item = PhysicalDevice>> {
+    pub fn enumerate_devices(self: &Arc<Self>) -> ash::prelude::VkResult<impl Iterator<Item = physical_device::PhysicalDevice>> {
         let self_ = Arc::clone(self);
         let iter = unsafe { self.instance.enumerate_physical_devices()? }
             .into_iter()
             .map(move | dev | unsafe {
-                PhysicalDevice::from_instance_and_raw_physical_device(
+                physical_device::PhysicalDevice::from_instance_and_raw_physical_device(
                     Arc::clone(&self_),
                     dev
                 )
