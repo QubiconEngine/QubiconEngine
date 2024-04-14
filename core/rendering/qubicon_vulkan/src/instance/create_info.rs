@@ -16,6 +16,14 @@ pub struct AppId {
     pub engine_name: &'static str
 }
 
+impl AppId {
+    pub fn validate(&self) {
+        if self.vulkan_version.into() != 0 && self.vulkan_version < Version( ash::vk::API_VERSION_1_0 ) {
+            panic!("invalid Vulkan API version: {}", self.vulkan_version);
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Version(u32);
 
