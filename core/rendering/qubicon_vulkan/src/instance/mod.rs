@@ -15,6 +15,14 @@ pub use create_info::*;
 mod create_info;
 pub mod physical_device;
 
+#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum InstanceCreationError {
+    #[error(transparent)]
+    Loading( #[from] ash::LoadingError ),
+    #[error("context creation failed: {0}")]
+    Creation ( #[from] VkError )
+}
+
 pub struct Instance {
     _entry: ash::Entry,
     instance: ash::Instance
@@ -25,9 +33,9 @@ impl Instance {
         &self.instance
     }
 
-    pub fn new(create_info: &create_info::InstanceCreateInfo) -> Arc<Self> {
+    pub fn new(create_info: &create_info::InstanceCreateInfo) -> Result<Arc<Self>, InstanceCreationError> {
         let (_entry, instance) = unsafe {
-            let entry = ash::Entry::load().unwrap(); // TODO: Error handling
+            let entry = ash::Entry::load()?;
 
 
             // TODO: store on stack
@@ -54,12 +62,8 @@ impl Instance {
             (entry, instance)
         };
 
-        Arc::new(
-            Self {
-                _entry,
-                instance: instance.unwrap() // TODO: Error handling
-            }
-        )
+        
+        Ok( Arc::new( Self { _entry, instance: instance? } ) )
     }
 
     // TODO: Change error type
