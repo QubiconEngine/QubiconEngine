@@ -15,3 +15,8 @@ pub mod sync;
 pub mod swapchain;
 #[cfg(feature = "windowing")]
 pub mod surface;
+
+
+trait Validate {
+    fn validate(&self);
+}

@@ -1,6 +1,7 @@
 use std::{ffi::CString, fmt::Debug, sync::Arc};
 use crate::{
     Error,
+    Validate,
     error::{
         VkError,
         ValidationError
@@ -34,7 +35,7 @@ impl Instance {
     }
 
     pub fn new(create_info: &create_info::InstanceCreateInfo) -> Result<Arc<Self>, InstanceCreationError> {
-        create_info.app_id.validate();
+        create_info.validate();
         
         let (_entry, instance) = unsafe {
             let entry = ash::Entry::load()?;
