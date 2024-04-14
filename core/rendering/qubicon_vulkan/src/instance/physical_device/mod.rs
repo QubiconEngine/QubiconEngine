@@ -1,12 +1,5 @@
-use ash::vk::PhysicalDevice as VkPhysicalDevice;
-use std::sync::{
-    Arc,
-    OnceLock
-};
-use crate::{
-    Error,
-    device::QueueFamilyUsage
-};
+use std::sync::{ Arc, OnceLock };
+use crate::{error::VkError, device::QueueFamilyUsage };
 
 pub use features::*;
 pub use queue_info::*;
@@ -21,14 +14,14 @@ mod memory_properties;
 #[derive(Clone)]
 pub struct PhysicalDevice {
     pub(crate) instance: Arc<super::Instance>,
-    pub(crate) dev: VkPhysicalDevice,
+    pub(crate) dev: ash::vk::PhysicalDevice,
     queues: OnceLock<Box<[queue_info::QueueFamily]>>
 }
 
 impl PhysicalDevice {
     pub(crate) unsafe fn from_instance_and_raw_physical_device(
         instance: Arc<super::Instance>,
-        dev: VkPhysicalDevice
+        dev: ash::vk::PhysicalDevice
     ) -> Self {
         Self {
             instance,
@@ -74,7 +67,7 @@ impl PhysicalDevice {
     pub fn create_logical_device<T: Into<Box<[QueueFamilyUsage]>>>(
         self,
         create_info: crate::device::DeviceCreateInfo
-    ) -> Result<Arc<crate::device::Device>, Error> {
+    ) -> Result<Arc<crate::device::Device>, VkError> {
         crate::device::Device::from_physical_device(create_info, self)
     }
 }

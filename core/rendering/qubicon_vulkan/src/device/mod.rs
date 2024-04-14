@@ -1,7 +1,7 @@
 pub use create_info::*;
 
 use std::sync::Arc;
-use crate::instance::physical_device::{ DeviceFeatures, PhysicalDevice };
+use crate::{error::VkError, instance::physical_device::{ DeviceFeatures, PhysicalDevice }};
 
 mod create_info;
 
@@ -23,7 +23,7 @@ impl Device {
     pub fn from_physical_device(
         physical_device: PhysicalDevice,
         create_info: DeviceCreateInfo
-    ) -> Arc<Self> {
+    ) -> Result<Arc<Self>, VkError> {
         let queue_families = create_info.queue_families.into_boxed_slice();
 
 
@@ -51,15 +51,17 @@ impl Device {
 
 
 
-        Arc::new(
+        let result = Arc::new(
             Self {
                 enabled_features: create_info.features,
                 queue_families,
 
                 physical_device,
-                device: device.unwrap() // TODO: Add error handling
+                device: device?
             }
-        )
+        );
+
+        Ok( result )
     }
 
     pub fn enabled_features(&self) -> &DeviceFeatures {
