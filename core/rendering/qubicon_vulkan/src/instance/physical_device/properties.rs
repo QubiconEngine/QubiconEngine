@@ -1,4 +1,5 @@
 use arrayvec::ArrayString;
+use super::DeviceSize;
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,8 +76,8 @@ decl_device_limits_struct!{
         max_push_constants_size: u32,
         max_memory_allocation_count: u32,
         max_sampler_allocation_count: u32,
-        //buffer_image_granularity: DeviceSize,
-        //sparse_address_space_size: DeviceSize,
+        buffer_image_granularity: DeviceSize,
+        sparse_address_space_size: DeviceSize,
         max_bound_descriptor_sets: u32,
         max_per_stage_descriptor_samplers: u32,
         max_per_stage_descriptor_uniform_buffers: u32,
@@ -131,9 +132,9 @@ decl_device_limits_struct!{
         viewport_bounds_range: [f32; 2],
         viewport_sub_pixel_bits: u32,
         min_memory_map_alignment: usize,
-        //min_texel_buffer_offset_alignment: DeviceSize,
-        //min_uniform_buffer_offset_alignment: DeviceSize,
-        //min_storage_buffer_offset_alignment: DeviceSize,
+        min_texel_buffer_offset_alignment: DeviceSize,
+        min_uniform_buffer_offset_alignment: DeviceSize,
+        min_storage_buffer_offset_alignment: DeviceSize,
         min_texel_offset: i32,
         max_texel_offset: u32,
         min_texel_gather_offset: i32,
@@ -166,10 +167,10 @@ decl_device_limits_struct!{
         point_size_granularity: f32,
         line_width_granularity: f32,
         strict_lines: bool,
-        standard_sample_locations: bool//,
-        //optimal_buffer_copy_offset_alignment: DeviceSize,
-        //optimal_buffer_copy_row_pitch_alignment: DeviceSize,
-        //non_coherent_atom_size: DeviceSize
+        standard_sample_locations: bool,
+        optimal_buffer_copy_offset_alignment: DeviceSize,
+        optimal_buffer_copy_row_pitch_alignment: DeviceSize,
+        non_coherent_atom_size: DeviceSize
     }
 }
 
@@ -207,8 +208,8 @@ impl From<ash::vk::PhysicalDeviceLimits> for DeviceLimits {
             max_push_constants_size,
             max_memory_allocation_count,
             max_sampler_allocation_count,
-            //buffer_image_granularity: DeviceSize,
-            //sparse_address_space_size: DeviceSize,
+            buffer_image_granularity,
+            sparse_address_space_size,
             max_bound_descriptor_sets,
             max_per_stage_descriptor_samplers,
             max_per_stage_descriptor_uniform_buffers,
@@ -263,9 +264,9 @@ impl From<ash::vk::PhysicalDeviceLimits> for DeviceLimits {
             viewport_bounds_range,
             viewport_sub_pixel_bits,
             min_memory_map_alignment,
-            //min_texel_buffer_offset_alignment: DeviceSize,
-            //min_uniform_buffer_offset_alignment: DeviceSize,
-            //min_storage_buffer_offset_alignment: DeviceSize,
+            min_texel_buffer_offset_alignment,
+            min_uniform_buffer_offset_alignment,
+            min_storage_buffer_offset_alignment,
             min_texel_offset,
             max_texel_offset,
             min_texel_gather_offset,
@@ -298,10 +299,10 @@ impl From<ash::vk::PhysicalDeviceLimits> for DeviceLimits {
             point_size_granularity,
             line_width_granularity,
             strict_lines: (bool, Bool32),
-            standard_sample_locations: (bool, Bool32)//,
-            //optimal_buffer_copy_offset_alignment: DeviceSize,
-            //optimal_buffer_copy_row_pitch_alignment: DeviceSize,
-            //non_coherent_atom_size: DeviceSize
+            standard_sample_locations: (bool, Bool32),
+            optimal_buffer_copy_offset_alignment,
+            optimal_buffer_copy_row_pitch_alignment,
+            non_coherent_atom_size
         );
 
         out

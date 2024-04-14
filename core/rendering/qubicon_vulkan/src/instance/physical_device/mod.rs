@@ -11,6 +11,10 @@ mod queue_info;
 mod properties;
 mod memory_properties;
 
+
+pub type DeviceSize = ash::vk::DeviceSize;
+
+
 #[derive(Clone)]
 pub struct PhysicalDevice {
     pub(crate) instance: Arc<super::Instance>,
