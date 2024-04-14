@@ -34,6 +34,8 @@ impl Instance {
     }
 
     pub fn new(create_info: &create_info::InstanceCreateInfo) -> Result<Arc<Self>, InstanceCreationError> {
+        create_info.app_id.validate();
+        
         let (_entry, instance) = unsafe {
             let entry = ash::Entry::load()?;
 
