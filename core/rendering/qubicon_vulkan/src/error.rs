@@ -11,8 +11,8 @@ pub enum VkError {
     EventSet,
     #[error("an event is unsignaled")]
     EventReset,
-    // #[error("return array is too small")]
-    // Incomplete,
+    #[error("return array is too small")]
+    Incomplete,
     #[error("not enought of host memory")]
     OutOfHostMemory,
     #[error("not enought of device memory")]
@@ -23,10 +23,10 @@ pub enum VkError {
     DeviceLost,
     #[error("mapping of memory object failed")]
     MemoryMapFailed,
-    // #[error("some of specified layers not exist")]
-    // LayerNotPresent,
-    // #[error("some of specified extensions not presented")]
-    // ExtensionNotPresent,
+    #[error("some of specified layers not exist")]
+    LayerNotPresent,
+    #[error("some of specified extensions not presented")]
+    ExtensionNotPresent,
     #[error("some of requested features not available on this device")]
     FeatureNotPresent,
     #[error("unable to find vulkan driver")]
@@ -53,24 +53,22 @@ pub enum VkError {
     FullScreenExclusiveModeLost
 }
 
-impl TryFrom<VkResult> for VkError {
-    type Error = ();
-    
-    fn try_from(value: VkResult) -> Result<Self, Self::Error> {
+impl From<VkResult> for VkError {
+    fn from(value: VkResult) -> Self {
         Ok(
             match value {
                 VkResult::NOT_READY => Self::NotReady,
                 VkResult::TIMEOUT => Self::Timeout,
                 VkResult::EVENT_SET => Self::EventSet,
                 VkResult::EVENT_RESET => Self::EventReset,
-                // VkResult::INCOMPLETE => Self::Incomplete,
+                VkResult::INCOMPLETE => Self::Incomplete,
                 VkResult::ERROR_OUT_OF_HOST_MEMORY => Self::OutOfHostMemory,
                 VkResult::ERROR_OUT_OF_DEVICE_MEMORY => Self::OutOfDeviceMemory,
                 VkResult::ERROR_INITIALIZATION_FAILED => Self::InitializationFailed,
                 VkResult::ERROR_DEVICE_LOST => Self::DeviceLost,
                 VkResult::ERROR_MEMORY_MAP_FAILED => Self::MemoryMapFailed,
-                // VkResult::ERROR_LAYER_NOT_PRESENT => Self::LayerNotPresent,
-                // VkResult::ERROR_EXTENSION_NOT_PRESENT => Self::ExtensionNotPresent,
+                VkResult::ERROR_LAYER_NOT_PRESENT => Self::LayerNotPresent,
+                VkResult::ERROR_EXTENSION_NOT_PRESENT => Self::ExtensionNotPresent,
                 VkResult::ERROR_FEATURE_NOT_PRESENT => Self::FeatureNotPresent,
                 VkResult::ERROR_INCOMPATIBLE_DRIVER => Self::IncompatibleDriver,
                 VkResult::ERROR_TOO_MANY_OBJECTS => Self::TooManyObjects,
@@ -85,7 +83,7 @@ impl TryFrom<VkResult> for VkError {
                 VkResult::ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT => Self::FullScreenExclusiveModeLost,
 
 
-                _ => return Err(())
+                _ => panic!("unknown vulkan error") // TODO: change to something different
             }
         )
     }
