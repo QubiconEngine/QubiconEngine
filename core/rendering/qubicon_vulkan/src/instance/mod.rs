@@ -28,6 +28,11 @@ impl Instance {
         let (_entry, instance) = unsafe {
             let entry = ash::Entry::load().unwrap(); // TODO: Error handling
 
+            let app_info = ash::vk::ApplicationInfo::builder()
+                .api_version(create_info.app_id.vulkan_version.into())
+                .engine_version(create_info.app_id.engine_version.into())
+                .application_version(create_info.app_id.app_version.into());
+
             let create_info = ash::vk::InstanceCreateInfo::builder()
                 //.application_info(application_info)
                 //.enabled_layer_names(enabled_layer_names)
