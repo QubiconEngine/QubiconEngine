@@ -435,3 +435,22 @@ impl core::ops::BitXor for DeviceFeatures {
         self
     }
 }
+
+
+impl core::ops::BitAndAssign for DeviceFeatures {
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = *self & rhs;
+    }
+}
+
+impl core::ops::BitOrAssign for DeviceFeatures {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
+impl core::ops::BitXorAssign for DeviceFeatures {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        *self = *self ^ rhs;
+    }
+}
