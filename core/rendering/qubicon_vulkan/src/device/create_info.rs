@@ -18,7 +18,7 @@ impl DeviceCreateInfo {
 
             if family_usage.queues.len() > queue_info.queue_count {
                 panic!(
-                    "too much queues of with family index {} requested. max is {}, requested {}",
+                    "too much queues with family index {} requested. max is {}, requested {}",
                     family_index,
                     queue_info.queue_count,
                     family_usage.queues.len()

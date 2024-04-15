@@ -1,7 +1,7 @@
 pub use create_info::*;
 
 use std::{ sync::Arc, collections::HashMap };
-use crate::{error::VkError, instance::physical_device::{ DeviceFeatures, PhysicalDevice }};
+use crate::{ error::VkError, instance::physical_device::{ DeviceFeatures, PhysicalDevice } };
 
 mod create_info;
 

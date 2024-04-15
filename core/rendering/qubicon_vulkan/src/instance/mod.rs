@@ -1,11 +1,5 @@
-use std::{ffi::CString, fmt::Debug, sync::Arc};
-use crate::{
-    Error,
-    error::{
-        VkError,
-        ValidationError
-    }
-};
+use std::{ ffi::CString, fmt::Debug, sync::Arc };
+use crate::error::VkError;
 
 #[cfg(feature = "windowing")]
 use crate::surface::Surface;
