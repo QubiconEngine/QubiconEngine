@@ -24,6 +24,8 @@ impl Device {
         physical_device: PhysicalDevice,
         create_info: DeviceCreateInfo
     ) -> Result<Arc<Self>, VkError> {
+        create_info.validate(&physical_device);
+
         let device = { 
             let features: ash::vk::PhysicalDeviceFeatures = create_info.features.into();
             let queue_create_infos: Vec<_> = create_info.queue_families.iter()
