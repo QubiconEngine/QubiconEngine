@@ -1,13 +1,13 @@
 pub use create_info::*;
 
-use std::sync::Arc;
+use std::{ sync::Arc, collections::HashMap };
 use crate::{error::VkError, instance::physical_device::{ DeviceFeatures, PhysicalDevice }};
 
 mod create_info;
 
 pub struct Device {
     enabled_features: DeviceFeatures,
-    queue_families: Box<[QueueFamilyUsage]>,
+    queue_families: HashMap<QueueFamilyIndex, QueueFamilyUsage>,
 
     physical_device: PhysicalDevice,
     device: ash::Device
@@ -24,13 +24,15 @@ impl Device {
         physical_device: PhysicalDevice,
         create_info: DeviceCreateInfo
     ) -> Result<Arc<Self>, VkError> {
-        let queue_families = create_info.queue_families.into_boxed_slice();
-
-
-
         let device = { 
             let features: ash::vk::PhysicalDeviceFeatures = create_info.features.into();
-            let queue_create_infos: Vec<_> = queue_families.iter().map(Into::into).collect();
+            let queue_create_infos: Vec<_> = create_info.queue_families.iter()
+                .map(| (&index, &usage) |
+                    ash::vk::DeviceQueueCreateInfo::builder()
+                        .queue_family_index(index)
+                        .queue_priorities(&usage.queues)
+                        .build()
+                ).collect();
 
 
             let create_info = ash::vk::DeviceCreateInfo::builder()
@@ -54,7 +56,7 @@ impl Device {
         let result = Arc::new(
             Self {
                 enabled_features: create_info.features,
-                queue_families,
+                queue_families: create_info.queue_families,
 
                 physical_device,
                 device: device?
