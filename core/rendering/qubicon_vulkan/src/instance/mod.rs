@@ -1,7 +1,6 @@
 use std::{ffi::CString, fmt::Debug, sync::Arc};
 use crate::{
     Error,
-    Validate,
     error::{
         VkError,
         ValidationError

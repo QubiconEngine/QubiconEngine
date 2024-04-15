@@ -6,8 +6,8 @@ pub struct InstanceCreateInfo {
     pub app_id: AppId
 }
 
-impl crate::Validate for InstanceCreateInfo {
-    fn validate(&self) {
+impl InstanceCreateInfo {
+    pub fn validate(&self) {
         self.app_id.validate();
     }
 }
@@ -22,8 +22,8 @@ pub struct AppId {
     pub engine_name: &'static str
 }
 
-impl crate::Validate for AppId {
-    fn validate(&self) {
+impl AppId {
+    pub fn validate(&self) {
         if self.vulkan_version.into() != 0 && self.vulkan_version < Version( ash::vk::API_VERSION_1_0 ) {
             panic!("invalid Vulkan API version: {}", self.vulkan_version);
         }
