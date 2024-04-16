@@ -20,6 +20,10 @@ impl Drop for Device {
 }
 
 impl Device {
+    pub(crate) unsafe fn as_raw(&self) -> &ash::Device {
+        &self.device
+    }
+
     pub fn from_physical_device(
         physical_device: PhysicalDevice,
         create_info: DeviceCreateInfo
