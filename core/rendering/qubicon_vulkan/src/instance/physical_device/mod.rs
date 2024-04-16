@@ -19,7 +19,12 @@ pub type DeviceSize = ash::vk::DeviceSize;
 pub struct PhysicalDevice {
     pub(crate) instance: Arc<super::Instance>,
     pub(crate) dev: ash::vk::PhysicalDevice,
-    queues: OnceLock<Box<[queue_info::QueueFamily]>>
+    
+    // Additional level of indirection!
+    queues: OnceLock< Box<[QueueFamily]> >,
+    features: OnceLock< Box<DeviceFeatures> >,
+    properties: OnceLock< Box<DeviceProperties> >,
+    memory_properties: OnceLock< Box<DeviceMemoryProperties> >
 }
 
 impl PhysicalDevice {
@@ -30,34 +35,44 @@ impl PhysicalDevice {
         Self {
             instance,
             dev,
-            queues: OnceLock::new()
+
+            queues: OnceLock::new(),
+            features: OnceLock::new(),
+            properties: OnceLock::new(),
+            memory_properties: OnceLock::new()
         }
     }
 }
 
 impl PhysicalDevice {
     #[inline]
-    pub fn get_features(&self) -> features::DeviceFeatures {
-        unsafe {
-            self.instance.as_raw().get_physical_device_features(self.dev).into()
-        }
+    pub fn get_features(&self) -> &DeviceFeatures {
+        self.features.get_or_init(||
+            Box::new(
+                unsafe { self.instance.as_raw().get_physical_device_features(self.dev).into() }
+            )
+        )
     }
 
     #[inline]
-    pub fn get_properties(&self) -> properties::DeviceProperties {
-        unsafe {
-            self.instance.as_raw().get_physical_device_properties(self.dev).into()
-        }
+    pub fn get_properties(&self) -> &DeviceProperties {
+        self.properties.get_or_init(||
+            Box::new(
+                unsafe { self.instance.as_raw().get_physical_device_properties(self.dev).into() }
+            )
+        )
     }
 
     #[inline]
-    pub fn get_memory_properties(&self) -> memory_properties::DeviceMemoryProperties {
-        unsafe {
-            self.instance.as_raw().get_physical_device_memory_properties(self.dev).into()
-        }
+    pub fn get_memory_properties(&self) -> &DeviceMemoryProperties {
+        self.memory_properties.get_or_init(||
+            Box::new(
+                unsafe { self.instance.as_raw().get_physical_device_memory_properties(self.dev).into() }
+            )
+        )
     }
 
-    pub fn get_queue_family_infos(&self) -> &[queue_info::QueueFamily] {
+    pub fn get_queue_family_infos(&self) -> &[QueueFamily] {
         self.queues.get_or_init(||
             unsafe { self.instance.as_raw().get_physical_device_queue_family_properties(self.dev) }
                 .into_iter()
