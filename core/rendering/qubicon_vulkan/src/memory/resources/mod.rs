@@ -10,6 +10,7 @@ pub mod buffer;
 pub mod image_view;
 pub mod buffer_view;
 pub mod mapped_resource;
+pub mod resource_factory;
 
 pub(crate) struct ResourceMemory<A: DeviceMemoryAllocator> {
     allocator: Arc<A>,
