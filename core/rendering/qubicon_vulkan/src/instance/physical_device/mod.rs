@@ -46,7 +46,7 @@ impl PhysicalDevice {
 
 impl PhysicalDevice {
     #[inline]
-    pub fn get_features(&self) -> &DeviceFeatures {
+    pub fn features(&self) -> &DeviceFeatures {
         self.features.get_or_init(||
             Box::new(
                 unsafe { self.instance.as_raw().get_physical_device_features(self.dev).into() }
@@ -55,7 +55,7 @@ impl PhysicalDevice {
     }
 
     #[inline]
-    pub fn get_properties(&self) -> &DeviceProperties {
+    pub fn properties(&self) -> &DeviceProperties {
         self.properties.get_or_init(||
             Box::new(
                 unsafe { self.instance.as_raw().get_physical_device_properties(self.dev).into() }
@@ -64,7 +64,7 @@ impl PhysicalDevice {
     }
 
     #[inline]
-    pub fn get_memory_properties(&self) -> &DeviceMemoryProperties {
+    pub fn memory_properties(&self) -> &DeviceMemoryProperties {
         self.memory_properties.get_or_init(||
             Box::new(
                 unsafe { self.instance.as_raw().get_physical_device_memory_properties(self.dev).into() }
@@ -72,7 +72,7 @@ impl PhysicalDevice {
         )
     }
 
-    pub fn get_queue_family_infos(&self) -> &[QueueFamily] {
+    pub fn queue_family_infos(&self) -> &[QueueFamily] {
         self.queues.get_or_init(||
             unsafe { self.instance.as_raw().get_physical_device_queue_family_properties(self.dev) }
                 .into_iter()

@@ -10,7 +10,7 @@ pub struct DeviceCreateInfo {
 
 impl DeviceCreateInfo {
     pub fn validate(&self, device: &PhysicalDevice) {
-        let queue_infos = device.get_queue_family_infos();
+        let queue_infos = device.queue_family_infos();
 
         for ( &family_index, family_usage ) in self.queue_families.iter() {
             let queue_info = queue_infos.get(family_index)
