@@ -14,10 +14,19 @@ impl AllocationInfo {
         }
 
         let memory_types = &device.memory_properties().memory_types;
+        let memory_heaps = &device.memory_properties().memory_heaps;
 
         if memory_types.len() < self.memory_type {
             panic!("no memory type with index {} exist for this device", self.memory_type);
         }
+
+        let heap_idx = memory_types[self.memory_type].heap_index;
+    
+        if self.size > memory_heaps[heap_idx].size {
+            panic!("allocation size should be less than heap size");
+        }
+
+        // TODO: more checks
     }
 }
 
@@ -28,6 +37,20 @@ pub struct MemoryObject {
     memory_type: u32,
     
     memory: ash::vk::DeviceMemory
+}
+
+impl MemoryObject {
+    pub fn device(&self) -> &Arc<Device> {
+        &self.device
+    }
+    
+    pub fn size(&self) -> DeviceSize {
+        self.size
+    }
+
+    pub fn memory_type(&self) -> u32 {
+        self.memory_type
+    }
 }
 
 impl Drop for MemoryObject {
