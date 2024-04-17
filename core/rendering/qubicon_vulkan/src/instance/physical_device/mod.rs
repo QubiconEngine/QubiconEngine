@@ -1,5 +1,5 @@
 use std::sync::{ Arc, OnceLock };
-use crate::{error::VkError, device::QueueFamilyUsage };
+use crate::error::VkError;
 
 pub use features::*;
 pub use queue_info::*;
@@ -83,7 +83,7 @@ impl PhysicalDevice {
 
     /// Shortcut
     #[inline]
-    pub fn create_logical_device<T: Into<Box<[QueueFamilyUsage]>>>(
+    pub fn create_logical_device(
         self,
         create_info: crate::device::DeviceCreateInfo
     ) -> Result<Arc<crate::device::Device>, VkError> {
