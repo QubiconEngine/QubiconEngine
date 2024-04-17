@@ -1,8 +1,5 @@
 use bitflags::bitflags;
-use ash::vk::{
-    QueueFlags as VkQueueFlags,
-    QueueFamilyProperties as VkQueueFamilyProperties
-};
+
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -14,9 +11,9 @@ bitflags! {
     }
 }
 
-impl Into<QueueFamilyCapabilities> for VkQueueFlags {
-    fn into(self) -> QueueFamilyCapabilities {
-        QueueFamilyCapabilities(self.as_raw().into())
+impl From<ash::vk::QueueFlags> for QueueFamilyCapabilities {
+    fn from(value: ash::vk::QueueFlags) -> Self {
+        Self ( value.as_raw().into() )
     }
 }
 
@@ -28,11 +25,11 @@ pub struct QueueFamily {
     // TODO: min_image_tranfer_granularity
 }
 
-impl Into<QueueFamily> for VkQueueFamilyProperties {
-    fn into(self) -> QueueFamily {
-        QueueFamily {
-            capabilities: self.queue_flags.into(),
-            queue_count: self.queue_count
+impl From<ash::vk::QueueFamilyProperties> for QueueFamily {
+    fn from(value: ash::vk::QueueFamilyProperties) -> Self {
+        Self {
+            capabilities: value.queue_flags.into(),
+            queue_count: value.queue_count
         }
     }
 }
