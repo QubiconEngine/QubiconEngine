@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{ Arc, atomic::Ordering };
 
 use crate::{ error::VkError, device::Device, instance::physical_device::{ DeviceSize, PhysicalDevice } };
 
@@ -52,16 +52,32 @@ pub struct MemoryObject {
 }
 
 impl MemoryObject {
+    pub(crate) unsafe fn as_raw(&self) -> ash::vk::DeviceMemory {
+        self.memory
+    }
+
     pub fn allocate_from(device: Arc<Device>, allocation_info: AllocationInfo) -> Result<Self, VkError> {
         allocation_info.validate(&device.physical_device());
 
-        // TODO: Add allocation counting and comparison to device limits
+        
+        { // check memory objects count, and, if too much, return VkError::TooManyObjects
+            let max_memory_objects_count = device.physical_device().properties().limits.max_memory_allocation_count;
+            let memory_objects_count = device.memory_objects_count().load(Ordering::SeqCst);
+
+            if memory_objects_count >= max_memory_objects_count {
+                return Err( VkError::TooManyObjects );
+            }
+        }
 
         let memory = unsafe {
             let allocate_info = allocation_info.into();
 
             device.as_raw().allocate_memory(&allocate_info, None)
         }?;
+
+
+        unsafe { device.edit_memory_objects_count().fetch_add(1, Ordering::SeqCst) }
+
 
         let result = Self {
             device,
@@ -90,6 +106,10 @@ impl MemoryObject {
 
 impl Drop for MemoryObject {
     fn drop(&mut self) {
-        unsafe { self.device.as_raw().free_memory( self.memory, None ) }
+        unsafe {
+            self.device.edit_memory_objects_count().fetch_sub(1, Ordering::SeqCst);
+            
+            self.device.as_raw().free_memory( self.memory, None )
+        }
     }
 }

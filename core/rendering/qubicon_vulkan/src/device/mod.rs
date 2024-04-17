@@ -1,6 +1,6 @@
 pub use create_info::*;
 
-use std::{ sync::Arc, collections::HashMap };
+use std::{ collections::HashMap, sync::{ Arc, atomic::{ AtomicU32, Ordering } } };
 use crate::{ error::VkError, instance::physical_device::{ DeviceFeatures, PhysicalDevice } };
 
 mod create_info;
@@ -8,6 +8,8 @@ mod create_info;
 pub struct Device {
     enabled_features: DeviceFeatures,
     queue_families: HashMap<QueueFamilyIndex, QueueFamilyUsage>,
+
+    memory_objects_count: AtomicU32,
 
     physical_device: PhysicalDevice,
     device: ash::Device
@@ -22,6 +24,11 @@ impl Drop for Device {
 impl Device {
     pub(crate) unsafe fn as_raw(&self) -> &ash::Device {
         &self.device
+    }
+
+    // Should be used only during MemoryObject allocation and destruction
+    pub(crate) unsafe fn edit_memory_objects_count(&self) -> &AtomicU32 {
+        &self.memory_objects_count
     }
 
     pub fn from_physical_device(
@@ -64,6 +71,8 @@ impl Device {
                 enabled_features: create_info.features,
                 queue_families: create_info.queue_families,
 
+                memory_objects_count: AtomicU32::new(0),
+
                 physical_device,
                 device: device?
             }
@@ -82,6 +91,10 @@ impl Device {
 
     pub fn physical_device(&self) -> &PhysicalDevice {
         &self.physical_device
+    }
+
+    pub fn memory_objects_count(&self) -> u32 {
+        self.memory_objects_count.load(Ordering::SeqCst)
     }
 }
 
