@@ -98,6 +98,13 @@ impl Device {
     }
 }
 
+
+impl Device {
+    pub fn allocate_memory(self: &Arc<Self>, allocation_info: crate::memory::AllocationInfo) -> Result<crate::memory::MemoryObject, VkError> {
+        crate::memory::MemoryObject::allocate_from(Arc::clone(self), allocation_info)
+    }
+}
+
 // pub mod error;
 // pub(crate) mod inner;
 
