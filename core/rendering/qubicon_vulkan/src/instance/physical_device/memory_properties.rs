@@ -1,9 +1,6 @@
 use bitflags::bitflags;
 use arrayvec::ArrayVec;
-use ash::{
-    vk::MemoryHeapFlags as VkMemoryHeapFlags,
-    vk::MemoryPropertyFlags as VkMemoryPropertyFlags
-};
+
 
 bitflags! {
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -31,9 +28,9 @@ impl TryFrom<&str> for MemoryTypeProperties {
     }
 }
 
-impl Into<MemoryTypeProperties> for VkMemoryPropertyFlags {
-    fn into(self) -> MemoryTypeProperties {
-        MemoryTypeProperties(self.as_raw().into())
+impl From<ash::vk::MemoryPropertyFlags> for MemoryTypeProperties {
+    fn from(value: ash::vk::MemoryPropertyFlags) -> Self {
+        Self ( value.as_raw().into() )
     }
 }
 
@@ -45,9 +42,9 @@ impl TryFrom<&str> for MemoryHeapProperties {
     }
 }
 
-impl Into<MemoryHeapProperties> for VkMemoryHeapFlags {
-    fn into(self) -> MemoryHeapProperties {
-        MemoryHeapProperties(self.as_raw().into())
+impl From<ash::vk::MemoryHeapFlags> for MemoryHeapProperties {
+    fn from(value: ash::vk::MemoryHeapFlags) -> Self {
+        Self ( value.as_raw().into() )
     }
 }
 
@@ -64,20 +61,20 @@ pub struct MemoryHeap {
     pub size: u64 // TODO: Add DeviceSize type
 }
 
-impl Into<MemoryType> for ash::vk::MemoryType {
-    fn into(self) -> MemoryType {
-        MemoryType { 
-            properties: self.property_flags.into(),
-            heap_index: self.heap_index
+impl From<ash::vk::MemoryType> for MemoryType {
+    fn from(value: ash::vk::MemoryType) -> Self {
+        Self {
+            properties: value.property_flags.into(),
+            heap_index: value.heap_index
         }
     }
 }
 
-impl Into<MemoryHeap> for ash::vk::MemoryHeap {
-    fn into(self) -> MemoryHeap {
-        MemoryHeap {
-            properties: self.flags.into(),
-            size: self.size
+impl From<ash::vk::MemoryHeap> for MemoryHeap {
+    fn from(value: ash::vk::MemoryHeap) -> Self {
+        Self {
+            properties: value.flags.into(),
+            size: value.size
         }
     }
 }
@@ -86,15 +83,16 @@ impl Into<MemoryHeap> for ash::vk::MemoryHeap {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeviceMemoryProperties {
-    pub memory_types: ArrayVec<MemoryType, 32/*ash::vk::MAX_MEMORY_TYPES*/>, // TODO: Create own type for heap and mem type
+    pub memory_types: ArrayVec<MemoryType, 32/*ash::vk::MAX_MEMORY_TYPES*/>,
     pub memory_heaps: ArrayVec<MemoryHeap, 32/*ash::vk::MAX_MEMORY_HEAPS*/>
 }
 
-impl Into<DeviceMemoryProperties> for ash::vk::PhysicalDeviceMemoryProperties {
-    fn into(self) -> DeviceMemoryProperties {
-        DeviceMemoryProperties {
-            memory_types: ArrayVec::from_iter(self.memory_types.into_iter().map(Into::into)),
-            memory_heaps: ArrayVec::from_iter(self.memory_heaps.into_iter().map(Into::into))
+
+impl From<ash::vk::PhysicalDeviceMemoryProperties> for DeviceMemoryProperties {
+    fn from(value: ash::vk::PhysicalDeviceMemoryProperties) -> Self {
+        Self {
+            memory_types: ArrayVec::from_iter(value.memory_types.into_iter().take(value.memory_type_count).map(Into::into)),
+            memory_heaps: ArrayVec::from_iter(value.memory_heaps.into_iter().take(value.memory_heap_count).map(Into::into))
         }
     }
 }
