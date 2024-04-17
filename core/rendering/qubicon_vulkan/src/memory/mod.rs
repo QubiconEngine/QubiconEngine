@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use crate::{ device::Device, instance::physical_device::{ DeviceSize, PhysicalDevice } };
+use crate::{ error::VkError, device::Device, instance::physical_device::{ DeviceSize, PhysicalDevice } };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AllocationInfo {
     pub size: DeviceSize,
     pub memory_type: u32
@@ -30,6 +31,17 @@ impl AllocationInfo {
     }
 }
 
+impl From<AllocationInfo> for ash::vk::MemoryAllocateInfo {
+    fn from(value: AllocationInfo) -> Self {
+        Self::builder()
+            .allocation_size(value.size)
+            .memory_type_index(value.memory_type)
+            .build()
+    }
+}
+
+
+
 pub struct MemoryObject {
     device: Arc<Device>,
     
@@ -40,6 +52,29 @@ pub struct MemoryObject {
 }
 
 impl MemoryObject {
+    pub fn allocate_from(device: Arc<Device>, allocation_info: AllocationInfo) -> Result<Self, VkError> {
+        allocation_info.validate(&device.physical_device());
+
+        // TODO: Add allocation counting and comparison to device limits
+
+        let memory = unsafe {
+            let allocate_info = allocation_info.into();
+
+            device.as_raw().allocate_memory(&allocate_info, None)
+        }?;
+
+        let result = Self {
+            device,
+
+            size: allocation_info.size,
+            memory_type: allocation_info.memory_type,
+
+            memory
+        };
+
+        Ok ( result )
+    }
+
     pub fn device(&self) -> &Arc<Device> {
         &self.device
     }
