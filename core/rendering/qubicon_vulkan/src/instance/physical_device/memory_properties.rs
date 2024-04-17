@@ -83,8 +83,8 @@ impl From<ash::vk::MemoryHeap> for MemoryHeap {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeviceMemoryProperties {
-    pub memory_types: ArrayVec<MemoryType, 32/*ash::vk::MAX_MEMORY_TYPES*/>,
-    pub memory_heaps: ArrayVec<MemoryHeap, 32/*ash::vk::MAX_MEMORY_HEAPS*/>
+    pub memory_types: ArrayVec<MemoryType, { ash::vk::MAX_MEMORY_TYPES }>,
+    pub memory_heaps: ArrayVec<MemoryHeap, { ash::vk::MAX_MEMORY_HEAPS }>
 }
 
 
