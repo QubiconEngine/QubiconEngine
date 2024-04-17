@@ -62,7 +62,7 @@ impl MemoryObject {
         
         { // check memory objects count, and, if too much, return VkError::TooManyObjects
             let max_memory_objects_count = device.physical_device().properties().limits.max_memory_allocation_count;
-            let memory_objects_count = device.memory_objects_count().load(Ordering::SeqCst);
+            let memory_objects_count = device.memory_objects_count();
 
             if memory_objects_count >= max_memory_objects_count {
                 return Err( VkError::TooManyObjects );
@@ -108,7 +108,7 @@ impl Drop for MemoryObject {
     fn drop(&mut self) {
         unsafe {
             self.device.edit_memory_objects_count().fetch_sub(1, Ordering::SeqCst);
-            
+
             self.device.as_raw().free_memory( self.memory, None )
         }
     }
