@@ -1,4 +1,4 @@
-use std::sync::{ Arc, atomic::{ AtomicU32, AtomicPtr, Ordering } };
+use std::sync::{ Arc, Mutex, atomic::Ordering };
 
 use super::{ DeviceSize, MemoryTypeProperties };
 use crate::{ error::VkError, device::Device, instance::physical_device::PhysicalDevice };
@@ -43,6 +43,11 @@ impl From<AllocationInfo> for ash::vk::MemoryAllocateInfo {
 
 
 
+struct MapData {
+    map_count: u32,
+    map_addr: *mut ()
+}
+
 pub struct MemoryObject {
     device: Arc<Device>,
     
@@ -50,8 +55,7 @@ pub struct MemoryObject {
     memory_type: u32,
     memory_properties: MemoryTypeProperties,
 
-    map_count: AtomicU32,
-    map_addr: AtomicPtr<()>,
+    map_data: Mutex<MapData>,
     
     memory: ash::vk::DeviceMemory
 }
@@ -96,8 +100,12 @@ impl MemoryObject {
             memory_type: allocation_info.memory_type,
             memory_properties,
 
-            map_count: AtomicU32::new(0),
-            map_addr: AtomicPtr::new(core::ptr::null_mut()),
+            map_data: Mutex::new(
+                MapData {
+                    map_count: 0,
+                    map_addr: core::ptr::null_mut()
+                }
+            ),
 
             memory
         };
@@ -116,6 +124,47 @@ impl MemoryObject {
     pub fn memory_type(&self) -> u32 {
         self.memory_type
     }
+
+
+    /// # Safety
+    /// Mapped memory is always mutable. Some synchronization needs to be done
+    pub unsafe fn map(&self) -> Result<(), VkError> {
+        if !self.memory_properties.contains( MemoryTypeProperties::HOST_VISIBLE ) {
+            return Err( VkError::MemoryMapFailed );
+        }
+
+        // Maybe unwrap_unchecked ?
+        let mut map_data = self.map_data.lock().unwrap();
+
+
+        if map_data.map_count == 0 {
+            map_data.map_addr = self.device.as_raw()
+                .map_memory(self.memory, 0, self.size, Default::default())?;
+        }
+
+        map_data.map_count += 1;
+
+
+        let result = MapGuard {
+            memory_object: self,
+            ptr: map_data.map_addr
+        };
+
+        Ok( result )
+    }
+
+    /// # Safety
+    /// Memory should be previously mapped
+    unsafe fn unmap(&self) {
+        let mut map_data = self.map_data.lock().unwrap();
+
+
+        map_data.map_count -= 1;
+
+        if map_data.map_count == 0 {
+            self.device.as_raw().unmap_memory(self.memory)
+        }
+    }
 }
 
 impl Drop for MemoryObject {
@@ -125,5 +174,18 @@ impl Drop for MemoryObject {
 
             self.device.as_raw().free_memory( self.memory, None )
         }
+    }
+}
+
+
+
+pub struct MapGuard<'a> {
+    memory_object: &'a MemoryObject,
+    ptr: *mut ()
+}
+
+impl<'a> Drop for MapGuard<'a> {
+    fn drop(&mut self) {
+        unsafe { self.memory_object.unmap() }
     }
 }
