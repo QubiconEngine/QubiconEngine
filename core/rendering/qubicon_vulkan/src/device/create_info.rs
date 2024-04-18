@@ -13,10 +13,10 @@ impl DeviceCreateInfo {
         let queue_infos = device.queue_family_infos();
 
         for ( &family_index, family_usage ) in self.queue_families.iter() {
-            let queue_info = queue_infos.get(family_index)
+            let queue_info = queue_infos.get(family_index as usize)
                 .unwrap_or_else(|| panic!("device dont have queue family with index {family_index}"));
 
-            if family_usage.queues.len() > queue_info.queue_count {
+            if family_usage.queues.len() > queue_info.queue_count as usize {
                 panic!(
                     "too much queues with family index {} requested. max is {}, requested {}",
                     family_index,

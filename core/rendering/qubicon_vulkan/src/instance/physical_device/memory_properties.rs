@@ -91,8 +91,8 @@ pub struct DeviceMemoryProperties {
 impl From<ash::vk::PhysicalDeviceMemoryProperties> for DeviceMemoryProperties {
     fn from(value: ash::vk::PhysicalDeviceMemoryProperties) -> Self {
         Self {
-            memory_types: ArrayVec::from_iter(value.memory_types.into_iter().take(value.memory_type_count).map(Into::into)),
-            memory_heaps: ArrayVec::from_iter(value.memory_heaps.into_iter().take(value.memory_heap_count).map(Into::into))
+            memory_types: ArrayVec::from_iter(value.memory_types.into_iter().take(value.memory_type_count as usize).map(Into::into)),
+            memory_heaps: ArrayVec::from_iter(value.memory_heaps.into_iter().take(value.memory_heap_count as usize).map(Into::into))
         }
     }
 }

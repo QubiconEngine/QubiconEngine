@@ -22,9 +22,9 @@ impl AllocationInfo {
             panic!("no memory type with index {} exist for this device", self.memory_type);
         }
 
-        let heap_idx = memory_types[self.memory_type].heap_index;
+        let heap_idx = memory_types[self.memory_type as usize].heap_index;
     
-        if self.size > memory_heaps[heap_idx].size {
+        if self.size > memory_heaps[heap_idx as usize].size {
             panic!("allocation size should be less than heap size");
         }
 
