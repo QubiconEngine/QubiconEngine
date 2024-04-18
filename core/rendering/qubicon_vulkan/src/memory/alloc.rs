@@ -1,4 +1,10 @@
-use super::MemoryTypeProperties;
+use crate::error::VkError;
+use super::{
+    DeviceSize,
+    MemoryTypeProperties,
+    
+    MemoryObject
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MemoryKind {
@@ -30,4 +36,16 @@ pub enum AllocationLifetime {
     /// Usable for textures and models, because they are
     /// required for a pretty long period.
     Long
+}
+
+
+pub trait Allocator {
+    type Allocation: Allocation;
+    
+    fn alloc(&self, size: DeviceSize, kind: MemoryKind, lifetime: AllocationLifetime) -> Result<Self::Allocation, VkError>;
+    fn dealloc(&self, allocation: Self::Allocation);
+}
+
+pub trait Allocation {
+    unsafe fn as_mem_object_and_offset(&self) -> (&MemoryObject, DeviceSize);
 }
