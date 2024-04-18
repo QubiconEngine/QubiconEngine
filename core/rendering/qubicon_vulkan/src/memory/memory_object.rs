@@ -1,6 +1,6 @@
-use std::sync::{ Arc, atomic::Ordering };
+use std::sync::{ Arc, atomic::{ AtomicU32, AtomicPtr, Ordering } };
 
-use super::DeviceSize;
+use super::{ DeviceSize, MemoryTypeProperties };
 use crate::{ error::VkError, device::Device, instance::physical_device::PhysicalDevice };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -48,6 +48,10 @@ pub struct MemoryObject {
     
     size: DeviceSize,
     memory_type: u32,
+    memory_properties: MemoryTypeProperties,
+
+    map_count: AtomicU32,
+    map_addr: AtomicPtr<()>,
     
     memory: ash::vk::DeviceMemory
 }
@@ -59,6 +63,11 @@ impl MemoryObject {
 
     pub fn allocate_from(device: Arc<Device>, allocation_info: AllocationInfo) -> Result<Self, VkError> {
         allocation_info.validate(&device.physical_device());
+
+        let memory_properties = device.physical_device()
+            .memory_properties()
+            .memory_types[allocation_info.memory_type as usize]
+            .properties;
 
         
         { // check memory objects count, and, if too much, return VkError::TooManyObjects
@@ -85,6 +94,10 @@ impl MemoryObject {
 
             size: allocation_info.size,
             memory_type: allocation_info.memory_type,
+            memory_properties,
+
+            map_count: AtomicU32::new(0),
+            map_addr: AtomicPtr::new(core::ptr::null_mut()),
 
             memory
         };
