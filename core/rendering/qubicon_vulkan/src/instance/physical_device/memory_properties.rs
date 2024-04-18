@@ -58,7 +58,7 @@ pub struct MemoryType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MemoryHeap {
     pub properties: MemoryHeapProperties,
-    pub size: u64 // TODO: Add DeviceSize type
+    pub size: super::DeviceSize
 }
 
 impl From<ash::vk::MemoryType> for MemoryType {
