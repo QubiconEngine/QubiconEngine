@@ -1,3 +1,5 @@
+use super::MemoryTypeProperties;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MemoryKind {
     /// Memory is local to GPU and cant be accessed from CPU.
@@ -9,7 +11,15 @@ pub enum MemoryKind {
     Upload,
     /// Memory also can be accessed both from CPU and GPU.
     /// Effective for reading data from GPU
-    Download
+    Download,
+    
+    /// Memory for some special needs. Will be rarely used.
+    Custom {
+        /// Properties what memory type should have
+        allowed_properties: MemoryTypeProperties,
+        /// Properties what memory type shouldnt have
+        denied_properties: MemoryTypeProperties
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
