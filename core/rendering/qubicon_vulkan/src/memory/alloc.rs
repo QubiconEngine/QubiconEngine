@@ -11,3 +11,13 @@ pub enum MemoryKind {
     /// Effective for reading data from GPU
     Download
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AllocationLifetime {
+    /// Usable for staging buffers, temporal images and etc.
+    /// Basicaly for resources what needed for a short period.
+    Short,
+    /// Usable for textures and models, because they are
+    /// required for a pretty long period.
+    Long
+}
