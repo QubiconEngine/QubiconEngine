@@ -1,6 +1,7 @@
 use std::sync::{ Arc, atomic::Ordering };
 
-use crate::{ error::VkError, device::Device, instance::physical_device::{ DeviceSize, PhysicalDevice } };
+use super::DeviceSize;
+use crate::{ error::VkError, device::Device, instance::physical_device::PhysicalDevice };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AllocationInfo {
