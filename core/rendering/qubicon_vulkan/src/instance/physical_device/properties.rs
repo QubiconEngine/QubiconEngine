@@ -11,7 +11,7 @@ pub enum DeviceType {
     Other = 0
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DeviceProperties {
     pub driver_version: u32,
     pub vendor_id: u32,
@@ -176,7 +176,7 @@ decl_device_limits_struct!{
 
 macro_rules! convert_field {
     ( $self:ident, $value:ident, $field_name:ident: ( bool, Bool32 ) ) => {
-        $self.$field_name = $value.$field_name as bool;
+        $self.$field_name = $value.$field_name == ash::vk::TRUE;
     };
     ( $self:ident, $value:ident, $field_name:ident ) => {
         $self.$field_name = $value.$field_name;

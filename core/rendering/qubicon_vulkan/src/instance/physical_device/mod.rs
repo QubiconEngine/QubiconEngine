@@ -87,7 +87,7 @@ impl PhysicalDevice {
         self,
         create_info: crate::device::DeviceCreateInfo
     ) -> Result<Arc<crate::device::Device>, VkError> {
-        crate::device::Device::from_physical_device(create_info, self)
+        crate::device::Device::from_physical_device(self, create_info)
     }
 }
 
@@ -122,10 +122,3 @@ impl PhysicalDevice {
 //         return Err(crate::error::ValidationError::NoWindowingEnabled);
 //     }
 // }
-
-impl PartialEq for PhysicalDevice {
-    fn eq(&self, other: &Self) -> bool {
-        self.instance == other.instance &&
-        self.dev == other.dev
-    }
-}

@@ -1,15 +1,12 @@
 use std::{ ffi::CString, fmt::Debug, sync::Arc };
 use crate::error::VkError;
 
-#[cfg(feature = "windowing")]
-use crate::surface::Surface;
-
 pub use create_info::*;
 
 mod create_info;
 pub mod physical_device;
 
-#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(thiserror::Error, Debug)]
 pub enum InstanceCreationError {
     #[error(transparent)]
     Loading( #[from] ash::LoadingError ),
@@ -35,8 +32,8 @@ impl Instance {
 
 
             // TODO: store on stack
-            let app_name: CString = create_info.app_id.app_name.into();
-            let engine_name: CString = create_info.app_id.engine_name.into();
+            let app_name = CString::new(create_info.app_id.app_name).expect("app name contains null byte");
+            let engine_name = CString::new(create_info.app_id.engine_name).expect("engine name contains null byte");
 
             let application_info = ash::vk::ApplicationInfo::builder()
                 .api_version(create_info.app_id.vulkan_version.into())
@@ -53,7 +50,8 @@ impl Instance {
                 //.flags(flags)
                 .build();
 
-            let instance = entry.create_instance(&create_info, None);
+            let instance = entry.create_instance(&create_info, None)
+                .map_err(| e | VkError::from(e));
 
             (entry, instance)
         };

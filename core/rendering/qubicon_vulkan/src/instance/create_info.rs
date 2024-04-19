@@ -1,8 +1,5 @@
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct InstanceCreateInfo {
-    #[cfg(feature = "windowing")]
-    pub enable_windowing: bool,
-
     pub app_id: AppId
 }
 
@@ -24,7 +21,9 @@ pub struct AppId {
 
 impl AppId {
     pub fn validate(&self) {
-        if self.vulkan_version.into() != 0 && self.vulkan_version < Version( ash::vk::API_VERSION_1_0 ) {
+        let vulkan_version: u32 = self.vulkan_version.into();
+
+        if vulkan_version != 0 && self.vulkan_version < Version( ash::vk::API_VERSION_1_0 ) {
             panic!("invalid Vulkan API version: {}", self.vulkan_version);
         }
     }
@@ -73,21 +72,6 @@ impl core::fmt::Display for Version {
     }
 }
 
-impl core::str::FromStr for Version {
-    type Err = <u32 as core::str::FromStr>::Err;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut s = s.split('.');
-
-        // TODO: Variant
-        let major = s.next().ok_or(Self::Err)?.into();
-        let minor = s.next().ok_or(Self::Err)?.into();
-        let patch = s.next().ok_or(Self::Err)?.into();
-
-        Ok ( Self::new(0, major, minor, patch) )
-    }
-}
-
 impl PartialOrd for Version {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         let result = self.variant().cmp(&other.variant())
@@ -102,5 +86,34 @@ impl PartialOrd for Version {
 impl From<Version> for u32 {
     fn from(value: Version) -> Self {
         value.0
+    }
+}
+
+
+#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
+pub enum VersionParseError {
+    #[error(transparent)]
+    ParseIntError( #[from] core::num::ParseIntError ),
+
+    #[error("str dont have a major number")]
+    NoMajor,
+    #[error("str dont have a minor number")]
+    NoMinor,
+    #[error("str dont have a path number")]
+    NoPath
+}
+
+impl core::str::FromStr for Version {
+    type Err = VersionParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut s = s.split('.');
+
+        // TODO: Variant
+        let major = s.next().ok_or(VersionParseError::NoMajor)?.parse()?;
+        let minor = s.next().ok_or(VersionParseError::NoMinor)?.parse()?;
+        let patch = s.next().ok_or(VersionParseError::NoPath)?.parse()?;
+
+        Ok ( Self::new(0, major, minor, patch) )
     }
 }
