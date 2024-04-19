@@ -47,5 +47,11 @@ pub trait Allocator {
 }
 
 pub trait Allocation {
+    type MapGuard;
+    type MutableMapGuard;
+
+    fn map(&self) -> Result<Self::MapGuard, VkError>;
+    fn map_mut(&mut self) -> Result<Self::MutableMapGuard, VkError>;
+
     unsafe fn as_mem_object_and_offset(&self) -> (&MemoryObject, DeviceSize);
 }
