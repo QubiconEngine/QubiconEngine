@@ -18,7 +18,7 @@ impl AllocationInfo {
         let memory_types = &device.memory_properties().memory_types;
         let memory_heaps = &device.memory_properties().memory_heaps;
 
-        if memory_types.len() < self.memory_type {
+        if memory_types.len() < self.memory_type as usize {
             panic!("no memory type with index {} exist for this device", self.memory_type);
         }
 
@@ -90,7 +90,7 @@ impl MemoryObject {
         }?;
 
 
-        unsafe { device.edit_memory_objects_count().fetch_add(1, Ordering::SeqCst) }
+        unsafe { device.edit_memory_objects_count().fetch_add(1, Ordering::SeqCst) };
 
 
         let result = Self {
@@ -128,7 +128,7 @@ impl MemoryObject {
 
     /// # Safety
     /// Mapped memory is always mutable. Some synchronization needs to be done
-    pub unsafe fn map(&self, offset: DeviceSize) -> Result<(), VkError> {
+    pub unsafe fn map(&self, offset: DeviceSize) -> Result<MapGuard, VkError> {
         if !self.memory_properties.contains( MemoryTypeProperties::HOST_VISIBLE ) {
             return Err( VkError::MemoryMapFailed );
         }
@@ -141,7 +141,8 @@ impl MemoryObject {
 
         if map_data.map_count == 0 {
             map_data.map_addr = self.device.as_raw()
-                .map_memory(self.memory, 0, self.size, Default::default())?;
+                .map_memory(self.memory, 0, self.size, Default::default())
+                .map(| ptr | ptr.cast())?;
         }
 
         map_data.map_count += 1;
@@ -149,7 +150,7 @@ impl MemoryObject {
 
         let result = MapGuard {
             memory_object: self,
-            ptr: map_data.map_addr.byte_add(offset),
+            ptr: map_data.map_addr.byte_add(offset as usize),
             
             offset
         };
@@ -200,7 +201,7 @@ impl<'a> MapGuard<'a> {
         self.ptr
     }
 
-    pub fn offset(&self) -> usize {
+    pub fn offset(&self) -> DeviceSize {
         self.offset
     }
 }
