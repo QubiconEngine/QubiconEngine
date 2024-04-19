@@ -55,37 +55,35 @@ pub enum VkError {
 
 impl From<VkResult> for VkError {
     fn from(value: VkResult) -> Self {
-        Ok(
-            match value {
-                VkResult::NOT_READY => Self::NotReady,
-                VkResult::TIMEOUT => Self::Timeout,
-                VkResult::EVENT_SET => Self::EventSet,
-                VkResult::EVENT_RESET => Self::EventReset,
-                VkResult::INCOMPLETE => Self::Incomplete,
-                VkResult::ERROR_OUT_OF_HOST_MEMORY => Self::OutOfHostMemory,
-                VkResult::ERROR_OUT_OF_DEVICE_MEMORY => Self::OutOfDeviceMemory,
-                VkResult::ERROR_INITIALIZATION_FAILED => Self::InitializationFailed,
-                VkResult::ERROR_DEVICE_LOST => Self::DeviceLost,
-                VkResult::ERROR_MEMORY_MAP_FAILED => Self::MemoryMapFailed,
-                VkResult::ERROR_LAYER_NOT_PRESENT => Self::LayerNotPresent,
-                VkResult::ERROR_EXTENSION_NOT_PRESENT => Self::ExtensionNotPresent,
-                VkResult::ERROR_FEATURE_NOT_PRESENT => Self::FeatureNotPresent,
-                VkResult::ERROR_INCOMPATIBLE_DRIVER => Self::IncompatibleDriver,
-                VkResult::ERROR_TOO_MANY_OBJECTS => Self::TooManyObjects,
-                VkResult::ERROR_FORMAT_NOT_SUPPORTED => Self::FormatNotSupported,
-                VkResult::ERROR_FRAGMENTED_POOL => Self::FragmentedPool,
-                VkResult::ERROR_UNKNOWN => Self::Unknown,
-
-
-                VkResult::ERROR_OUT_OF_DATE_KHR => Self::OutOfDate,
-                VkResult::ERROR_SURFACE_LOST_KHR => Self::SurfaceLost,
-                VkResult::SUBOPTIMAL_KHR => Self::Suboptimal,
-                VkResult::ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT => Self::FullScreenExclusiveModeLost,
-
-
-                _ => panic!("unknown vulkan error") // TODO: change to something different
-            }
-        )
+        match value {
+            VkResult::NOT_READY => Self::NotReady,
+            VkResult::TIMEOUT => Self::Timeout,
+            VkResult::EVENT_SET => Self::EventSet,
+            VkResult::EVENT_RESET => Self::EventReset,
+            VkResult::INCOMPLETE => Self::Incomplete,
+            VkResult::ERROR_OUT_OF_HOST_MEMORY => Self::OutOfHostMemory,
+            VkResult::ERROR_OUT_OF_DEVICE_MEMORY => Self::OutOfDeviceMemory,
+            VkResult::ERROR_INITIALIZATION_FAILED => Self::InitializationFailed,
+            VkResult::ERROR_DEVICE_LOST => Self::DeviceLost,
+            VkResult::ERROR_MEMORY_MAP_FAILED => Self::MemoryMapFailed,
+            VkResult::ERROR_LAYER_NOT_PRESENT => Self::LayerNotPresent,
+            VkResult::ERROR_EXTENSION_NOT_PRESENT => Self::ExtensionNotPresent,
+            VkResult::ERROR_FEATURE_NOT_PRESENT => Self::FeatureNotPresent,
+            VkResult::ERROR_INCOMPATIBLE_DRIVER => Self::IncompatibleDriver,
+            VkResult::ERROR_TOO_MANY_OBJECTS => Self::TooManyObjects,
+            VkResult::ERROR_FORMAT_NOT_SUPPORTED => Self::FormatNotSupported,
+            VkResult::ERROR_FRAGMENTED_POOL => Self::FragmentedPool,
+            VkResult::ERROR_UNKNOWN => Self::Unknown,
+            
+            
+            VkResult::ERROR_OUT_OF_DATE_KHR => Self::OutOfDate,
+            VkResult::ERROR_SURFACE_LOST_KHR => Self::SurfaceLost,
+            VkResult::SUBOPTIMAL_KHR => Self::Suboptimal,
+            VkResult::ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT => Self::FullScreenExclusiveModeLost,
+            
+            
+            _ => panic!("unknown vulkan error") // TODO: change to something different
+        }
     }
 }
 
