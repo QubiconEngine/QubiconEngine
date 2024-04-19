@@ -1,5 +1,5 @@
 use arrayvec::ArrayString;
-use super::DeviceSize;
+use super::{ DeviceSize, super::Version };
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,7 +13,7 @@ pub enum DeviceType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeviceProperties {
-    pub driver_version: u32,
+    pub driver_version: Version,
     pub vendor_id: u32,
     pub device_id: u32,
     pub device_type: DeviceType,
@@ -27,7 +27,7 @@ pub struct DeviceProperties {
 impl From<ash::vk::PhysicalDeviceProperties> for DeviceProperties {
     fn from(value: ash::vk::PhysicalDeviceProperties) -> Self {    
         Self {
-            driver_version: value.driver_version,
+            driver_version: value.driver_version.into(),
             vendor_id: value.vendor_id,
             device_id: value.device_id,
             device_type: value.device_type.into(),

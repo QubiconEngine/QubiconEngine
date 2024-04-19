@@ -23,7 +23,7 @@ impl AppId {
     pub fn validate(&self) {
         let vulkan_version: u32 = self.vulkan_version.into();
 
-        if vulkan_version != 0 && self.vulkan_version < Version( ash::vk::API_VERSION_1_0 ) {
+        if vulkan_version != 0 && self.vulkan_version < Version::from_u32(ash::vk::API_VERSION_1_0) {
             panic!("invalid Vulkan API version: {}", self.vulkan_version);
         }
     }
@@ -35,6 +35,10 @@ pub struct Version(u32);
 impl Version {
     pub const fn new(variant: u32, major: u32, minor: u32, patch: u32) -> Self {
         Self ( ash::vk::make_api_version(variant, major, minor, patch) )
+    }
+
+    pub const fn from_u32(value: u32) -> Self {
+        Self ( value )
     }
 
     pub const fn major(&self) -> u32 {
@@ -80,6 +84,12 @@ impl PartialOrd for Version {
             .then_with(|| self.patch().cmp(&other.patch()));
 
         Some( result )
+    }
+}
+
+impl From<u32> for Version {
+    fn from(value: u32) -> Self {
+        Self::from_u32(value)
     }
 }
 
