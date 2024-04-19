@@ -6,5 +6,5 @@ pub use crate::instance::physical_device::{
     DeviceSize
 };
 
-mod alloc;
+pub mod alloc;
 mod memory_object;

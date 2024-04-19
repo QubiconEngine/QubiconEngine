@@ -51,7 +51,7 @@ impl Instance {
                 .build();
 
             let instance = entry.create_instance(&create_info, None)
-                .map_err(| e | VkError::from(e));
+                .map_err(VkError::from);
 
             (entry, instance)
         };

@@ -66,7 +66,7 @@ impl MemoryObject {
     }
 
     pub fn allocate_from(device: Arc<Device>, allocation_info: AllocationInfo) -> Result<Self, VkError> {
-        allocation_info.validate(&device.physical_device());
+        allocation_info.validate(device.physical_device());
 
         let memory_properties = device.physical_device()
             .memory_properties()

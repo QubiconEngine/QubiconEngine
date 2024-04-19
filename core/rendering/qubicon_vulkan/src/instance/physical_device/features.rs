@@ -1,3 +1,5 @@
+#![allow(clippy::assign_op_pattern)]
+
 macro_rules! decl_features_struct {
     {
         $( #[derive( $( $macro_name:ident ),+ )] )?
