@@ -85,12 +85,13 @@ impl Device {
         &self.enabled_features
     }
 
-    pub fn queue_families(&self) -> &[QueueFamilyUsage] {
-        &self.queue_families
-    }
-
     pub fn physical_device(&self) -> &PhysicalDevice {
         &self.physical_device
+    }
+
+    // TODO: Delete this cringe and return some custom type
+    pub fn queue_families(&self) -> &HashMap<QueueFamilyIndex, QueueFamilyUsage> {
+        &self.queue_families
     }
 
     pub fn memory_objects_count(&self) -> u32 {
