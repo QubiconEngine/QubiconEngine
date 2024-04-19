@@ -20,6 +20,31 @@ fn main() {
         let properties = device.properties();
         let memory_properties = device.memory_properties();
 
-        println!("Device {}\n\t{}", properties.device_name, properties.driver_version)
+        println!(
+            "Device {}\n\tDriver version: {}\n\tMemory types:",
+
+            properties.device_name,
+            properties.driver_version,
+        );
+
+        for (idx, ty) in memory_properties.memory_types.iter().enumerate() {
+            println!(
+                "\t\t№ {idx}:\n\t\t\tProperties: {:?}\n\t\t\tHeap: {}",
+
+                 ty.properties,
+                 ty.heap_index
+            );
+        }
+
+        println!("\tMemory heaps:");
+
+        for (idx, heap) in memory_properties.memory_heaps.iter().enumerate() {
+            println!(
+                "\t\t№ {idx}\n\t\t\tSize: {}\n\t\t\tProperties: {:?}",
+
+                 heap.size,
+                 heap.properties
+            )
+        }
     }
 }
