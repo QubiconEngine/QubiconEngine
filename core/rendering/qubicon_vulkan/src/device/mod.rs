@@ -40,7 +40,7 @@ impl Device {
         let device = { 
             let features: ash::vk::PhysicalDeviceFeatures = create_info.features.into();
             let queue_create_infos: Vec<_> = create_info.queue_families.iter()
-                .map(| (&index, &usage) |
+                .map(| (&index, usage) |
                     ash::vk::DeviceQueueCreateInfo::builder()
                         .queue_family_index(index)
                         .queue_priorities(&usage.queues)
