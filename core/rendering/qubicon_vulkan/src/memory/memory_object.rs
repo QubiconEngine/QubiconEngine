@@ -128,10 +128,12 @@ impl MemoryObject {
 
     /// # Safety
     /// Mapped memory is always mutable. Some synchronization needs to be done
-    pub unsafe fn map(&self) -> Result<(), VkError> {
+    pub unsafe fn map(&self, offset: DeviceSize) -> Result<(), VkError> {
         if !self.memory_properties.contains( MemoryTypeProperties::HOST_VISIBLE ) {
             return Err( VkError::MemoryMapFailed );
         }
+        
+        assert!(offset > self.size, "offset is greater than size. Offset is {}, size is {}", offset, self.size);
 
         // Maybe unwrap_unchecked ?
         let mut map_data = self.map_data.lock().unwrap();
@@ -147,7 +149,9 @@ impl MemoryObject {
 
         let result = MapGuard {
             memory_object: self,
-            ptr: map_data.map_addr
+            ptr: map_data.map_addr.byte_add(offset),
+            
+            offset
         };
 
         Ok( result )
@@ -181,11 +185,22 @@ impl Drop for MemoryObject {
 
 pub struct MapGuard<'a> {
     memory_object: &'a MemoryObject,
-    ptr: *mut ()
+    ptr: *mut (),
+    offset: DeviceSize
 }
 
 impl<'a> Drop for MapGuard<'a> {
     fn drop(&mut self) {
         unsafe { self.memory_object.unmap() }
+    }
+}
+
+impl<'a> MapGuard<'a> {
+    pub fn ptr(&self) -> *mut () {
+        self.ptr
+    }
+
+    pub fn offset(&self) -> usize {
+        self.offset
     }
 }
