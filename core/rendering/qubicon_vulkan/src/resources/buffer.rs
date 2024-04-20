@@ -1,6 +1,8 @@
 use std::sync::Arc;
 use bitflags::bitflags;
 
+use crate::{ device::Device, memory::alloc::Allocator };
+
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct BufferUsageFlags: u32 {
@@ -51,6 +53,30 @@ impl From<BufferCreateFlags> for ash::vk::BufferCreateFlags {
     }
 }
 
+
+pub struct UnbindedBuffer {
+    device: Arc<Device>,
+
+    buffer: ash::vk::Buffer
+}
+
+impl Drop for UnbindedBuffer {
+    fn drop(&mut self) {
+        unsafe { self.device.as_raw().destroy_buffer( self.buffer, None ) }
+    }
+}
+
+
+pub struct Buffer<A: Allocator> {
+    buffer: UnbindedBuffer,
+
+    allocator: A,
+    allocation: A::Allocation,
+}
+
+impl<A: Allocator> Drop for Buffer<A> {
+    fn drop(&mut self) { /* Yes, its empty. Just so we dont accidentally take some field out */ }
+}
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 // pub struct BufferCreateInfo {
 //     pub usage_flags: BufferUsageFlags,
