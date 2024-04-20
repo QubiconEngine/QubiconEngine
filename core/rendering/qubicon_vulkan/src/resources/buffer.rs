@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use bitflags::bitflags;
 
-use crate::{ device::Device, memory::alloc::Allocator };
+use crate::{ device::Device, memory::{ DeviceSize, alloc::Allocator } };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -54,6 +54,40 @@ impl From<BufferCreateFlags> for ash::vk::BufferCreateFlags {
 }
 
 
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BufferCreateInfo {
+    pub usage_flags: BufferUsageFlags,
+    // TODO: create_flags. They may require some additional structures
+
+    pub size: DeviceSize,
+
+    // TODO: Sharing mode
+}
+
+impl BufferCreateInfo {
+    pub fn validate(&self) {
+        if self.size == 0 {
+            panic!("size is zero");
+        }
+
+        // TODO: Sharing mode check
+        // TODO: create_flags check
+    }
+}
+
+impl From<BufferCreateInfo> for ash::vk::BufferCreateInfo {
+    fn from(value: BufferCreateInfo) -> Self {
+        Self::builder()
+            .usage(value.usage_flags.into())
+            .size(value.size)
+            //.sharing_mode(sharing_mode)
+            .build()
+    }
+}
+
+
+
 pub struct UnbindedBuffer {
     device: Arc<Device>,
 
@@ -68,6 +102,7 @@ impl Drop for UnbindedBuffer {
 
 
 pub struct Buffer<A: Allocator> {
+    // this field is dropped first due to RFC 1857
     buffer: UnbindedBuffer,
 
     allocator: A,
