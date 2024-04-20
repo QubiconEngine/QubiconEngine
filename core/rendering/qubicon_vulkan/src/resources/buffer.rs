@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use bitflags::bitflags;
 
-use crate::{ device::Device, memory::{ DeviceSize, alloc::Allocator } };
+use crate::{ error::VkError, device::Device, memory::{ DeviceSize, alloc::Allocator } };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -91,7 +91,45 @@ impl From<BufferCreateInfo> for ash::vk::BufferCreateInfo {
 pub struct UnbindedBuffer {
     device: Arc<Device>,
 
+    size: DeviceSize,
+    usage_flags: BufferUsageFlags,
+
     buffer: ash::vk::Buffer
+}
+
+impl UnbindedBuffer {
+    pub(crate) unsafe fn as_raw(&self) -> ash::vk::Buffer {
+        self.buffer
+    }
+
+    pub fn new(device: Arc<Device>, create_info: &BufferCreateInfo) -> Result<Self, VkError> {
+        create_info.validate();
+
+
+        let buffer = unsafe {
+            device.as_raw().create_buffer(&create_info.into(), None)
+        };
+        
+
+        let result = Self {
+            device,
+
+            size: create_info.size,
+            usage_flags: create_info.usage_flags,
+
+            buffer: buffer?
+        };
+
+        Ok ( Self )
+    }
+
+    pub fn size(&self) -> DeviceSize {
+        self.size
+    }
+
+    pub fn usage_flags(&self) -> BufferUsageFlags {
+        self.usage_flags
+    }
 }
 
 impl Drop for UnbindedBuffer {
