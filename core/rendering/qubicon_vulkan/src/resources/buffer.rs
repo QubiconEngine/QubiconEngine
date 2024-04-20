@@ -16,6 +16,20 @@ bitflags! {
     }
 }
 
+impl From<ash::vk::BufferUsageFlags> for BufferUsageFlags {
+    fn from(value: ash::vk::BufferUsageFlags) -> Self {
+        Self ( value.as_raw().into() )
+    }
+}
+
+impl From<BufferUsageFlags> for ash::vk::BufferUsageFlags {
+    fn from(value: BufferUsageFlags) -> Self {
+        Self::from_raw(value.bits())
+    }
+}
+
+
+
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct BufferCreateFlags: u32 {
@@ -25,25 +39,13 @@ bitflags! {
     }
 }
 
-impl Into<BufferUsageFlags> for VkBufferUsageFlags {
-    fn into(self) -> BufferUsageFlags {
-        BufferUsageFlags(self.as_raw().into())
+impl From<ash::vk::BufferCreateFlags> for BufferCreateFlags {
+    fn from(value: ash::vk::BufferCreateFlags) -> Self {
+        Self ( value.as_raw().into() )
     }
 }
 
-impl From<BufferUsageFlags> for VkBufferUsageFlags {
-    fn from(value: BufferUsageFlags) -> Self {
-        Self::from_raw(value.bits())
-    }
-}
-
-impl Into<BufferCreateFlags> for VkBufferCreateFlags {
-    fn into(self) -> BufferCreateFlags {
-        BufferCreateFlags(self.as_raw().into())
-    }
-}
-
-impl From<BufferCreateFlags> for VkBufferCreateFlags {
+impl From<BufferCreateFlags> for ash::vk::BufferCreateFlags {
     fn from(value: BufferCreateFlags) -> Self {
         Self::from_raw(value.bits())
     }
