@@ -53,13 +53,12 @@ pub trait Allocation {
     fn map(&self) -> Result<Self::MapGuard, VkError>;
     fn map_mut(&mut self) -> Result<Self::MutableMapGuard, VkError>;
 
+    /// Size of allocation
     fn size(&self) -> DeviceSize;
-    
-    fn offset_in_memory_object(&self) -> DeviceSize;
-    fn size_of_memory_object(&self) -> DeviceSize;
-    fn memory_type(&self) -> u32;
+    /// Offset in MemoryObject
+    fn offset(&self) -> DeviceSize;
 
     /// # Safety
     /// Caller shouldnt use memory outside of range, defined by offset and size
-    unsafe fn as_mem_object_and_offset(&self) -> (&MemoryObject, DeviceSize);
+    unsafe fn memory_object(&self) -> &MemoryObject;
 }

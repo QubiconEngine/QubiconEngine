@@ -155,9 +155,13 @@ pub struct Buffer<A: Allocator> {
 
 impl<A: Allocator> Buffer<A> {
     pub unsafe fn from_buffer_and_allocation_unchecked(buffer: UnbindedBuffer, allocator: A, allocation: A::Allocation) -> Result<Self, VkError> {
-        let (memory_object, offset) = allocation.as_mem_object_and_offset();
+        let memory_object = allocation.memory_object();
         
-        buffer.device.as_raw().bind_buffer_memory( buffer.as_raw(), memory_object.as_raw(), offset )?;
+        buffer.device.as_raw().bind_buffer_memory( 
+            buffer.as_raw(),
+            memory_object.as_raw(),
+            allocation.offset()
+        )?;
         
         let result = Self {
             buffer,
@@ -167,6 +171,39 @@ impl<A: Allocator> Buffer<A> {
         };
 
         Ok( result )
+    }
+
+    pub fn from_buffer_and_allocation(buffer: UnbindedBuffer, allocator: A, allocation: A::Allocation) -> Result<Self, VkError> {
+        let requirements = buffer.memory_requirements();
+
+
+        if allocation.size() < requirements.size {
+            panic!("allocation is too small");
+        }
+
+        if allocation.offset() % requirements.alignment != 0 {
+            panic!("allocation has invalid alignment");
+        }
+
+        // Maybe move this somewhere else ?
+        if allocation.offset() + allocation.size() > unsafe { allocation.memory_object() }.size() {
+            panic!("memory object cant fit allocation inside")
+        }
+
+
+
+        let memory_type = unsafe { allocation.memory_object() }.memory_type();
+        let memory_type_is_valid = requirements.memory_types.iter().enumerate()
+            .filter(| (_, allowed) | **allowed)
+            .any(| (idx, _) | idx as u32 == memory_type);
+
+        if !memory_type_is_valid {
+            panic!("allocation is located in memory object, what has incorrect memory type")
+        }
+        
+        
+
+        unsafe { Self::from_buffer_and_allocation_unchecked(buffer, allocator, allocation) }
     }
 }
 
