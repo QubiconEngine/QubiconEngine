@@ -47,11 +47,14 @@ pub trait Allocator {
 }
 
 pub trait Allocation {
-    type MapGuard;
-    type MutableMapGuard;
+    type MapGuard<'a>: MapGuard where Self: 'a;
+    type MutMapGuard<'a>: MutMapGuard where Self: 'a;
 
-    fn map(&self) -> Result<Self::MapGuard, VkError>;
-    fn map_mut(&mut self) -> Result<Self::MutableMapGuard, VkError>;
+    // If 'a will be removed, these methods will throw a compile time error
+    #[allow(clippy::needless_lifetimes)]
+    fn map<'a>(&'a self) -> Result<Self::MapGuard<'a>, VkError>;
+    #[allow(clippy::needless_lifetimes)]
+    fn map_mut<'a>(&'a mut self) -> Result<Self::MutMapGuard<'a>, VkError>;
 
     /// Size of allocation
     fn size(&self) -> DeviceSize;
@@ -61,4 +64,11 @@ pub trait Allocation {
     /// # Safety
     /// Caller shouldnt use memory outside of range, defined by offset and size
     unsafe fn memory_object(&self) -> &MemoryObject;
+}
+
+pub trait MapGuard {
+    fn as_ptr(&self) -> *const ();
+}
+pub trait MutMapGuard {
+    fn as_mut_ptr(&mut self) -> *mut ();
 }

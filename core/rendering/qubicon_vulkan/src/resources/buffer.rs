@@ -2,7 +2,7 @@ use std::sync::Arc;
 use bitflags::bitflags;
 
 use super::MemoryRequirements;
-use crate::{ error::VkError, device::Device, memory::{ DeviceSize, alloc::{ Allocator, Allocation } } };
+use crate::{ error::VkError, device::Device, memory::{ DeviceSize, alloc::{ Allocator, Allocation, MapGuard } } };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -234,6 +234,19 @@ impl<T: BufferType, A: Allocator> TypedBuffer<T, A> {
 
         Self { buffer, _ph: Default::default() }
     }
+
+    // Throws compile time error if 'a is removed
+    #[allow(clippy::needless_lifetimes)]
+    pub fn map<'a>(&'a self) -> Result<BufferMapGuard<'a, T, <A::Allocation as Allocation>::MapGuard<'a>>, VkError> {
+        let result = BufferMapGuard {
+            map_guard: self.allocation.map()?,
+            size: self.size() as usize,
+
+            _ph: Default::default()
+        };
+
+        Ok( result )
+    }
 }
 
 impl<T: BufferType, A: Allocator> core::ops::Deref for TypedBuffer<T, A> {
@@ -244,6 +257,43 @@ impl<T: BufferType, A: Allocator> core::ops::Deref for TypedBuffer<T, A> {
     }
 }
 
+
+
+/// This structure is an absolute piece of shit. Should be rewritten in future
+pub struct BufferMapGuard<'a, T: BufferType + ?Sized, M: MapGuard> {
+    map_guard: M,
+    size: usize,
+
+    _ph: core::marker::PhantomData<&'a T>
+}
+
+impl<'a, T: BufferType + Sized, M: MapGuard> core::ops::Deref for BufferMapGuard<'a, T, M> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe {
+            self.map_guard.as_ptr()
+                .cast::<T>()
+                .as_ref()
+                .unwrap()
+        }
+    }
+}
+
+impl<'a, T: BufferType + Sized, M: MapGuard> core::ops::Deref for BufferMapGuard<'a, [T], M>
+    where [T]: BufferType
+{
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        unsafe {
+            core::slice::from_raw_parts(
+                self.map_guard.as_ptr().cast(),
+                self.size / core::mem::size_of::<T>()
+            )
+        }
+    }
+}
 
 pub unsafe trait BufferType {
     /// Size of type or size of slice element
