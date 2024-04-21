@@ -1,29 +1,4 @@
 use bitflags::bitflags;
-use thiserror::Error as ErrorDerive;
-use super::{format::{Format, formats_representation::Format as FormatTrait}, image_view::{ImageView, ImageViewCreateInfo}, mapped_resource::{MappableType, MappedResource}, ResourceCreationError, ResourceMemory};
-use std::{
-    error::Error as ErrorTrait, mem::ManuallyDrop, sync::Arc
-};
-use crate::{
-    Error,
-    device::inner::DeviceInner,
-    error::{VkError, ValidationError},
-    instance::physical_device::memory_properties::MemoryTypeProperties,
-    memory::alloc::{hollow_device_memory_allocator::HollowDeviceMemoryAllocator, AllocatedDeviceMemoryFragment, DeviceMemoryAllocator, MappableAllocatedDeviceMemoryFragment}
-};
-use ash::vk::{
-    Image as VkImage,
-    Extent3D as VkExtent3D,
-
-    ImageType as VkImageType,
-    ImageTiling as VkImageTiling,
-    ImageLayout as VkImageLayout,
-
-    ImageCreateInfo as VkImageCreateInfo,
-    ImageUsageFlags as VkImageUsageFlags,
-    ImageCreateFlags as VkImageCreateFlags,
-    SampleCountFlags as VkSampleCountFlags
-};
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -35,6 +10,13 @@ bitflags! {
         const CUBE_COMPATIBLE = 0b1_0000;
     }
 }
+
+impl From<ImageCreateFlags> for ash::vk::ImageCreateFlags {
+    fn from(value: ImageCreateFlags) -> Self {
+        Self::from_raw(value.bits())
+    }
+}
+
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -48,7 +30,22 @@ bitflags! {
         const TRANSIENT_ATTACHMENT = 0b100_0000;
         const INPUT_ATTACHMENT = 0b1000_0000;
     }
+}
 
+impl From<ash::vk::ImageUsageFlags> for ImageUsageFlags {
+    fn from(value: ash::vk::ImageUsageFlags) -> Self {
+        Self::from_bits_truncate(value.as_raw())
+    }
+}
+
+impl From<ImageUsageFlags> for ash::vk::ImageUsageFlags {
+    fn from(value: ImageUsageFlags) -> Self {
+        Self::from_raw(value.bits())
+    }
+}
+
+
+bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct ImageSampleCountFlags: u32 {
         const TYPE_1 = 0b1;
@@ -61,26 +58,9 @@ bitflags! {
     }
 }
 
-impl Into<VkImageCreateFlags> for ImageCreateFlags {
-    fn into(self) -> VkImageCreateFlags {
-        VkImageCreateFlags::from_raw(self.bits())
-    }
-}
-
-impl From<VkImageUsageFlags> for ImageUsageFlags {
-    fn from(value: VkImageUsageFlags) -> Self {
-        Self::from_bits_truncate(value.as_raw())
-    }
-}
-impl Into<VkImageUsageFlags> for ImageUsageFlags {
-    fn into(self) -> VkImageUsageFlags {
-        VkImageUsageFlags::from_raw(self.bits())
-    }
-}
-
-impl Into<VkSampleCountFlags> for ImageSampleCountFlags {
-    fn into(self) -> VkSampleCountFlags {
-        VkSampleCountFlags::from_raw(self.bits())
+impl From<ImageSampleCountFlags> for ash::vk::SampleCountFlags {
+    fn from(value: ImageSampleCountFlags) -> Self {
+        Self::from_raw(value.bits())
     }
 }
 
