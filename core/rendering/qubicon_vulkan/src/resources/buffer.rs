@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use bitflags::bitflags;
 
+use super::MemoryRequirements;
 use crate::{ error::VkError, device::Device, memory::{ DeviceSize, alloc::Allocator } };
 
 bitflags! {
@@ -107,7 +108,7 @@ impl UnbindedBuffer {
 
 
         let buffer = unsafe {
-            device.as_raw().create_buffer(&create_info.into(), None)
+            device.as_raw().create_buffer(&(*create_info).into(), None)
         };
         
 
@@ -120,7 +121,7 @@ impl UnbindedBuffer {
             buffer: buffer?
         };
 
-        Ok ( Self )
+        Ok ( result )
     }
 
     pub fn size(&self) -> DeviceSize {
@@ -129,6 +130,11 @@ impl UnbindedBuffer {
 
     pub fn usage_flags(&self) -> BufferUsageFlags {
         self.usage_flags
+    }
+
+    pub fn memory_requirements(&self) -> MemoryRequirements {
+        unsafe { self.device.as_raw().get_buffer_memory_requirements(self.as_raw()) }
+            .into()
     }
 }
 
