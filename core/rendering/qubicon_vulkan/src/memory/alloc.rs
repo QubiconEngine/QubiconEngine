@@ -1,4 +1,4 @@
-use crate::error::VkError;
+use crate::{ error::VkError, resources::MemoryRequirements };
 use super::{
     DeviceSize,
     MemoryTypeProperties,
@@ -42,7 +42,7 @@ pub enum AllocationLifetime {
 pub trait Allocator {
     type Allocation: Allocation;
     
-    fn alloc(&self, size: DeviceSize, kind: MemoryKind, lifetime: AllocationLifetime) -> Result<Self::Allocation, VkError>;
+    fn alloc(&self, requirements: MemoryRequirements, kind: MemoryKind, lifetime: AllocationLifetime) -> Result<Self::Allocation, VkError>;
     fn dealloc(&self, allocation: Self::Allocation);
 }
 
