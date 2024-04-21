@@ -1,10 +1,10 @@
-pub mod format;
+//pub mod format;
 
-mod image;
+//mod image;
 mod buffer;
-mod image_view;
+//mod image_view;
 mod buffer_view;
-mod resource_factory;
+//mod resource_factory;
 
 
 use crate::instance::physical_device::DeviceSize;
@@ -23,7 +23,7 @@ impl From<ash::vk::MemoryRequirements> for MemoryRequirements {
             size: value.size,
             alignment: value.alignment,
 
-            memory_types: bitvec::array::BitArray::new(value.memory_type_bits)
+            memory_types: bitvec::array::BitArray::new([value.memory_type_bits])
         }
     }
 }
