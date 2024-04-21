@@ -97,18 +97,43 @@ impl From<Extent3D> for ash::vk::Extent3D {
     }
 }
 
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ImageTiling {
-    Linear,
-    Optimal
+    Optimal,
+    Linear
 }
+
+impl From<ImageTiling> for ash::vk::ImageTiling {
+    fn from(value: ImageTiling) -> Self {
+        match value {
+            ImageTiling::Optimal => Self::OPTIMAL,
+            ImageTiling::Linear => Self::LINEAR
+        }
+    }
+}
+
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ImageType {
-    Type1D { width: u32 },
-    Type2D { width: u32, height: u32, miplevels_enabled: bool },
-    Type3D { width: u32, height: u32, depth: u32 }
+    Type1D,
+    Type2D,
+    Type3D
 }
+
+impl From<ImageType> for ash::vk::ImageType {
+    fn from(value: ImageType) -> Self {
+        match value {
+            ImageType::Type1D => Self::TYPE_1D,
+            ImageType::Type2D => Self::TYPE_2D,
+            ImageType::Type3D => Self::TYPE_3D
+        }
+    }
+}
+
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ImageLayout {
@@ -131,48 +156,30 @@ pub enum ImageLayout {
     PresentSrc
 }
 
-impl Into<VkImageTiling> for ImageTiling {
-    fn into(self) -> VkImageTiling {
-        match self {
-            Self::Linear => VkImageTiling::LINEAR,
-            Self::Optimal => VkImageTiling::OPTIMAL
-        }
-    }
-}
-
-impl Into<VkImageType> for ImageType {
-    fn into(self) -> VkImageType {
-        match self {
-            Self::Type1D { .. } => VkImageType::TYPE_1D,
-            Self::Type2D { .. } => VkImageType::TYPE_2D,
-            Self::Type3D { .. } => VkImageType::TYPE_3D
-        }
-    }
-}
-
-impl Into<VkImageLayout> for ImageLayout {
-    fn into(self) -> VkImageLayout {
-        match self {
-            Self::Undefined => VkImageLayout::UNDEFINED,
-            Self::General => VkImageLayout::GENERAL,
-            Self::ColorAttachmentOptimal => VkImageLayout::COLOR_ATTACHMENT_OPTIMAL,
-            Self::DepthStencilAttachmentOptimal => VkImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            Self::DepthStencilReadOnlyOptimal => VkImageLayout::DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-            Self::ShaderReadOnlyOptimal => VkImageLayout::SHADER_READ_ONLY_OPTIMAL,
-            Self::TransferSrcOptimal => VkImageLayout::TRANSFER_SRC_OPTIMAL,
-            Self::TransferDstOptimal => VkImageLayout::TRANSFER_DST_OPTIMAL,
-            Self::Preinitialized => VkImageLayout::PREINITIALIZED,
-
-            Self::DepthAttachmentOptimal => VkImageLayout::DEPTH_ATTACHMENT_OPTIMAL,
-            Self::StencilAttachmentOptimal => VkImageLayout::STENCIL_ATTACHMENT_OPTIMAL,
-            Self::DepthReadOnlyOptimal => VkImageLayout::DEPTH_READ_ONLY_OPTIMAL,
-            Self::StencilReadOnlyOptimal => VkImageLayout::STENCIL_READ_ONLY_OPTIMAL,
+impl From<ImageLayout> for ash::vk::ImageLayout {
+    fn from(value: ImageLayout) -> Self {
+        match value { // :p
+            ImageLayout::Undefined                     => Self::UNDEFINED,
+            ImageLayout::General                       => Self::GENERAL,
+            ImageLayout::ColorAttachmentOptimal        => Self::COLOR_ATTACHMENT_OPTIMAL,
+            ImageLayout::DepthStencilAttachmentOptimal => Self::DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            ImageLayout::DepthStencilReadOnlyOptimal   => Self::DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+            ImageLayout::ShaderReadOnlyOptimal         => Self::SHADER_READ_ONLY_OPTIMAL,
+            ImageLayout::TransferSrcOptimal            => Self::TRANSFER_SRC_OPTIMAL,
+            ImageLayout::TransferDstOptimal            => Self::TRANSFER_DST_OPTIMAL,
+            ImageLayout::Preinitialized                => Self::PREINITIALIZED,
+            ImageLayout::DepthAttachmentOptimal        => Self::DEPTH_ATTACHMENT_OPTIMAL,
+            ImageLayout::StencilAttachmentOptimal      => Self::STENCIL_ATTACHMENT_OPTIMAL,
+            ImageLayout::DepthReadOnlyOptimal          => Self::DEPTH_READ_ONLY_OPTIMAL,
+            ImageLayout::StencilReadOnlyOptimal        => Self::STENCIL_READ_ONLY_OPTIMAL,
 
             #[cfg(feature = "windowing")]
-            Self::PresentSrc => VkImageLayout::PRESENT_SRC_KHR
+            ImageLayout::PresentSrc                    => Self::PRESENT_SRC_KHR
         }
     }
 }
+
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ImageCreateInfo {
