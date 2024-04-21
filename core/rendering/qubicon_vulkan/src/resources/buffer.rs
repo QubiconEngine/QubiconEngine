@@ -2,7 +2,7 @@ use std::sync::Arc;
 use bitflags::bitflags;
 
 use super::MemoryRequirements;
-use crate::{ error::VkError, device::Device, memory::{ DeviceSize, alloc::Allocator } };
+use crate::{ error::VkError, device::Device, memory::{ DeviceSize, alloc::{ Allocator, Allocation } } };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -151,6 +151,23 @@ pub struct Buffer<A: Allocator> {
 
     allocator: A,
     allocation: A::Allocation,
+}
+
+impl<A: Allocator> Buffer<A> {
+    pub unsafe fn from_buffer_and_allocation_unchecked(buffer: UnbindedBuffer, allocator: A, allocation: A::Allocation) -> Result<Self, VkError> {
+        let (memory_object, offset) = allocation.as_mem_object_and_offset();
+        
+        buffer.device.as_raw().bind_buffer_memory( buffer.as_raw(), memory_object.as_raw(), offset )?;
+        
+        let result = Self {
+            buffer,
+
+            allocator,
+            allocation
+        };
+
+        Ok( result )
+    }
 }
 
 impl<A: Allocator> core::ops::Deref for Buffer<A> {
