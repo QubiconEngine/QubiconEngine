@@ -147,15 +147,31 @@ pub struct Buffer<A: Allocator> {
     allocation: A::Allocation,
 }
 
+impl<A: Allocator> core::ops::Deref for Buffer<A> {
+    type Target = UnbindedBuffer;
+
+    fn deref(&self) -> &Self::Target {
+        &self.buffer
+    }
+} 
+
 impl<A: Allocator> Drop for Buffer<A> {
     fn drop(&mut self) { /* Yes, its empty. Just so we dont accidentally take some field out */ }
 }
 
 
 pub struct TypedBuffer<T: BufferType, A: Allocator> {
-    buffer: UnbindedBuffer,
+    buffer: Buffer<A>,
 
     _ph: core::marker::PhantomData<T>
+}
+
+impl<T: BufferType, A: Allocator> core::ops::Deref for TypedBuffer<T, A> {
+    type Target = Buffer<A>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.buffer
+    }
 }
 
 
