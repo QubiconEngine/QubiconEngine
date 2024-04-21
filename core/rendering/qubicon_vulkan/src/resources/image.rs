@@ -510,8 +510,12 @@ pub enum ImageMapError<E: ErrorTrait> {
 }
 
 
-// Helper function
+// Idk if mipmaps can actually be less than value, calculated by max(d1, d2, d3).log2().floor().
+// I will find this out later
 #[inline]
-pub(crate) fn calc_mip_levels_for_resolution(width: u32, height: u32) -> u32 {
-    (width.max(height) as f32).log2().floor() as u32 + 1
+pub(crate) fn mip_levels_for_dimensions(width: u32, height: u32, depth: u32, requested: u32) -> u32 {
+    let max_dimension = width.max(height).max(depth) as f32;
+    let max_miplevels = max_dimension.log2().floor() as u32 + 1;
+    
+    max_miplevels.min(requested)
 }
