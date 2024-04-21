@@ -226,6 +226,16 @@ pub struct TypedBuffer<T: BufferType, A: Allocator> {
     _ph: core::marker::PhantomData<T>
 }
 
+impl<T: BufferType, A: Allocator> TypedBuffer<T, A> {
+    pub fn from_buffer(buffer: Buffer<A>) -> Self {
+        if buffer.size() as usize % T::size() != 0 {
+            panic!("buffer size is not multiple of contained type");
+        }
+
+        Self { buffer, _ph: Default::default() }
+    }
+}
+
 impl<T: BufferType, A: Allocator> core::ops::Deref for TypedBuffer<T, A> {
     type Target = Buffer<A>;
 
@@ -235,14 +245,21 @@ impl<T: BufferType, A: Allocator> core::ops::Deref for TypedBuffer<T, A> {
 }
 
 
-pub unsafe trait BufferType {}
+pub unsafe trait BufferType {
+    /// Size of type or size of slice element
+    fn size() -> usize;
+}
 
 mod impl_buffer_type {
     use super::BufferType;
 
     macro_rules! impl_buffer_type {
         ($ty:tt) => {
-            unsafe impl BufferType for $ty {}
+            unsafe impl BufferType for $ty {
+                fn size() -> usize {
+                    core::mem::size_of::<$ty>()
+                }
+            }
         };
     }
 
@@ -250,7 +267,11 @@ mod impl_buffer_type {
     impl_buffer_type!(i32);
     impl_buffer_type!(f32);
 
-    unsafe impl<T: BufferType> BufferType for [T] {}
+    unsafe impl<T: BufferType> BufferType for [T] {
+        fn size() -> usize {
+            T::size()
+        }
+    }
 }
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 // pub struct BufferCreateInfo {
