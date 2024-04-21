@@ -1,7 +1,7 @@
 //pub mod format;
 
 //mod image;
-mod buffer;
+pub mod buffer;
 //mod image_view;
 mod buffer_view;
 //mod resource_factory;
