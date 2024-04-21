@@ -150,6 +150,32 @@ pub struct Buffer<A: Allocator> {
 impl<A: Allocator> Drop for Buffer<A> {
     fn drop(&mut self) { /* Yes, its empty. Just so we dont accidentally take some field out */ }
 }
+
+
+pub struct TypedBuffer<T: BufferType, A: Allocator> {
+    buffer: UnbindedBuffer,
+
+    _ph: core::marker::PhantomData<T>
+}
+
+
+pub unsafe trait BufferType {}
+
+mod impl_buffer_type {
+    use super::BufferType;
+
+    macro_rules! impl_buffer_type {
+        ($ty:tt) => {
+            unsafe impl BufferType for $ty {}
+        };
+    }
+
+    impl_buffer_type!(u32);
+    impl_buffer_type!(i32);
+    impl_buffer_type!(f32);
+
+    unsafe impl<T: BufferType> BufferType for [T] {}
+}
 // #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 // pub struct BufferCreateInfo {
 //     pub usage_flags: BufferUsageFlags,
