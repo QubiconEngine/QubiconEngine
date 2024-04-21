@@ -66,6 +66,38 @@ impl From<ImageSampleCountFlags> for ash::vk::SampleCountFlags {
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Extent2D {
+    pub width: u32,
+    pub height: u32
+}
+
+impl From<Extent2D> for ash::vk::Extent2D {
+    fn from(value: Extent2D) -> Self {
+        Self::builder()
+            .width(value.width)
+            .height(value.height)
+            .build()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Extent3D {
+    pub width: u32,
+    pub height: u32,
+    pub depth: u32
+}
+
+impl From<Extent3D> for ash::vk::Extent3D {
+    fn from(value: Extent3D) -> Self {
+        Self::builder()
+            .width(value.width)
+            .height(value.height)
+            .depth(value.depth)
+            .build()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ImageTiling {
     Linear,
     Optimal
@@ -78,9 +110,8 @@ pub enum ImageType {
     Type3D { width: u32, height: u32, depth: u32 }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ImageLayout {
-    #[default]
     Undefined,
     General,
     ColorAttachmentOptimal,
