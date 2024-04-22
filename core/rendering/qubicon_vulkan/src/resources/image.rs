@@ -1,4 +1,8 @@
+use std::sync::Arc;
 use bitflags::bitflags;
+
+use crate::device::Device;
+use super::format::Format;
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -184,331 +188,39 @@ impl From<ImageLayout> for ash::vk::ImageLayout {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ImageCreateInfo {
     pub usage_flags: ImageUsageFlags,
-    pub create_flags: ImageCreateFlags,
-    pub sample_count_flags: ImageSampleCountFlags,
+    // TODO: create_flags,
+    pub sample_count: ImageSampleCountFlags,
 
     pub initial_layout: ImageLayout,
-    pub image_tiling: ImageTiling,
-    pub image_type: ImageType,
+    pub tiling: ImageTiling,
+    pub ty: ImageType,
+
+    pub extent: Extent3D,
     
     pub array_layers: u32,
     pub format: Format,
 
-    /// For automatic synchronization
-    pub main_layout: ImageLayout,
-    /// For automatic synchronization
-    pub main_owner_queue_family: u32
+    // TODO: Sharing mode and synchronization
 }
 
-pub(crate) struct ImageInner<A: DeviceMemoryAllocator> {
-    pub(crate) device: Arc<DeviceInner>,
-    
-    pub(crate) image: VkImage,
-    pub(crate) info: ImageCreateInfo,
-    pub(crate) mip_levels: u32,
-
-    // we shouldnt drop image if it is from swapchain
-    pub(crate) drop_required: bool,
-    pub(crate) memory: Option<ResourceMemory<A>>
-}
-
-impl<A: DeviceMemoryAllocator> Drop for ImageInner<A> {
-    fn drop(&mut self) {
-        core::mem::drop(self.memory.take());
-
-        if self.drop_required {
-            unsafe {
-                self.device.destroy_image(
-                    self.image,
-                    None
-                )
-            }
-        }
+impl From<ImageCreateInfo> for ash::vk::ImageCreateInfo {
+    fn from(value: ImageCreateInfo) -> Self {
+        Self::builder()
+            .array_layers(value.array_layers)
+            .extent(value.extent.into())
+            //.flags()
+            .format(value.format.into())
+            .image_type(value.ty.into())
+            .initial_layout(value.initial_layout.into())
+            //.mip_levels(mip_levels)
+            //.sharing_mode(sharing_mode)
+            //.queue_family_indices(queue_family_indices)
+            .samples(value.sample_count.into())
+            .tiling(value.tiling.into())
+            .usage(value.usage_flags.into())
+            .build()
     }
 }
-
-pub struct RawImage {
-    inner: Arc<ImageInner<HollowDeviceMemoryAllocator>>
-}
-
-impl RawImage {
-    pub(crate) fn create(
-        device: Arc<DeviceInner>,
-        create_info: &ImageCreateInfo
-    ) -> Result<Self, Error> {
-        if !create_info.create_flags.difference(ImageCreateFlags::CUBE_COMPATIBLE).is_empty() {
-            unimplemented!()
-        }
-
-        let extent = match create_info.image_type {
-            ImageType::Type1D { width } => VkExtent3D { width, height: 1, depth: 1 },
-            ImageType::Type2D { width, height, .. } => VkExtent3D { width, height, depth: 1 },
-            ImageType::Type3D { width, height, depth } => VkExtent3D { width, height, depth }
-        };
-        let mip_levels = match create_info.image_type {
-            ImageType::Type2D { width, height, miplevels_enabled } => if miplevels_enabled {
-                calc_mip_levels_for_resolution(width, height)
-            } else {
-                1
-            }
-            _ => 1,
-        };
-
-        unsafe {
-            let image = device.create_image(
-                &VkImageCreateInfo {
-                    flags: create_info.create_flags.into(),
-                    usage: create_info.usage_flags.into(),
-                    samples: create_info.sample_count_flags.into(),
-
-                    initial_layout: create_info.initial_layout.into(),
-                    tiling: create_info.image_tiling.into(),
-                    image_type: create_info.image_type.into(),
-
-                    array_layers: create_info.array_layers,
-                    mip_levels,
-
-                    format: create_info.format.into(),
-                    extent,
-
-                    ..Default::default()
-                },
-                None
-            ).map_err(| e | VkError::try_from(e).unwrap_unchecked())?;
-
-            let inner = ImageInner {
-                device,
-                image,
-                
-                info: *create_info,
-                mip_levels,
-
-                drop_required: true,
-                memory: None
-            };
-
-            Ok( Self { inner: Arc::new(inner) } )
-        }
-    }
-
-    pub(crate) fn as_inner(&self) -> &Arc<ImageInner<HollowDeviceMemoryAllocator>> {
-        &self.inner
-    }
-
-    // bruh
-    pub fn create_info(&self) -> &ImageCreateInfo {
-        &self.inner.info
-    }
-
-    pub fn usage_flags(&self) -> ImageUsageFlags {
-        self.inner.info.usage_flags
-    }
-
-    pub fn create_flags(&self) -> ImageCreateFlags {
-        self.inner.info.create_flags
-    }
-
-    pub fn sample_count_flags(&self) -> ImageSampleCountFlags {
-        self.inner.info.sample_count_flags
-    }
-
-    pub fn tiling(&self) -> ImageTiling {
-        self.inner.info.image_tiling
-    }
-
-    pub fn r#type(&self) -> ImageType {
-        self.inner.info.image_type
-    }
-
-    pub fn array_layers_count(&self) -> u32 {
-        self.inner.info.array_layers
-    }
-
-    pub fn format(&self) -> Format {
-        self.inner.info.format
-    }
-
-    pub fn mip_levels_count(&self) -> u32 {
-        self.inner.mip_levels
-    }
-}
-
-pub struct Image<A: DeviceMemoryAllocator> {
-    inner: Arc<ImageInner<A>>
-}
-
-impl<A: DeviceMemoryAllocator> Image<A> {
-    pub(crate) fn create_and_allocate(
-        device: Arc<DeviceInner>,
-        allocator: Arc<A>,
-        memory_properties: MemoryTypeProperties,
-        create_info: ImageCreateInfo
-    ) -> Result<Self, ResourceCreationError<A::AllocError>> {
-        Self::from_raw(
-            RawImage::create(device, &create_info).map_err(ResourceCreationError::from_creation_error)?,
-            allocator,
-            memory_properties
-        )
-    }
-    
-    pub fn from_raw(
-        raw: RawImage,
-        allocator: Arc<A>,
-        memory_properties: MemoryTypeProperties
-    ) -> Result<Self, ResourceCreationError<A::AllocError>> {
-        unsafe {
-            let inner = Arc::into_inner(raw.inner)
-                .expect("image is in use");
-            let inner = ManuallyDrop::new(inner);
-
-            let requirements = inner.device.get_image_memory_requirements(inner.image);
-            let memory_type_index = bitvec::array::BitArray::<u32, bitvec::order::Lsb0>::from(requirements.memory_type_bits)
-                .into_iter()
-                .enumerate()
-                .filter(| (_, t) | *t)
-                .map(| (i, _) | i)
-                .filter(| i | inner.device.memory_properties.memory_types[*i].properties.contains(memory_properties))
-                .map(| i | i as u8)
-                .next()
-                .ok_or(ValidationError::NoValidMemoryTypeFound.into())
-                .map_err(ResourceCreationError::from_creation_error)?;
-
-            let memory = allocator.alloc(
-                memory_type_index,
-                requirements.size,
-                requirements.alignment
-            ).map_err(ResourceCreationError::from_allocation_error)?;
-
-            let (raw_memory, offset) = memory.as_memory_object_and_offset();
-
-            if raw_memory.device != inner.device {
-                return Err(ResourceCreationError::from_creation_error(ValidationError::InvalidDevice.into()));
-            }
-
-            inner.device.bind_image_memory(
-                inner.image,
-                raw_memory.device_memory,
-                offset
-            ).map_err(| e | VkError::try_from(e).unwrap_unchecked().into())
-             .map_err(ResourceCreationError::from_creation_error)?;
-
-            // there should be a better way
-            let inner = ImageInner {
-                // hard way of taking field of struct what implements drop
-                device: Arc::clone(&inner.device),
-                image: inner.image,
-                info: inner.info,
-                mip_levels: inner.mip_levels,
-                drop_required: inner.drop_required,
-                memory: Some( ResourceMemory::new(allocator, memory) )
-            };
-
-            return Ok( Self { inner: Arc::new(inner) } );
-        }
-    }
-
-    // no guarantees what it is a valid inner!
-    pub(crate) unsafe fn from_inner(inner: ImageInner<A>) -> Self {
-        Self { inner: Arc::new(inner) }
-    }
-
-    // maybe this should be allowed in public API ?
-    pub(crate) fn from_inner_arc(inner: Arc<ImageInner<A>>) -> Self {
-        Self { inner }
-    }
-
-    pub(crate) fn as_inner(&self) -> &Arc<ImageInner<A>> {
-        &self.inner
-    }
-
-    /// # Safety
-    /// * Format size of image view should match format size of original image
-    /// * If view type is Cube, then original image should be created with cube compatiple flag
-    pub unsafe fn create_image_view_unchecked(
-        &self,
-        create_info: &ImageViewCreateInfo
-    ) -> Result<Arc<ImageView<A>>, Error> {
-        ImageView::create_unchecked(&self, create_info)
-    }
-
-    // bruh times two
-    pub fn create_info(&self) -> &ImageCreateInfo {
-        &self.inner.info
-    }
-
-    pub fn usage_flags(&self) -> ImageUsageFlags {
-        self.inner.info.usage_flags
-    }
-
-    pub fn create_flags(&self) -> ImageCreateFlags {
-        self.inner.info.create_flags
-    }
-
-    pub fn sample_count_flags(&self) -> ImageSampleCountFlags {
-        self.inner.info.sample_count_flags
-    }
-
-    pub fn tiling(&self) -> ImageTiling {
-        self.inner.info.image_tiling
-    }
-
-    pub fn r#type(&self) -> ImageType {
-        self.inner.info.image_type
-    }
-
-    pub fn array_layers_count(&self) -> u32 {
-        self.inner.info.array_layers
-    }
-
-    pub fn format(&self) -> Format {
-        self.inner.info.format
-    }
-
-    pub fn mip_levels_count(&self) -> u32 {
-        self.inner.mip_levels
-    }
-}
-
-impl<'a, A: DeviceMemoryAllocator> Image<A>
-    where A::MemoryFragmentType: MappableAllocatedDeviceMemoryFragment<'a>
-{
-    pub fn map<T: MappableType + FormatTrait>(&'a self) ->
-        Result<MappedResource<'a, T, A>, ImageMapError<<A::MemoryFragmentType as MappableAllocatedDeviceMemoryFragment<'a>>::MapError>>
-    {
-        if T::FORMAT_ENUM != self.inner.info.format {
-            Err(ImageMapError::FormatMismatch)?
-        }
-        if self.tiling() != ImageTiling::Linear {
-            Err(ImageMapError::NotLinearLayout)?
-        }
-
-        let len = match self.inner.info.image_type {
-            ImageType::Type1D { width } => width as usize,
-            ImageType::Type2D { width, height, .. } => width as usize * height as usize,
-            ImageType::Type3D { width, height, depth } => width as usize * height as usize * depth as usize
-        };
-
-        unsafe {
-            Ok(
-                MappedResource::new(
-                    self.inner.memory.as_ref().unwrap_unchecked().map()?,
-                    len
-                )
-            )
-        }
-    }
-}
-
-#[derive(ErrorDerive, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ImageMapError<E: ErrorTrait> {
-    #[error("image format dont match required map format")]
-    FormatMismatch,
-    #[error("image is not in linear layout")]
-    NotLinearLayout,
-    #[error("error ocurred during memory mapping")]
-    MappingError(#[from] E)
-}
-
 
 // Idk if mipmaps can actually be less than value, calculated by max(d1, d2, d3).log2().floor().
 // I will find this out later
@@ -518,4 +230,31 @@ pub(crate) fn mip_levels_for_dimensions(width: u32, height: u32, depth: u32, req
     let max_miplevels = max_dimension.log2().floor() as u32 + 1;
     
     max_miplevels.min(requested)
+}
+
+
+pub struct UnbindedImage {
+    device: Arc<Device>,
+
+    
+    usage: ImageUsageFlags,
+    samples: ImageSampleCountFlags,
+    
+    //initial_layout: ImageLayout,
+    tiling: ImageTiling,
+    ty: ImageType,
+
+    extent: Extent3D,
+    array_layers: u32,
+
+    format: Format,
+
+
+    image: ash::vk::Image
+}
+
+impl Drop for UnbindedImage {
+    fn drop(&mut self) {
+        unsafe { self.device.as_raw().destroy_image(self.image, None) }
+    }
 }
