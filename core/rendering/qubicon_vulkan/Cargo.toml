@@ -14,7 +14,7 @@ validation = []
 x11 = ["windowing", "dep:x11"]
 
 [dependencies.qubicon_vulkan_internal_macro]
-path = "_inner_macro"
+path = "macro"
 
 [dependencies]
 ash = "0.37"

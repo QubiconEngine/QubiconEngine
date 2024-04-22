@@ -1,4 +1,4 @@
-//pub mod format;
+pub mod format;
 
 mod image;
 pub mod buffer;
