@@ -218,8 +218,8 @@ impl From<Format> for ash::vk::Format {
     }
 }
 
-impl From<ash::vk::Format> for Format {
-    fn from(value: ash::vk::Format) -> Self {
-        value.as_raw() as Self
-    }
-}
+// impl From<ash::vk::Format> for Format {
+//     fn from(value: ash::vk::Format) -> Self {
+//         value.as_raw() as Self
+//     }
+// }
