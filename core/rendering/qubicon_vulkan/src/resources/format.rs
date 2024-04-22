@@ -7,7 +7,7 @@ macro_rules! decl_formats_enum {
             $( $format:ident ),*
         }
     } => {
-        const fn __make_discriminant(value: ash::vk::Format) -> isize {
+        const fn __make_discriminant(value: $raw_format) -> isize {
             value.as_raw() as isize
         }
 
