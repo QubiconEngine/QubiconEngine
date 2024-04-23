@@ -8,56 +8,6 @@ use proc_macro2::TokenStream as TokenStream2;
 
 mod attributes;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-struct Channels {
-    channels: ArrayVec<(Channel, u8), 5>
-}
-
-impl FromStr for Channels {
-    type Err = ();
-
-    // What the fuck is this ?
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut channels = ArrayVec::new();
-        let mut channel = Channel::Alpha;
-        let mut bits_count: u8 = 0;
-
-        let mut first = true;
-        let iter = s.chars().peekable();
-
-        for c in iter {
-            if c.is_ascii_alphabetic() {
-                if !first {
-                    channels.push((channel, bits_count))
-                }
-
-                channel = Channel::try_from(c)?;
-                bits_count = 0;
-                first = false;
-                continue;
-            } else if c.is_ascii_digit() {
-                bits_count = bits_count * 10 + c.to_digit(10).unwrap() as u8
-            } else {
-                return Err(())
-            }
-        }
-
-        channels.push((channel, bits_count));
-
-        Ok(Self { channels })
-    }
-}
-
-impl Display for Channels {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (channel, bits) in self.channels.iter() {
-            write!(f, "{}{}", channel, bits)?
-        }
-
-        Ok(())
-    }
-}
-
 
 // TODO: Add support for more formats(formats with compression for example)
 #[derive(Clone)]
