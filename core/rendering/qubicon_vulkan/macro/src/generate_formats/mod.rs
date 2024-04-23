@@ -284,8 +284,7 @@ impl Format {
     }
 }
 
-#[proc_macro_attribute]
-pub fn vk_format_generate(_attr: TokenStream, input: TokenStream) -> TokenStream {
+pub fn generate_formats(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let format_enum: ItemEnum = syn::parse(input.clone()).unwrap();
     let formats: Vec<_> = format_enum.variants.iter()
         .filter_map(| v | {
