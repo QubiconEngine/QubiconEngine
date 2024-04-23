@@ -18,11 +18,13 @@ macro_rules! decl_formats_enum {
     };
 }
 
+use qubicon_vulkan_internal_macro::GenerateFormats;
+
 decl_formats_enum!{
     from ash::vk::Format;
 
     #[allow(non_camel_case_types)]
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(GenerateFormats, Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum Format {
         UNDEFINED,
         R4G4_UNORM_PACK8,

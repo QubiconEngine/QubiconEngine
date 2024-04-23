@@ -6,6 +6,7 @@ mod attributes;
 use attributes::*;
 
 
+#[derive(Debug, Clone)]
 pub struct Format {
     pub format_def_lit: Ident,
     pub channel_list: ChannelList,
@@ -51,9 +52,8 @@ impl TryFrom<Ident> for Format {
 
 
 
-pub fn generate_formats_from_def_list(format_def_list: &[Ident]) -> Vec<Format> {
-    format_def_list.iter()
-        .cloned()
+pub fn generate_formats_from_def_list(format_def_list: impl Iterator<Item = Ident>) -> Vec<Format> {
+    format_def_list
         .filter_map(| ident | ident.try_into().ok())
         .collect()
 }
