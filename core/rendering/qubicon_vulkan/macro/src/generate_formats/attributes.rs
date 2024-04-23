@@ -1,4 +1,10 @@
+use quote::{ quote, ToTokens, TokenStreamExt };
+use proc_macro2::{ Ident, Span, TokenStream };
+
 use core::{ str::FromStr, fmt::Display };
+
+
+use super::*;
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -125,6 +131,20 @@ impl TryFrom<char> for ChannelType {
     }
 }
 
+impl From<ChannelType> for char {
+    fn from(value: ChannelType) -> Self {
+        match value {
+            ChannelType::Alpha => 'A',
+            ChannelType::Red => 'R',
+            ChannelType::Green => 'G',
+            ChannelType::Blue => 'B',
+            ChannelType::Depth => 'D',
+            ChannelType::Stencil => 'S',
+            ChannelType::Exponent => 'E'
+        }
+    }
+}
+
 impl FromStr for ChannelType {
     type Err = ();
 
@@ -151,6 +171,17 @@ impl Display for ChannelType {
     }
 }
 
+impl ToTokens for ChannelType {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let mut buf = [0u8; 4];
+        let t = char::from(*self).encode_utf8(&mut buf);
+
+        let ident = Ident::new(t, Span::call_site());
+
+        tokens.append(ident);
+    }
+}
+
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -173,6 +204,22 @@ impl TryFrom<(char, &str)> for Channel {
 impl Display for Channel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}{}", self.ty, self.bits)
+    }
+}
+
+impl Channel {
+    fn generate_field(&self, space: Space) -> Option<TokenStream> {
+        let field_name = self.ty;
+        let field_type = Ident::new(
+            type_resolver::resolve(space, self.bits)?,
+            Span::call_site()
+        );
+        
+        let result = quote! {
+            #field_name: #field_type
+        };
+
+        Some(result)
     }
 }
 

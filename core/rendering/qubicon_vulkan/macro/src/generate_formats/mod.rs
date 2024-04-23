@@ -1,8 +1,13 @@
 use syn::Ident;
+use quote::quote;
 use core::fmt::Display;
+
+use proc_macro2::TokenStream;
 
 
 mod attributes;
+mod type_resolver;
+
 use attributes::*;
 
 
@@ -47,6 +52,19 @@ impl TryFrom<Ident> for Format {
         };
 
         Ok ( result )
+    }
+}
+
+impl Format {
+    fn generate_struct_decl(&self) -> TokenStream {
+        let struct_name = self.to_string();
+
+        quote! {
+            #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+            pub struct #struct_name {
+
+            }
+        }
     }
 }
 
