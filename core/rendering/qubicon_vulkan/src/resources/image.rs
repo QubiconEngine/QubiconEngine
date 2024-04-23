@@ -203,6 +203,12 @@ pub struct ImageCreateInfo {
     // TODO: Sharing mode and synchronization
 }
 
+impl ImageCreateInfo {
+    pub fn validate(&self) {
+        
+    }
+}
+
 impl From<ImageCreateInfo> for ash::vk::ImageCreateInfo {
     fn from(value: ImageCreateInfo) -> Self {
         Self::builder()
@@ -236,7 +242,7 @@ pub(crate) fn mip_levels_for_dimensions(width: u32, height: u32, depth: u32, req
 pub struct UnbindedImage {
     device: Arc<Device>,
 
-    
+
     usage: ImageUsageFlags,
     samples: ImageSampleCountFlags,
     
@@ -246,6 +252,7 @@ pub struct UnbindedImage {
 
     extent: Extent3D,
     array_layers: u32,
+    mipmap_levels: u32,
 
     format: Format,
 

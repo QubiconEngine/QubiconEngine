@@ -174,7 +174,9 @@ impl Display for ChannelType {
 impl ToTokens for ChannelType {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let mut buf = [0u8; 4];
-        let t = char::from(*self).encode_utf8(&mut buf);
+        let t = char::from(*self)
+            .to_ascii_lowercase()
+            .encode_utf8(&mut buf);
 
         let ident = Ident::new(t, Span::call_site());
 
@@ -208,7 +210,7 @@ impl Display for Channel {
 }
 
 impl Channel {
-    fn generate_field(&self, space: Space) -> Option<TokenStream> {
+    pub fn generate_field(&self, space: Space) -> Option<TokenStream> {
         let field_name = self.ty;
         let field_type = Ident::new(
             type_resolver::resolve(space, self.bits)?,
@@ -216,7 +218,7 @@ impl Channel {
         );
         
         let result = quote! {
-            #field_name: #field_type
+            pub #field_name: #field_type
         };
 
         Some(result)
@@ -254,5 +256,20 @@ impl Display for ChannelList {
         }
 
         Ok(())
+    }
+}
+
+impl ChannelList {
+    pub fn generate_fields(&self, space: Space) -> Option<TokenStream> {
+        let channels = self.channels.iter()
+            .map(| c | c.generate_field(space).ok_or( () ))
+            .collect::<Result<Vec<_>, _>>()
+            .ok()?;
+
+        let result = quote! {
+            #(#channels),*
+        };
+
+        Some ( result )
     }
 }

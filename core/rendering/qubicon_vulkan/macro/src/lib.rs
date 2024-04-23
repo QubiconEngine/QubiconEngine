@@ -1,6 +1,7 @@
 mod generate_formats;
 
 
+use quote::quote;
 use proc_macro::TokenStream;
 
 
@@ -18,7 +19,11 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
         en.variants.into_iter().map(| v | v.ident)
     );
 
-    println!("{formats:?}");
-    
-    todo!()
+    let structs_iter = formats.iter().filter_map(| f | f.generate_struct_decl());
+
+    quote! {
+        pub mod formats_repr {
+            #(#structs_iter)*
+        }
+    }.into()
 }

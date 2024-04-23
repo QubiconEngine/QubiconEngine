@@ -2,7 +2,7 @@ use syn::Ident;
 use quote::quote;
 use core::fmt::Display;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{ Span, TokenStream };
 
 
 mod attributes;
@@ -56,15 +56,25 @@ impl TryFrom<Ident> for Format {
 }
 
 impl Format {
-    fn generate_struct_decl(&self) -> TokenStream {
+    pub fn generate_struct_decl(&self) -> Option<TokenStream> {
+        // temporary
+        if self.pack.is_some() {
+            return None;
+        }
+
         let struct_name = self.to_string();
 
-        quote! {
-            #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-            pub struct #struct_name {
+        let struct_name = Ident::new(&struct_name, Span::call_site());
+        let struct_fields = self.channel_list.generate_fields(self.space);
 
+        let result = quote! {
+            #[derive(Clone, Copy, PartialEq)]
+            pub struct #struct_name {
+                #struct_fields
             }
-        }
+        };
+
+        Some ( result )
     }
 }
 
