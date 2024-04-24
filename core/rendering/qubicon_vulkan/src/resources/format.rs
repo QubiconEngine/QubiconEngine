@@ -18,6 +18,7 @@ macro_rules! decl_formats_enum {
     };
 }
 
+use super::buffer::BufferType; // used inside GenerateFormats
 use qubicon_vulkan_internal_macro::GenerateFormats;
 
 decl_formats_enum!{

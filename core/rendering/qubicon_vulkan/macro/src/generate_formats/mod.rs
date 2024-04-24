@@ -56,21 +56,37 @@ impl TryFrom<Ident> for Format {
 }
 
 impl Format {
-    pub fn generate_struct_decl(&self) -> Option<TokenStream> {
+    pub fn generate_struct_decl(&self, enum_ident: &Ident) -> Option<TokenStream> {
         let align = match self.pack {
             // Return if we cant generate align attr
             Some( pack ) => Some( pack.generate_align_attr()? ),
             None => None
-        }.into_iter();
+        };
+
+        let enum_variant = &self.format_def_lit;
 
         let struct_name = Ident::new( &self.to_string(), self.format_def_lit.span() );
         let struct_fields = self.channel_list.generate_fields(self.space)?;
 
         let result = quote! {
-            #(#align)*
+            #align
             #[derive(Clone, Copy, PartialEq)]
             pub struct #struct_name {
                 #struct_fields
+            }
+
+            impl FormatRepr for #struct_name {}
+
+            impl sealed::FormatRepr for #struct_name {
+                fn associated_format() -> #enum_ident {
+                    #enum_ident::#enum_variant
+                }
+            }
+
+            unsafe impl BufferType for #struct_name {
+                fn size() -> usize {
+                    core::mem::size_of::<Self>()
+                }
             }
         };
 
