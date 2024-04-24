@@ -212,10 +212,7 @@ impl Display for Channel {
 impl Channel {
     pub fn generate_field(&self, space: Space) -> Option<TokenStream> {
         let field_name = self.ty;
-        let field_type = Ident::new(
-            type_resolver::resolve(space, self.bits)?,
-            Span::call_site()
-        );
+        let field_type = type_resolver::resolve(space, self.bits)?;
         
         let result = quote! {
             pub #field_name: #field_type

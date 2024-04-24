@@ -16,6 +16,9 @@ x11 = ["windowing", "dep:x11"]
 [dependencies.qubicon_vulkan_internal_macro]
 path = "macro"
 
+[dependencies.qubicon_short_floats]
+path = "../../misc/qubicon_short_floats"
+
 [dependencies]
 ash = "0.37"
 bitvec = "1.0"

@@ -206,6 +206,7 @@ dependencies = [
  "ash",
  "bitflags",
  "bitvec",
+ "qubicon_short_floats",
  "qubicon_vulkan_internal_macro",
  "smallstr",
  "smallvec",
