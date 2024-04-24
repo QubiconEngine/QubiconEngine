@@ -62,9 +62,7 @@ impl Format {
             return None;
         }
 
-        let struct_name = self.to_string();
-
-        let struct_name = Ident::new(&struct_name, Span::call_site());
+        let struct_name = Ident::new( &self.to_string(), self.format_def_lit.span() );
         let struct_fields = self.channel_list.generate_fields(self.space);
 
         let result = quote! {
