@@ -2,7 +2,7 @@ use syn::Ident;
 use quote::quote;
 use core::fmt::Display;
 
-use proc_macro2::{ Span, TokenStream };
+use proc_macro2::TokenStream;
 
 
 mod attributes;
@@ -21,10 +21,10 @@ pub struct Format {
 
 impl Display for Format {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}_{}", self.channel_list, self.space)?;
+        write!(f, "{}{}", self.channel_list, self.space)?;
 
         if let Some(pack) = self.pack {
-            write!(f, "_{}", pack)?;
+            write!(f, "{}", pack)?;
         }
 
         Ok(())
@@ -57,15 +57,17 @@ impl TryFrom<Ident> for Format {
 
 impl Format {
     pub fn generate_struct_decl(&self) -> Option<TokenStream> {
-        // temporary
-        if self.pack.is_some() {
-            return None;
-        }
+        let align = match self.pack {
+            // Return if we cant generate align attr
+            Some( pack ) => Some( pack.generate_align_attr()? ),
+            None => None
+        }.into_iter();
 
         let struct_name = Ident::new( &self.to_string(), self.format_def_lit.span() );
-        let struct_fields = self.channel_list.generate_fields(self.space);
+        let struct_fields = self.channel_list.generate_fields(self.space)?;
 
         let result = quote! {
+            #(#align)*
             #[derive(Clone, Copy, PartialEq)]
             pub struct #struct_name {
                 #struct_fields

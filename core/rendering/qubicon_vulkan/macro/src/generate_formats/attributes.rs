@@ -1,5 +1,5 @@
 use quote::{ quote, ToTokens, TokenStreamExt };
-use proc_macro2::{ Ident, Span, TokenStream };
+use proc_macro2::{ Ident, Literal, Span, TokenStream };
 
 use core::{ str::FromStr, fmt::Display };
 
@@ -42,6 +42,22 @@ impl Display for Pack {
                 Self::Block => "Block"
             }
         )
+    }
+}
+
+impl Pack {
+    pub fn generate_align_attr(&self) -> Option<TokenStream> {
+        let align = match self {
+            Self::P8 => 1,
+            Self::P16 => 2,
+            Self::P32 => 4,
+
+            Self::Block => return None
+        };
+
+        let align = Literal::u8_unsuffixed(align);
+
+        Some( quote! { #[repr(align(#align))] } )
     }
 }
 
