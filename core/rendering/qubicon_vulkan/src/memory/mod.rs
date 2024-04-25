@@ -3,7 +3,8 @@ pub use memory_object::*;
 pub use crate::instance::physical_device::{
     MemoryTypeProperties,
     MemoryHeapProperties,
-    DeviceSize
+    DeviceSize,
+    NonZeroDeviceSize
 };
 
 pub mod alloc;

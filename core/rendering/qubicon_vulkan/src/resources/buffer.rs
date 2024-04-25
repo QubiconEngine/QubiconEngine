@@ -194,7 +194,7 @@ impl<A: Allocator> Buffer<A> {
         }
 
         // Maybe move this somewhere else ?
-        if allocation.offset() + allocation.size() > unsafe { allocation.memory_object() }.size() {
+        if allocation.offset() + allocation.size() > unsafe { allocation.memory_object() }.size().get() {
             panic!("memory object cant fit allocation inside")
         }
 

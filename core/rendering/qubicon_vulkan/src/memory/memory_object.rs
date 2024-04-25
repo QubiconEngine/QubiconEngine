@@ -1,20 +1,16 @@
 use std::sync::{ Arc, Mutex, atomic::Ordering };
 
-use super::{ DeviceSize, MemoryTypeProperties };
+use super::{ DeviceSize, NonZeroDeviceSize, MemoryTypeProperties };
 use crate::{ error::VkError, device::Device, instance::physical_device::PhysicalDevice };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AllocationInfo {
-    pub size: DeviceSize,
+    pub size: NonZeroDeviceSize,
     pub memory_type: u32
 }
 
 impl AllocationInfo {
     pub fn validate(&self, device: &PhysicalDevice) {
-        if self.size == 0 {
-            panic!("allocation size shouldnt be zero");
-        }
-
         let memory_types = &device.memory_properties().memory_types;
         let memory_heaps = &device.memory_properties().memory_heaps;
 
@@ -24,7 +20,7 @@ impl AllocationInfo {
 
         let heap_idx = memory_types[self.memory_type as usize].heap_index;
     
-        if self.size > memory_heaps[heap_idx as usize].size {
+        if self.size.get() > memory_heaps[heap_idx as usize].size {
             panic!("allocation size should be less than heap size");
         }
 
@@ -35,7 +31,7 @@ impl AllocationInfo {
 impl From<AllocationInfo> for ash::vk::MemoryAllocateInfo {
     fn from(value: AllocationInfo) -> Self {
         Self::builder()
-            .allocation_size(value.size)
+            .allocation_size(value.size.get())
             .memory_type_index(value.memory_type)
             .build()
     }
@@ -51,7 +47,7 @@ struct MapData {
 pub struct MemoryObject {
     device: Arc<Device>,
     
-    size: DeviceSize,
+    size: NonZeroDeviceSize,
     memory_type: u32,
     memory_properties: MemoryTypeProperties,
 
@@ -117,7 +113,7 @@ impl MemoryObject {
         &self.device
     }
     
-    pub fn size(&self) -> DeviceSize {
+    pub fn size(&self) -> NonZeroDeviceSize {
         self.size
     }
 
@@ -133,7 +129,7 @@ impl MemoryObject {
             return Err( VkError::MemoryMapFailed );
         }
         
-        assert!(offset > self.size, "offset is greater than size. Offset is {}, size is {}", offset, self.size);
+        assert!(offset > self.size.get(), "offset is greater than size. Offset is {}, size is {}", offset, self.size);
 
         // Maybe unwrap_unchecked ?
         let mut map_data = self.map_data.lock().unwrap();
@@ -141,7 +137,7 @@ impl MemoryObject {
 
         if map_data.map_count == 0 {
             map_data.map_addr = self.device.as_raw()
-                .map_memory(self.memory, 0, self.size, Default::default())
+                .map_memory(self.memory, 0, self.size.get(), Default::default())
                 .map(| ptr | ptr.cast())?;
         }
 

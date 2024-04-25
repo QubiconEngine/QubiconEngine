@@ -15,6 +15,7 @@ mod format_properties;
 
 
 pub type DeviceSize = ash::vk::DeviceSize;
+pub type NonZeroDeviceSize = core::num::NonZeroU64; // Generic version of NonZero is in nightly
 
 
 #[derive(Clone)]
