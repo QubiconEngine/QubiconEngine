@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use bitflags::bitflags;
 
-use crate::device::Device;
-use super::format::Format;
+use super::{ MemoryRequirements, format::Format };
+use crate::{ device::Device, memory::alloc::Allocator };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -309,4 +309,25 @@ impl UnbindedImage {
     pub fn format(&self) -> Format {
         self.format
     }
+
+
+    pub fn memory_requirements(&self) -> MemoryRequirements {
+        unsafe { self.device.as_raw().get_image_memory_requirements(self.as_raw()) }
+            .into()
+    }
+}
+
+
+pub struct Image<A: Allocator> {
+    // Dropped first due to RFC 1857
+    image: UnbindedImage,
+
+    allocator: A,
+    allocation: A::Allocation
+}
+
+impl<A: Allocator> Drop for Image<A> {
+    // same as in Buffer
+    // just so we dont accidentaly take some fields out
+    fn drop(&mut self) {}
 }
