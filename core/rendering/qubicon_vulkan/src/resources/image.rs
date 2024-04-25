@@ -76,45 +76,50 @@ impl From<ash::vk::SampleCountFlags> for ImageSampleCountFlags {
 }
 
 
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Extent2D {
-    pub width: u32,
-    pub height: u32
+    pub width: NonZeroU32,
+    pub height: NonZeroU32
 }
 
 impl From<Extent2D> for ash::vk::Extent2D {
     fn from(value: Extent2D) -> Self {
         Self::builder()
-            .width(value.width)
-            .height(value.height)
+            .width(value.width.get())
+            .height(value.height.get())
             .build()
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Extent3D {
-    pub width: u32,
-    pub height: u32,
-    pub depth: u32
+    pub width: NonZeroU32,
+    pub height: NonZeroU32,
+    pub depth: NonZeroU32
 }
 
 impl From<Extent3D> for ash::vk::Extent3D {
     fn from(value: Extent3D) -> Self {
         Self::builder()
-            .width(value.width)
-            .height(value.height)
-            .depth(value.depth)
+            .width(value.width.get())
+            .height(value.height.get())
+            .depth(value.depth.get())
             .build()
     }
 }
 
-impl From<ash::vk::Extent3D> for Extent3D {
-    fn from(value: ash::vk::Extent3D) -> Self {
-        Self {
-            width: value.width,
-            height: value.height,
-            depth: value.depth
-        }
+impl TryFrom<ash::vk::Extent3D> for Extent3D {
+    type Error = VkError;
+    
+    fn try_from(value: ash::vk::Extent3D) -> Result<Self, Self::Error> {
+        let result = Self {
+            width: NonZeroU32::new(value.width).ok_or(VkError::FormatNotSupported)?,
+            height: NonZeroU32::new(value.height).ok_or(VkError::FormatNotSupported)?,
+            depth: NonZeroU32::new(value.depth).ok_or(VkError::FormatNotSupported)?
+        };
+
+        Ok( result )
     }
 }
 
@@ -229,17 +234,12 @@ impl ImageCreateInfo {
             panic!("too much array layers! Requested {}, but max is {}", self.array_layers, limits.max_image_array_layers);
         }
 
-        if self.extent.width == 0 || self.extent.height == 0 || self.extent.depth == 0 {
-            panic!("one of the Extent fields is zero {:?}", self.extent);
-        }
 
-
-
-        if self.ty == ImageType::Type1D && self.extent.height != 1 && self.extent.depth != 0 {
+        if self.ty == ImageType::Type1D && self.extent.height.get() > 1 && self.extent.depth.get() > 1 {
             panic!("1D images cant have height or depth greater than 1");
         }
 
-        if self.ty == ImageType::Type2D && self.extent.depth != 1 {
+        if self.ty == ImageType::Type2D && self.extent.depth.get() > 1 {
             panic!("2D images cant have depth greater than 1");
         }
 
@@ -251,7 +251,7 @@ impl ImageCreateInfo {
             panic!("unsupported samples count");
         }
         
-        if self.array_layers.get() > format_properties.max_array_layers {
+        if self.array_layers > format_properties.max_array_layers {
             panic!("array layers ")
         }
 
