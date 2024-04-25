@@ -1,8 +1,9 @@
 use std::sync::Arc;
+use core::num::NonZeroU32;
 use bitflags::bitflags;
 
 use super::{ MemoryRequirements, format::Format };
-use crate::{ device::Device, memory::alloc::Allocator };
+use crate::{ device::Device, instance::physical_device::PhysicalDevice, memory::alloc::Allocator };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -71,32 +72,32 @@ impl From<ImageSampleCountFlags> for ash::vk::SampleCountFlags {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Extent2D {
-    pub width: u32,
-    pub height: u32
+    pub width: NonZeroU32,
+    pub height: NonZeroU32
 }
 
 impl From<Extent2D> for ash::vk::Extent2D {
     fn from(value: Extent2D) -> Self {
         Self::builder()
-            .width(value.width)
-            .height(value.height)
+            .width(value.width.get())
+            .height(value.height.get())
             .build()
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Extent3D {
-    pub width: u32,
-    pub height: u32,
-    pub depth: u32
+    pub width: NonZeroU32,
+    pub height: NonZeroU32,
+    pub depth: NonZeroU32
 }
 
 impl From<Extent3D> for ash::vk::Extent3D {
     fn from(value: Extent3D) -> Self {
         Self::builder()
-            .width(value.width)
-            .height(value.height)
-            .depth(value.depth)
+            .width(value.width.get())
+            .height(value.height.get())
+            .depth(value.depth.get())
             .build()
     }
 }
@@ -197,22 +198,27 @@ pub struct ImageCreateInfo {
 
     pub extent: Extent3D,
     
-    pub array_layers: u32,
+    pub array_layers: NonZeroU32,
     pub format: Format,
 
     // TODO: Sharing mode and synchronization
 }
 
 impl ImageCreateInfo {
-    pub fn validate(&self) {
-        
+    pub fn validate(&self, device: &PhysicalDevice) {
+        // TODO: Sharing mode checks
+        let limits = &device.properties().limits;
+
+        if self.array_layers.get() > limits.max_image_array_layers {
+            panic!("Too much array layers! Requested {}, but max is {}", self.array_layers, limits.max_image_array_layers);
+        }
     }
 }
 
 impl From<ImageCreateInfo> for ash::vk::ImageCreateInfo {
     fn from(value: ImageCreateInfo) -> Self {
         Self::builder()
-            .array_layers(value.array_layers)
+            .array_layers(value.array_layers.get())
             .extent(value.extent.into())
             //.flags()
             .format(value.format.into())
@@ -251,8 +257,8 @@ pub struct UnbindedImage {
     ty: ImageType,
 
     extent: Extent3D,
-    array_layers: u32,
-    mip_levels: u32,
+    array_layers: NonZeroU32,
+    mip_levels: NonZeroU32,
 
     format: Format,
 
@@ -297,11 +303,11 @@ impl UnbindedImage {
         &self.extent
     }
 
-    pub fn array_layers(&self) -> u32 {
+    pub fn array_layers(&self) -> NonZeroU32 {
         self.array_layers
     }
 
-    pub fn mip_levels(&self) -> u32 {
+    pub fn mip_levels(&self) -> NonZeroU32 {
         self.mip_levels
     }
 
@@ -330,4 +336,12 @@ impl<A: Allocator> Drop for Image<A> {
     // same as in Buffer
     // just so we dont accidentaly take some fields out
     fn drop(&mut self) {}
+}
+
+impl<A: Allocator> core::ops::Deref for Image<A> {
+    type Target = UnbindedImage;
+
+    fn deref(&self) -> &Self::Target {
+        &self.image
+    }
 }
