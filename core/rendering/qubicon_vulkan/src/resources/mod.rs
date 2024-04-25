@@ -1,6 +1,6 @@
 pub mod format;
 
-mod image;
+pub mod image;
 pub mod buffer;
 //mod image_view;
 mod buffer_view;
