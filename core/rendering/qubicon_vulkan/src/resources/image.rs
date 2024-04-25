@@ -246,13 +246,13 @@ pub struct UnbindedImage {
     usage: ImageUsageFlags,
     samples: ImageSampleCountFlags,
     
-    //initial_layout: ImageLayout,
+    layout: ImageLayout,
     tiling: ImageTiling,
     ty: ImageType,
 
     extent: Extent3D,
     array_layers: u32,
-    mipmap_levels: u32,
+    mip_levels: u32,
 
     format: Format,
 
@@ -263,5 +263,50 @@ pub struct UnbindedImage {
 impl Drop for UnbindedImage {
     fn drop(&mut self) {
         unsafe { self.device.as_raw().destroy_image(self.image, None) }
+    }
+}
+
+impl UnbindedImage {
+    pub(crate) unsafe fn as_raw(&self) -> ash::vk::Image {
+        self.image
+    }
+
+    pub fn usage_flags(&self) -> ImageUsageFlags {
+        self.usage
+    }
+
+    pub fn samples(&self) -> ImageSampleCountFlags {
+        self.samples
+    }
+
+    
+    pub fn layout(&self) -> ImageLayout {
+        self.layout
+    }
+
+    pub fn tiling(&self) -> ImageTiling {
+        self.tiling
+    }
+
+    pub fn ty(&self) -> ImageType {
+        self.ty
+    }
+
+
+    pub fn extent(&self) -> &Extent3D {
+        &self.extent
+    }
+
+    pub fn array_layers(&self) -> u32 {
+        self.array_layers
+    }
+
+    pub fn mip_levels(&self) -> u32 {
+        self.mip_levels
+    }
+
+
+    pub fn format(&self) -> Format {
+        self.format
     }
 }
