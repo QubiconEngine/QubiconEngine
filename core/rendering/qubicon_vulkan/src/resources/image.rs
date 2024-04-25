@@ -3,7 +3,7 @@ use core::num::NonZeroU32;
 use bitflags::bitflags;
 
 use super::{ MemoryRequirements, format::Format };
-use crate::{ device::Device, instance::physical_device::PhysicalDevice, memory::alloc::Allocator };
+use crate::{ error::VkError, device::Device, instance::physical_device::PhysicalDevice, memory::alloc::Allocator };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -221,17 +221,54 @@ pub struct ImageCreateInfo {
 }
 
 impl ImageCreateInfo {
-    pub fn validate(&self, device: &PhysicalDevice) {
+    pub fn validate(&self, device: &PhysicalDevice) -> Result<(), VkError> {
         // TODO: Sharing mode checks
         let limits = &device.properties().limits;
 
         if self.array_layers.get() > limits.max_image_array_layers {
-            panic!("Too much array layers! Requested {}, but max is {}", self.array_layers, limits.max_image_array_layers);
+            panic!("too much array layers! Requested {}, but max is {}", self.array_layers, limits.max_image_array_layers);
         }
 
         if self.extent.width == 0 || self.extent.height == 0 || self.extent.depth == 0 {
-            panic!("One of the Extent fields is zero {:?}", self.extent);
+            panic!("one of the Extent fields is zero {:?}", self.extent);
         }
+
+
+
+        if self.ty == ImageType::Type1D && self.extent.height != 1 && self.extent.depth != 0 {
+            panic!("1D images cant have height or depth greater than 1");
+        }
+
+        if self.ty == ImageType::Type2D && self.extent.depth != 1 {
+            panic!("2D images cant have depth greater than 1");
+        }
+
+
+
+        let format_properties = device.image_format_properties(self.format, self.ty, self.tiling, self.usage_flags)?;
+
+        if !format_properties.sample_counts.contains(self.sample_count) {
+            panic!("unsupported samples count");
+        }
+        
+        if self.array_layers.get() > format_properties.max_array_layers {
+            panic!("array layers ")
+        }
+
+
+        if self.extent.width > format_properties.max_extent.width {
+            panic!("width({}) is greater than max width({})", self.extent.width, format_properties.max_extent.width);
+        }
+
+        if self.extent.height > format_properties.max_extent.height {
+            panic!("height({}) is greater than max height({})", self.extent.height, format_properties.max_extent.height);
+        }
+
+        if self.extent.depth > format_properties.max_extent.depth {
+            panic!("depth({}) is greater tham max depth({})", self.extent.depth, format_properties.max_extent.depth);
+        }
+
+        Ok(())
     }
 }
 
