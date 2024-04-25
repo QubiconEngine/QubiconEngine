@@ -1,15 +1,17 @@
 use std::sync::{ Arc, OnceLock };
-use crate::error::VkError;
+use crate::{ error::VkError, resources::format::Format };
 
 pub use features::*;
 pub use queue_info::*;
 pub use properties::*;
 pub use memory_properties::*;
+pub use format_properties::*;
 
 mod features;
 mod queue_info;
 mod properties;
 mod memory_properties;
+mod format_properties;
 
 
 pub type DeviceSize = ash::vk::DeviceSize;
@@ -79,6 +81,11 @@ impl PhysicalDevice {
                 .map(Into::into)
                 .collect()
         )
+    }
+
+    pub fn format_properties(&self, format: Format) -> FormatProperties {
+        unsafe { self.instance.as_raw().get_physical_device_format_properties(self.dev, format.into()) }
+            .into()
     }
 
     /// Shortcut
