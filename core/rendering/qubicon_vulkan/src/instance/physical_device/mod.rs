@@ -1,5 +1,5 @@
 use std::sync::{ Arc, OnceLock };
-use crate::{ error::VkError, resources::format::Format };
+use crate::{ error::VkError, resources::{ image, format::Format } };
 
 pub use features::*;
 pub use queue_info::*;
@@ -87,6 +87,27 @@ impl PhysicalDevice {
     pub fn format_properties(&self, format: Format) -> FormatProperties {
         unsafe { self.instance.as_raw().get_physical_device_format_properties(self.dev, format.into()) }
             .into()
+    }
+
+    pub fn image_format_properties(
+        &self,
+        format: Format,
+        ty: image::ImageType,
+        tiling: image::ImageTiling,
+        usage: image::ImageUsageFlags
+    ) -> Result<ImageFormatProperties, VkError> {
+        let result = unsafe {
+            self.instance.as_raw().get_physical_device_image_format_properties(
+                self.dev,
+                format.into(),
+                ty.into(),
+                tiling.into(),
+                usage.into(),
+                Default::default() // TODO: Replace with ImageCreateFlags
+            )
+        }?;
+
+        Ok ( result.into() )
     }
 
     /// Shortcut

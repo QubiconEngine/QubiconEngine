@@ -69,36 +69,52 @@ impl From<ImageSampleCountFlags> for ash::vk::SampleCountFlags {
     }
 }
 
+impl From<ash::vk::SampleCountFlags> for ImageSampleCountFlags {
+    fn from(value: ash::vk::SampleCountFlags) -> Self {
+        Self ( value.as_raw().into() )
+    }
+}
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Extent2D {
-    pub width: NonZeroU32,
-    pub height: NonZeroU32
+    pub width: u32,
+    pub height: u32
 }
 
 impl From<Extent2D> for ash::vk::Extent2D {
     fn from(value: Extent2D) -> Self {
         Self::builder()
-            .width(value.width.get())
-            .height(value.height.get())
+            .width(value.width)
+            .height(value.height)
             .build()
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Extent3D {
-    pub width: NonZeroU32,
-    pub height: NonZeroU32,
-    pub depth: NonZeroU32
+    pub width: u32,
+    pub height: u32,
+    pub depth: u32
 }
 
 impl From<Extent3D> for ash::vk::Extent3D {
     fn from(value: Extent3D) -> Self {
         Self::builder()
-            .width(value.width.get())
-            .height(value.height.get())
-            .depth(value.depth.get())
+            .width(value.width)
+            .height(value.height)
+            .depth(value.depth)
             .build()
+    }
+}
+
+impl From<ash::vk::Extent3D> for Extent3D {
+    fn from(value: ash::vk::Extent3D) -> Self {
+        Self {
+            width: value.width,
+            height: value.height,
+            depth: value.depth
+        }
     }
 }
 
@@ -211,6 +227,10 @@ impl ImageCreateInfo {
 
         if self.array_layers.get() > limits.max_image_array_layers {
             panic!("Too much array layers! Requested {}, but max is {}", self.array_layers, limits.max_image_array_layers);
+        }
+
+        if self.extent.width == 0 || self.extent.height == 0 || self.extent.depth == 0 {
+            panic!("One of the Extent fields is zero {:?}", self.extent);
         }
     }
 }

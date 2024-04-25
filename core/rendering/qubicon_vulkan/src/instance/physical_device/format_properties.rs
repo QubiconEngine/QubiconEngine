@@ -1,3 +1,4 @@
+use super::DeviceSize;
 use bitflags::bitflags;
 
 bitflags! {
@@ -34,9 +35,9 @@ impl From<ash::vk::FormatFeatureFlags> for FormatFeatures {
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FormatProperties {
-    linear_tiling: FormatFeatures,
-    optimal_tiling: FormatFeatures,
-    buffer_features: FormatFeatures
+    pub linear_tiling: FormatFeatures,
+    pub optimal_tiling: FormatFeatures,
+    pub buffer_features: FormatFeatures
 }
 
 impl From<ash::vk::FormatProperties> for FormatProperties {
@@ -48,3 +49,29 @@ impl From<ash::vk::FormatProperties> for FormatProperties {
         }
     }
 }
+
+
+use crate::resources::image::{ Extent3D, ImageSampleCountFlags };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageFormatProperties {
+    pub max_extent: Extent3D,
+    pub max_mip_levels: u32,
+    pub max_array_layers: u32,
+    pub sample_counts: ImageSampleCountFlags,
+    pub max_resource_size: DeviceSize
+}
+
+impl From<ash::vk::ImageFormatProperties> for ImageFormatProperties {
+    fn from(value: ash::vk::ImageFormatProperties) -> Self {
+        Self {
+            max_extent: value.max_extent.into(),
+            max_mip_levels: value.max_mip_levels,
+            max_array_layers: value.max_array_layers,
+            sample_counts: value.sample_counts.into(),
+            max_resource_size: value.max_resource_size
+        }
+    }
+}
+
+// TODO: SparseImageFormatProperties
