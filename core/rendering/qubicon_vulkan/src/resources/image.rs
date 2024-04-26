@@ -3,7 +3,7 @@ use core::num::NonZeroU32;
 use bitflags::bitflags;
 
 use super::{ MemoryRequirements, format::Format };
-use crate::{ error::VkError, device::Device, instance::physical_device::PhysicalDevice, memory::alloc::Allocator };
+use crate::{ error::VkError, device::Device, instance::physical_device::PhysicalDevice, memory::alloc::{ Allocator, Allocation } };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -426,6 +426,37 @@ pub struct Image<A: Allocator> {
 
     allocator: A,
     allocation: A::Allocation
+}
+
+impl<A: Allocator> Image<A> {
+    /// # Safety
+    /// Allocation should be valid and match image [MemoryRequirements]
+    /// 
+    /// This means that:
+    /// * Allocation should have enough space to fit image inside
+    /// * Allocation should be properly aligned
+    /// * Allocation should be located in memory, which type is allowed by [MemoryRequirements]
+    /// * Allocation must not be outside of memory object ( allocation.offset() + allocation.size() <= memory_object.size() )
+    /// 
+    /// ['MemoryRequirements']: crate::resources::MemoryRequirements
+    pub unsafe fn from_image_and_allocation_unchecked(image: UnbindedImage, allocator: A, allocation: A::Allocation) -> Result<Self, VkError> {
+        let memory_object = allocation.memory_object();
+
+        image.device.as_raw().bind_image_memory(
+            image.as_raw(),
+            memory_object.as_raw(),
+            allocation.offset()
+        )?;
+
+        let result = Self {
+            image,
+
+            allocator,
+            allocation
+        };
+
+        Ok ( result )
+    }
 }
 
 impl<A: Allocator> Drop for Image<A> {
