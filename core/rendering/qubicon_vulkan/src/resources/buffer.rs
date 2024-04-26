@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use bitflags::bitflags;
 
-use super::MemoryRequirements;
+use super::{ MemoryRequirements, AllocHandle };
 use crate::{ error::VkError, device::Device, memory::{ DeviceSize, alloc::{ Allocator, Allocation, MapGuard } } };
 
 bitflags! {
@@ -148,9 +148,7 @@ impl Drop for UnbindedBuffer {
 pub struct Buffer<A: Allocator> {
     // this field is dropped first due to RFC 1857
     buffer: UnbindedBuffer,
-
-    _allocator: A,
-    allocation: A::Allocation,
+    alloc: AllocHandle<A>
 }
 
 impl<A: Allocator> Buffer<A> {
@@ -175,9 +173,7 @@ impl<A: Allocator> Buffer<A> {
         
         let result = Self {
             buffer,
-
-            _allocator: allocator,
-            allocation
+            alloc: AllocHandle::new(allocator, allocation)
         };
 
         Ok( result )
@@ -223,7 +219,7 @@ impl<T: BufferType, A: Allocator> TypedBuffer<T, A> {
     #[allow(clippy::needless_lifetimes)]
     pub fn map<'a>(&'a self) -> Result<BufferMapGuard<'a, T, <A::Allocation as Allocation>::MapGuard<'a>>, VkError> {
         let result = BufferMapGuard {
-            map_guard: self.allocation.map()?,
+            map_guard: self.alloc.map()?,
             size: self.size() as usize,
 
             _ph: Default::default()

@@ -2,7 +2,7 @@ use std::sync::Arc;
 use core::num::NonZeroU32;
 use bitflags::bitflags;
 
-use super::{ MemoryRequirements, format::Format };
+use super::{ MemoryRequirements, AllocHandle, format::Format };
 use crate::{ error::VkError, device::Device, instance::physical_device::PhysicalDevice, memory::alloc::{ Allocator, Allocation } };
 
 bitflags! {
@@ -423,9 +423,7 @@ impl UnbindedImage {
 pub struct Image<A: Allocator> {
     // Dropped first due to RFC 1857
     image: UnbindedImage,
-
-    allocator: A,
-    allocation: A::Allocation
+    _alloc: AllocHandle<A>
 }
 
 impl<A: Allocator> Image<A> {
@@ -450,9 +448,7 @@ impl<A: Allocator> Image<A> {
 
         let result = Self {
             image,
-
-            allocator,
-            allocation
+            _alloc: AllocHandle::new(allocator, allocation)
         };
 
         Ok ( result )

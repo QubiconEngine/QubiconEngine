@@ -7,7 +7,7 @@ mod buffer_view;
 //mod resource_factory;
 
 
-use crate::memory::{ DeviceSize, alloc::Allocation };
+use crate::memory::{ DeviceSize, alloc::{ Allocator, Allocation } };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MemoryRequirements {
@@ -52,5 +52,36 @@ impl From<ash::vk::MemoryRequirements> for MemoryRequirements {
 
             memory_types: bitvec::array::BitArray::new([value.memory_type_bits])
         }
+    }
+}
+
+
+
+use core::mem::ManuallyDrop;
+
+struct AllocHandle<A: Allocator> {
+    allocator: A,
+    allocation: ManuallyDrop<A::Allocation>
+}
+
+impl<A: Allocator> AllocHandle<A> {
+    fn new(allocator: A, allocation: A::Allocation) -> Self {
+        Self { allocator, allocation: ManuallyDrop::new(allocation) }
+    }
+}
+
+impl<A: Allocator> core::ops::Deref for AllocHandle<A> {
+    type Target = A::Allocation;
+
+    fn deref(&self) -> &Self::Target {
+        &self.allocation
+    }
+}
+
+impl<A: Allocator> Drop for AllocHandle<A> {
+    fn drop(&mut self) {
+        self.allocator.dealloc(
+            unsafe { ManuallyDrop::take(&mut self.allocation) }
+        )
     }
 }
