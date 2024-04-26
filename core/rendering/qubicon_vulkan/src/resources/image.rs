@@ -457,6 +457,13 @@ impl<A: Allocator> Image<A> {
 
         Ok ( result )
     }
+
+    pub fn from_image_and_allocation(image: UnbindedImage, allocator: A, allocation: A::Allocation) -> Result<Self, VkError> {
+        image.memory_requirements()
+            .validate_allocation(&allocation);
+        
+        unsafe { Self::from_image_and_allocation_unchecked(image, allocator, allocation) }
+    }
 }
 
 impl<A: Allocator> Drop for Image<A> {

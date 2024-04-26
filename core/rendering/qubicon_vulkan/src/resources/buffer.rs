@@ -184,34 +184,8 @@ impl<A: Allocator> Buffer<A> {
     }
 
     pub fn from_buffer_and_allocation(buffer: UnbindedBuffer, allocator: A, allocation: A::Allocation) -> Result<Self, VkError> {
-        let requirements = buffer.memory_requirements();
-
-
-        if allocation.size() < requirements.size {
-            panic!("allocation is too small");
-        }
-
-        if allocation.offset() % requirements.alignment != 0 {
-            panic!("allocation has invalid alignment");
-        }
-
-        // Maybe move this somewhere else ?
-        if allocation.offset() + allocation.size() > unsafe { allocation.memory_object() }.size().get() {
-            panic!("memory object cant fit allocation inside")
-        }
-
-
-
-        let memory_type = unsafe { allocation.memory_object() }.memory_type();
-        let memory_type_is_valid = requirements.memory_types.iter().enumerate()
-            .filter(| (_, allowed) | **allowed)
-            .any(| (idx, _) | idx as u32 == memory_type);
-
-        if !memory_type_is_valid {
-            panic!("allocation is located in memory object, what has incorrect memory type")
-        }
-        
-        
+        buffer.memory_requirements()
+            .validate_allocation(&allocation);
 
         unsafe { Self::from_buffer_and_allocation_unchecked(buffer, allocator, allocation) }
     }

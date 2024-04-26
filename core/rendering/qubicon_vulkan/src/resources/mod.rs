@@ -7,7 +7,7 @@ mod buffer_view;
 //mod resource_factory;
 
 
-use crate::instance::physical_device::DeviceSize;
+use crate::memory::{ DeviceSize, alloc::Allocation };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MemoryRequirements {
@@ -15,6 +15,33 @@ pub struct MemoryRequirements {
     pub alignment: DeviceSize,
 
     pub memory_types: bitvec::BitArr!(for 32, in u32)
+}
+
+impl MemoryRequirements {
+    pub fn validate_allocation(&self, allocation: &impl Allocation) {
+        if allocation.size() < self.size {
+            panic!("allocation is too small");
+        }
+
+        if allocation.offset() % self.alignment != 0 {
+            panic!("allocation has invalid alignment");
+        }
+
+        if allocation.offset() + allocation.size() > unsafe { allocation.memory_object() }.size().get() {
+            panic!("memory object cant fit allocation inside")
+        }
+
+
+
+        let memory_type = unsafe { allocation.memory_object() }.memory_type();
+        let memory_type_is_valid = self.memory_types.iter().enumerate()
+            .filter(| (_, allowed) | **allowed)
+            .any(| (idx, _) | idx as u32 == memory_type);
+
+        if !memory_type_is_valid {
+            panic!("allocation is located in memory object, what has incorrect memory type")
+        }
+    }
 }
 
 impl From<ash::vk::MemoryRequirements> for MemoryRequirements {
