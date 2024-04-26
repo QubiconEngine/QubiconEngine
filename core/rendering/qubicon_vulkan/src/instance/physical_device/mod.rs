@@ -107,7 +107,7 @@ impl PhysicalDevice {
             )
         }?;
 
-        Ok ( result.try_into()? )
+        result.try_into()
     }
 
     /// Shortcut

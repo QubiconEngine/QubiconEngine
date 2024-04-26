@@ -220,6 +220,7 @@ pub struct ImageCreateInfo {
     pub extent: Extent3D,
     
     pub array_layers: NonZeroU32,
+    pub mip_levels: NonZeroU32,
     pub format: Format,
 
     // TODO: Sharing mode and synchronization
@@ -251,8 +252,13 @@ impl ImageCreateInfo {
             panic!("unsupported samples count");
         }
         
+
+        if self.mip_levels > format_properties.max_mip_levels {
+            panic!("{} miplevels, but max is {}", self.mip_levels, format_properties.max_mip_levels);
+        }
+
         if self.array_layers > format_properties.max_array_layers {
-            panic!("array layers ")
+            panic!("{} array layers, but max is {}", self.array_layers, format_properties.max_array_layers);
         }
 
 
@@ -268,6 +274,11 @@ impl ImageCreateInfo {
             panic!("depth({}) is greater tham max depth({})", self.extent.depth, format_properties.max_extent.depth);
         }
 
+
+        if self.mip_levels.get() != 1 && self.mip_levels != mip_levels_for_extent(self.extent) {
+            panic!("invalid mip leves count");
+        }
+
         Ok(())
     }
 }
@@ -281,7 +292,7 @@ impl From<ImageCreateInfo> for ash::vk::ImageCreateInfo {
             .format(value.format.into())
             .image_type(value.ty.into())
             .initial_layout(value.initial_layout.into())
-            //.mip_levels(mip_levels)
+            .mip_levels(value.mip_levels.get())
             //.sharing_mode(sharing_mode)
             //.queue_family_indices(queue_family_indices)
             .samples(value.sample_count.into())
@@ -293,12 +304,11 @@ impl From<ImageCreateInfo> for ash::vk::ImageCreateInfo {
 
 // Idk if mipmaps can actually be less than value, calculated by max(d1, d2, d3).log2().floor().
 // I will find this out later
-#[inline]
-pub(crate) fn mip_levels_for_dimensions(width: u32, height: u32, depth: u32, requested: u32) -> u32 {
-    let max_dimension = width.max(height).max(depth) as f32;
-    let max_miplevels = max_dimension.log2().floor() as u32 + 1;
-    
-    max_miplevels.min(requested)
+pub fn mip_levels_for_extent(extent: Extent3D) -> NonZeroU32 {
+    let max_dimension = extent.width.max(extent.height).max(extent.depth).get() as f32;
+    let mip_levels = max_dimension.log2().floor() as u32 + 1;
+
+    unsafe { NonZeroU32::new_unchecked(mip_levels) }
 }
 
 
@@ -332,6 +342,35 @@ impl Drop for UnbindedImage {
 impl UnbindedImage {
     pub(crate) unsafe fn as_raw(&self) -> ash::vk::Image {
         self.image
+    }
+
+    pub fn new(device: Arc<Device>, create_info: &ImageCreateInfo) -> Result<Self, VkError> {
+        create_info.validate(device.physical_device())?;
+
+        let image = unsafe {
+            device.as_raw().create_image(&(*create_info).into(), None)
+        }?;
+        
+        let result = Self {
+            device,
+
+            usage: create_info.usage_flags,
+            samples: create_info.sample_count,
+            
+            layout: create_info.initial_layout,
+            tiling: create_info.tiling,
+            ty: create_info.ty,
+
+            extent: create_info.extent,
+            array_layers: create_info.array_layers,
+            mip_levels: create_info.mip_levels,
+
+            format: create_info.format,
+
+            image
+        };
+
+        Ok ( result )
     }
 
     pub fn usage_flags(&self) -> ImageUsageFlags {
