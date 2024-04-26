@@ -155,13 +155,15 @@ pub struct Buffer<A: Allocator> {
 
 impl<A: Allocator> Buffer<A> {
     /// # Safety
-    /// Allocation should be valid and perfectly match buffer memory requirements
+    /// Allocation should be valid and perfectly match buffer [MemoryRequirements]
     /// 
     /// This means what:
     /// * Allocation should contain enough space to fit buffer inside
     /// * Allocation should be properly aligned
-    /// * Allocation should be located in memory, what type is allowed by memory requirements
+    /// * Allocation should be located in memory, what type is allowed by [MemoryRequirements]
     /// * Allocation must not be outside of memory object ( allocation.offset() + allocation.size() <= memory_object.size() )
+    /// 
+    /// ['MemoryRequirements']: crate::resources::MemoryRequirements
     pub unsafe fn from_buffer_and_allocation_unchecked(buffer: UnbindedBuffer, allocator: A, allocation: A::Allocation) -> Result<Self, VkError> {
         let memory_object = allocation.memory_object();
         
