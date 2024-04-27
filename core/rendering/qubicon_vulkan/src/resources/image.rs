@@ -502,6 +502,35 @@ pub enum SamplerAddressMode {
     // MirrorClampToEdge = 4,
 }
 
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BorderColor {
+    #[default]
+    FloatTransparentBlack = 0,
+    IntTransparentBlack = 1,
+    
+    FloatOpaqueBlack = 2,
+    IntOpaqueBlack = 3,
+
+    FloatOpaqueWhite = 4,
+    IntOpaqueWhite = 5,
+
+    // FloatCustom = 1000287003
+    // IntCustom = 1000287004
+}
+
+// TODO: Move to another place
+// Cant express this via cmp::Ordering :[
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CompareOp {
+    Never = 0,
+    Less = 1,
+    Equal = 2,
+    LessOrEqual = 3,
+    Greater = 4,
+    NotEqual = 5,
+    GreaterOrEqual = 6,
+    Always = 7
+}
 
 
 
@@ -520,12 +549,12 @@ pub struct SamplerCreateInfo {
     max_anisotropy: f32,
 
     compare_enable: bool,
-    // compare_op
+    compare_op: CompareOp,
 
     min_lod: f32,
     max_lod: f32,
 
-    // border_color
+    border_color: BorderColor,
     unnormalized_cordinates: bool
 }
 
