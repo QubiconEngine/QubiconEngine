@@ -475,3 +475,70 @@ impl<A: Allocator> core::ops::Deref for Image<A> {
         &self.image
     }
 }
+
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Filter {
+    Nearest = 0,
+    Linear = 1,
+
+    // Cubic = 1000015000
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SamplerMipmapMode {
+    Nearest = 0,
+    Linear = 1
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SamplerAddressMode {
+    Repeat = 0,
+    MirroredRepeat = 1,
+    ClampToEdge = 2,
+    ClampToBorder = 3,
+    
+    // MirrorClampToEdge = 4,
+}
+
+
+
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SamplerCreateInfo {
+    mag_filter: Filter,
+    min_filter: Filter,
+    mipmap_mode: SamplerMipmapMode,
+
+    address_mode_u: SamplerAddressMode,
+    address_mode_v: SamplerAddressMode,
+    address_mode_w: SamplerAddressMode,
+
+    mip_load_bias: f32,
+    anisotropy_enable: bool,
+    max_anisotropy: f32,
+
+    compare_enable: bool,
+    // compare_op
+
+    min_lod: f32,
+    max_lod: f32,
+
+    // border_color
+    unnormalized_cordinates: bool
+}
+
+
+
+pub struct Sampler {
+    device: Arc<Device>,
+
+    sampler: ash::vk::Sampler
+}
+
+impl Drop for Sampler {
+    fn drop(&mut self) {
+        unsafe { self.device.as_raw().destroy_sampler(self.sampler, None) }
+    }
+}
