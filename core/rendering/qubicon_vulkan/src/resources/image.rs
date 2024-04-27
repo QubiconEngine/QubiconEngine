@@ -486,10 +486,28 @@ pub enum Filter {
     // Cubic = 1000015000
 }
 
+impl From<Filter> for ash::vk::Filter {
+    fn from(value: Filter) -> Self {
+        match value {
+            Filter::Nearest => Self::NEAREST,
+            Filter::Linear => Self::LINEAR
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SamplerMipmapMode {
     Nearest = 0,
     Linear = 1
+}
+
+impl From<SamplerMipmapMode> for ash::vk::SamplerMipmapMode {
+    fn from(value: SamplerMipmapMode) -> Self {
+        match value {
+            SamplerMipmapMode::Nearest => Self::NEAREST,
+            SamplerMipmapMode::Linear => Self::LINEAR
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -500,6 +518,17 @@ pub enum SamplerAddressMode {
     ClampToBorder = 3,
     
     // MirrorClampToEdge = 4,
+}
+
+impl From<SamplerAddressMode> for ash::vk::SamplerAddressMode {
+    fn from(value: SamplerAddressMode) -> Self {
+        match value {
+            SamplerAddressMode::Repeat => Self::REPEAT,
+            SamplerAddressMode::MirroredRepeat => Self::MIRRORED_REPEAT,
+            SamplerAddressMode::ClampToEdge => Self::CLAMP_TO_EDGE,
+            SamplerAddressMode::ClampToBorder => Self::CLAMP_TO_BORDER
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -518,6 +547,21 @@ pub enum BorderColor {
     // IntCustom = 1000287004
 }
 
+impl From<BorderColor> for ash::vk::BorderColor {
+    fn from(value: BorderColor) -> Self {
+        match value {
+            BorderColor::FloatTransparentBlack => Self::FLOAT_TRANSPARENT_BLACK,
+            BorderColor::IntTransparentBlack => Self::INT_TRANSPARENT_BLACK,
+
+            BorderColor::FloatOpaqueBlack => Self::FLOAT_OPAQUE_BLACK,
+            BorderColor::IntOpaqueBlack => Self::INT_OPAQUE_BLACK,
+
+            BorderColor::FloatOpaqueWhite => Self::FLOAT_OPAQUE_WHITE,
+            BorderColor::IntOpaqueWhite => Self::INT_OPAQUE_WHITE
+        }
+    }
+}
+
 // TODO: Move to another place
 // Cant express this via cmp::Ordering :[
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -530,6 +574,21 @@ pub enum CompareOp {
     NotEqual = 5,
     GreaterOrEqual = 6,
     Always = 7
+}
+
+impl From<CompareOp> for ash::vk::CompareOp {
+    fn from(value: CompareOp) -> Self {
+        match value {
+            CompareOp::Never => Self::NEVER,
+            CompareOp::Less => Self::LESS,
+            CompareOp::Equal => Self::EQUAL,
+            CompareOp::LessOrEqual => Self::LESS_OR_EQUAL,
+            CompareOp::Greater => Self::GREATER,
+            CompareOp::NotEqual => Self::NOT_EQUAL,
+            CompareOp::GreaterOrEqual => Self::GREATER_OR_EQUAL,
+            CompareOp::Always => Self::ALWAYS
+        }
+    }
 }
 
 
@@ -556,6 +615,28 @@ pub struct SamplerCreateInfo {
 
     border_color: BorderColor,
     unnormalized_cordinates: bool
+}
+
+impl From<SamplerCreateInfo> for ash::vk::SamplerCreateInfo {
+    fn from(value: SamplerCreateInfo) -> Self {
+        Self::builder()
+            .mag_filter(value.mag_filter.into())
+            .min_filter(value.min_filter.into())
+            .mipmap_mode(value.mipmap_mode.into())
+            .address_mode_u(value.address_mode_u.into())
+            .address_mode_v(value.address_mode_v.into())
+            .address_mode_w(value.address_mode_w.into())
+            .mip_lod_bias(value.mip_load_bias)
+            .anisotropy_enable(value.anisotropy_enable)
+            .max_anisotropy(value.max_anisotropy)
+            .compare_enable(value.compare_enable)
+            .compare_op(value.compare_op.into())
+            .min_lod(value.min_lod)
+            .max_lod(value.max_lod)
+            .border_color(value.border_color.into())
+            .unnormalized_coordinates(value.unnormalized_cordinates)
+            .build()
+    }
 }
 
 
