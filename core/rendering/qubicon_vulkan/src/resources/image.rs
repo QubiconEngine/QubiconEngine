@@ -604,11 +604,9 @@ pub struct SamplerCreateInfo {
     address_mode_w: SamplerAddressMode,
 
     mip_lod_bias: f32,
-    anisotropy_enable: bool,
-    max_anisotropy: f32,
 
-    compare_enable: bool,
-    compare_op: CompareOp,
+    max_anisotropy: Option<f32>,
+    compare_op: Option<CompareOp>,
 
     min_lod: f32,
     max_lod: f32,
@@ -630,15 +628,17 @@ impl SamplerCreateInfo {
             panic!("min_lod({}) is greater than max_lod({})", self.min_lod, self.max_lod);
         }
 
-        if self.anisotropy_enable {
+        if let Some(max_anisotropy) = self.max_anisotropy {
+            let msg = "anisotropy is enabled, but";
+
             if !features.sampler_anisotropy {
-                panic!("anisotropy_enable is true, but sampler_anisotropy feature id disabled");
+                panic!("{msg} sampler_anisotropy feature id disabled");
             }
 
-            if !(1.0..=limits.max_sampler_anisotropy).contains(&self.max_anisotropy) {
+            if !(1.0..=limits.max_sampler_anisotropy).contains(&max_anisotropy) {
                 panic!(
-                    "anisotropy_enable is true, but max_anisotrophy({}) isn`t in 1.0..=max_sampler_anisotrophy({})",
-                    self.max_anisotropy,
+                    "{msg} max_anisotropy({}) isn`t in 1.0..=max_sampler_anisotropy({})",
+                    max_anisotropy,
                     limits.max_sampler_anisotropy
                 );
             }
@@ -671,12 +671,12 @@ impl SamplerCreateInfo {
                 panic!("{msg} address_mode_v({:?}) is not ClampToEdge or ClampToBorder", self.address_mode_v);
             }
 
-            if self.anisotropy_enable {
-                panic!("{msg} anisotropy_enable is true");
+            if self.max_anisotropy.is_some() {
+                panic!("{msg} anisotropy is enabled");
             }
 
-            if self.compare_enable {
-                panic!("{msg} compare_enable is true");
+            if self.compare_op.is_some() {
+                panic!("{msg} compare_op is enabled");
             }
         }
     }
@@ -692,10 +692,10 @@ impl From<SamplerCreateInfo> for ash::vk::SamplerCreateInfo {
             .address_mode_v(value.address_mode_v.into())
             .address_mode_w(value.address_mode_w.into())
             .mip_lod_bias(value.mip_lod_bias)
-            .anisotropy_enable(value.anisotropy_enable)
-            .max_anisotropy(value.max_anisotropy)
-            .compare_enable(value.compare_enable)
-            .compare_op(value.compare_op.into())
+            .anisotropy_enable(value.max_anisotropy.is_some())
+            .max_anisotropy(value.max_anisotropy.unwrap_or_default())
+            .compare_enable(value.compare_op.is_some())
+            .compare_op(value.compare_op.map(Into::into).unwrap_or_default())
             .min_lod(value.min_lod)
             .max_lod(value.max_lod)
             .border_color(value.border_color.into())
