@@ -603,7 +603,7 @@ pub struct SamplerCreateInfo {
     address_mode_v: SamplerAddressMode,
     address_mode_w: SamplerAddressMode,
 
-    mip_load_bias: f32,
+    mip_lod_bias: f32,
     anisotropy_enable: bool,
     max_anisotropy: f32,
 
@@ -617,6 +617,71 @@ pub struct SamplerCreateInfo {
     unnormalized_cordinates: bool
 }
 
+impl SamplerCreateInfo {
+    pub fn validate(&self, device: &Device) {
+        let features = device.enabled_features();
+        let limits = &device.physical_device().properties().limits;
+
+        if self.mip_lod_bias > limits.max_sampler_lod_bias {
+            panic!("mip_lod_bias({}) is greater than maximum({})", self.mip_lod_bias, limits.max_sampler_lod_bias);
+        }
+
+        if self.min_lod > self.max_lod {
+            panic!("min_lod({}) is greater than max_lod({})", self.min_lod, self.max_lod);
+        }
+
+        if self.anisotropy_enable {
+            if !features.sampler_anisotropy {
+                panic!("anisotropy_enable is true, but sampler_anisotropy feature id disabled");
+            }
+
+            if !(1.0..=limits.max_sampler_anisotropy).contains(&self.max_anisotropy) {
+                panic!(
+                    "anisotropy_enable is true, but max_anisotrophy({}) isn`t in 1.0..=max_sampler_anisotrophy({})",
+                    self.max_anisotropy,
+                    limits.max_sampler_anisotropy
+                );
+            }
+
+            // cubic filter
+        }
+
+        // YCbCr conversion
+
+        if self.unnormalized_cordinates {
+            let msg = "unnormalized_cordinates is true, but";
+
+            if self.min_filter != self.mag_filter {
+                panic!("{msg} min_filter({:?}) and mag_filter({:?}) arent equal", self.min_filter, self.mag_filter);
+            }
+
+            if self.mipmap_mode != SamplerMipmapMode::Nearest {
+                panic!("{msg} mipmap_mode({:?}) isn`t Nearest", self.mipmap_mode);
+            }
+
+            if self.min_lod != 0.0 && self.max_lod != 0.0 {
+                panic!("{msg} min_lod({}) and max_lod({}) arent zero", self.min_lod, self.max_lod);
+            }
+
+            if self.address_mode_u != SamplerAddressMode::ClampToEdge && self.address_mode_u != SamplerAddressMode::ClampToBorder {
+                panic!("{msg} address_mode_u({:?}) is not ClampToEdge or ClampToBorder", self.address_mode_u);
+            }
+
+            if self.address_mode_v != SamplerAddressMode::ClampToEdge && self.address_mode_v != SamplerAddressMode::ClampToBorder {
+                panic!("{msg} address_mode_v({:?}) is not ClampToEdge or ClampToBorder", self.address_mode_v);
+            }
+
+            if self.anisotropy_enable {
+                panic!("{msg} anisotropy_enable is true");
+            }
+
+            if self.compare_enable {
+                panic!("{msg} compare_enable is true");
+            }
+        }
+    }
+}
+
 impl From<SamplerCreateInfo> for ash::vk::SamplerCreateInfo {
     fn from(value: SamplerCreateInfo) -> Self {
         Self::builder()
@@ -626,7 +691,7 @@ impl From<SamplerCreateInfo> for ash::vk::SamplerCreateInfo {
             .address_mode_u(value.address_mode_u.into())
             .address_mode_v(value.address_mode_v.into())
             .address_mode_w(value.address_mode_w.into())
-            .mip_lod_bias(value.mip_load_bias)
+            .mip_lod_bias(value.mip_lod_bias)
             .anisotropy_enable(value.anisotropy_enable)
             .max_anisotropy(value.max_anisotropy)
             .compare_enable(value.compare_enable)
