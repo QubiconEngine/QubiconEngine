@@ -709,7 +709,80 @@ impl From<SamplerCreateInfo> for ash::vk::SamplerCreateInfo {
 pub struct Sampler {
     device: Arc<Device>,
 
+    mag_filter: Filter,
+    min_filter: Filter,
+    mipmap_mode: SamplerMipmapMode,
+
+    address_mode_u: SamplerAddressMode,
+    address_mode_v: SamplerAddressMode,
+    address_mode_w: SamplerAddressMode,
+
+    mip_lod_bias: f32,
+
+    max_anisotropy: Option<f32>,
+    compare_op: Option<CompareOp>,
+
+    min_lod: f32,
+    max_lod: f32,
+
+    border_color: BorderColor,
+    unnormalized_cordinates: bool,
+
     sampler: ash::vk::Sampler
+}
+
+impl Sampler {
+    pub fn mag_filter(&self) -> Filter {
+        self.mag_filter
+    }
+
+    pub fn min_filter(&self) -> Filter {
+        self.min_filter
+    }
+
+    pub fn mipmap_mode(&self) -> SamplerMipmapMode {
+        self.mipmap_mode
+    }
+
+    pub fn address_mode_u(&self) -> SamplerAddressMode {
+        self.address_mode_u
+    }
+
+    pub fn address_mode_v(&self) -> SamplerAddressMode {
+        self.address_mode_v
+    }
+
+    pub fn address_mode_w(&self) -> SamplerAddressMode {
+        self.address_mode_w
+    }
+
+    pub fn mip_lod_bias(&self) -> f32 {
+        self.mip_lod_bias
+    }
+
+    pub fn max_anisotropy(&self) -> Option<f32> {
+        self.max_anisotropy
+    }
+
+    pub fn compare_op(&self) -> Option<CompareOp> {
+        self.compare_op
+    }
+
+    pub fn min_lod(&self) -> f32 {
+        self.min_lod
+    }
+
+    pub fn max_lod(&self) -> f32 {
+        self.max_lod
+    }
+
+    pub fn border_color(&self) -> BorderColor {
+        self.border_color
+    }
+
+    pub fn unnormalized_coordinates(&self) -> bool {
+        self.unnormalized_cordinates
+    }
 }
 
 impl Drop for Sampler {
