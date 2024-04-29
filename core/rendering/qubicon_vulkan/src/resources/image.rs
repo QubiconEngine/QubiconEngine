@@ -784,6 +784,12 @@ impl Sampler {
         Ok( result )
     }
 
+    pub fn new(device: Arc<Device>, create_info: &SamplerCreateInfo) -> Result<Self, VkError> {
+        create_info.validate(&device);
+        
+        unsafe { Self::new_unchecked(device, create_info) }
+    }
+
     pub fn mag_filter(&self) -> Filter {
         self.mag_filter
     }
