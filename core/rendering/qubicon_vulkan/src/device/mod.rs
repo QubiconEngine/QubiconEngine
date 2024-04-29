@@ -10,6 +10,7 @@ pub struct Device {
     queue_families: HashMap<QueueFamilyIndex, QueueFamilyUsage>,
 
     memory_objects_count: AtomicU32,
+    samplers_count: AtomicU32,
 
     physical_device: PhysicalDevice,
     device: ash::Device
@@ -29,6 +30,11 @@ impl Device {
     // Should be used only during MemoryObject allocation and destruction
     pub(crate) unsafe fn edit_memory_objects_count(&self) -> &AtomicU32 {
         &self.memory_objects_count
+    }
+
+    // Should be used only during Sampler creation/destruction
+    pub(crate) unsafe fn edit_samplers_count(&self) -> &AtomicU32 {
+        &self.samplers_count
     }
 
     pub fn from_physical_device(
@@ -72,6 +78,7 @@ impl Device {
                 queue_families: create_info.queue_families,
 
                 memory_objects_count: AtomicU32::new(0),
+                samplers_count: AtomicU32::new(0),
 
                 physical_device,
                 device: device?
@@ -96,6 +103,10 @@ impl Device {
 
     pub fn memory_objects_count(&self) -> u32 {
         self.memory_objects_count.load(Ordering::SeqCst)
+    }
+
+    pub fn samplers_count(&self) -> u32 {
+        self.samplers_count.load(Ordering::SeqCst)
     }
 }
 

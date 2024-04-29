@@ -706,6 +706,8 @@ impl From<SamplerCreateInfo> for ash::vk::SamplerCreateInfo {
 
 
 
+use core::sync::atomic::Ordering;
+
 pub struct Sampler {
     device: Arc<Device>,
 
@@ -734,6 +736,52 @@ pub struct Sampler {
 impl Sampler {
     pub(crate) unsafe fn as_raw(&self) -> ash::vk::Sampler {
         self.sampler
+    }
+
+    /// # Safety
+    /// **create_info** should be valid
+    pub unsafe fn new_unchecked(device: Arc<Device>, create_info: &SamplerCreateInfo) -> Result<Self, VkError> {
+        {
+            let max_samplers = device.physical_device().properties().limits.max_sampler_allocation_count;
+            
+            if device.samplers_count() >= max_samplers {
+                return Err( VkError::TooManyObjects );
+            }
+        }
+
+        let sampler = device.as_raw().create_sampler(
+            &(*create_info).into(),
+            None
+        )?;
+
+        device.edit_samplers_count().fetch_add(1, Ordering::SeqCst);
+
+        let result = Self {
+            device,
+
+            mag_filter: create_info.mag_filter,
+            min_filter: create_info.min_filter,
+            mipmap_mode: create_info.mipmap_mode,
+
+            address_mode_u: create_info.address_mode_u,
+            address_mode_v: create_info.address_mode_v,
+            address_mode_w: create_info.address_mode_w,
+
+            mip_lod_bias: create_info.mip_lod_bias,
+
+            max_anisotropy: create_info.max_anisotropy,
+            compare_op: create_info.compare_op,
+
+            min_lod: create_info.min_lod,
+            max_lod: create_info.max_lod,
+
+            border_color: create_info.border_color,
+            unnormalized_cordinates: create_info.unnormalized_cordinates,
+
+            sampler
+        };
+
+        Ok( result )
     }
 
     pub fn mag_filter(&self) -> Filter {
@@ -791,6 +839,10 @@ impl Sampler {
 
 impl Drop for Sampler {
     fn drop(&mut self) {
-        unsafe { self.device.as_raw().destroy_sampler(self.sampler, None) }
+        unsafe {
+            self.device.edit_samplers_count().fetch_sub(1, Ordering::SeqCst);
+
+            self.device.as_raw().destroy_sampler(self.sampler, None);
+        }
     }
 }
