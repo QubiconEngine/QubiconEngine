@@ -732,6 +732,10 @@ pub struct Sampler {
 }
 
 impl Sampler {
+    pub(crate) unsafe fn as_raw(&self) -> ash::vk::Sampler {
+        self.sampler
+    }
+
     pub fn mag_filter(&self) -> Filter {
         self.mag_filter
     }
