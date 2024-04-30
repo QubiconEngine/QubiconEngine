@@ -3,7 +3,6 @@ pub mod format;
 pub mod image;
 pub mod buffer;
 //mod image_view;
-mod buffer_view;
 //mod resource_factory;
 
 

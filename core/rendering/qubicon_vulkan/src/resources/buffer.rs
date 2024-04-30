@@ -124,6 +124,10 @@ impl UnbindedBuffer {
         Ok ( result )
     }
 
+    pub fn device(&self) -> &Arc<Device> {
+        &self.device
+    }
+
     pub fn size(&self) -> DeviceSize {
         self.size
     }
@@ -303,5 +307,24 @@ mod impl_buffer_type {
         fn size() -> usize {
             T::size()
         }
+    }
+}
+
+
+use super::format;
+
+pub struct BufferView<'a> {
+    buffer: &'a UnbindedBuffer,
+
+    format: format::Format,
+    offset: DeviceSize,
+    range: DeviceSize,
+
+    view: ash::vk::BufferView
+}
+
+impl Drop for BufferView<'_> {
+    fn drop(&mut self) {
+        unsafe { self.buffer.device().as_raw().destroy_buffer_view(self.view, None) }
     }
 }
