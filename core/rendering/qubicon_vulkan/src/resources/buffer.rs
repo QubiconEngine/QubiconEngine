@@ -376,6 +376,37 @@ pub struct BufferView<'a> {
     view: ash::vk::BufferView
 }
 
+impl<'a> BufferView<'a> {
+    /// # Safety
+    /// **create_info** should be valid
+    pub unsafe fn new_unchecked<F: FormatRepr>(buffer: &'a TypedBuffer<F, impl Allocator>, create_info: &BufferViewCreateInfo) -> Result<Self, VkError> {
+        let offset = (create_info.offset as DeviceSize) * F::size() as DeviceSize;
+        let range = (create_info.range.get() as DeviceSize) * F::size() as DeviceSize;
+
+        let create_info = ash::vk::BufferViewCreateInfo::builder()
+            .buffer(buffer.as_raw())
+            //.flags(())
+            .format(F::associated_format().into())
+            .offset(offset)
+            .range(range)
+            .build();
+        
+        let view = buffer.device().as_raw().create_buffer_view(&create_info, None)?;
+
+        let result = Self {
+            buffer,
+            
+            format: F::associated_format(),
+            offset,
+            range,
+
+            view
+        };
+        
+        Ok ( result )
+    }
+}
+
 impl Drop for BufferView<'_> {
     fn drop(&mut self) {
         unsafe { self.buffer.device().as_raw().destroy_buffer_view(self.view, None) }
