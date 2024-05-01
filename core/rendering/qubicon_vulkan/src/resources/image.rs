@@ -852,3 +852,127 @@ impl Drop for Sampler {
         }
     }
 }
+
+
+
+
+
+bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct ImageAspectFlags: u8 {
+        const COLOR = 0b1;
+        const DEPTH = 0b10;
+        const STENCIL = 0b100;
+        const METADATA = 0b1000;
+    }
+}
+
+impl From<ash::vk::ImageAspectFlags> for ImageAspectFlags {
+    fn from(value: ash::vk::ImageAspectFlags) -> Self {
+        Self ( (value.as_raw() as u8).into() )
+    }
+}
+
+impl From<ImageAspectFlags> for ash::vk::ImageAspectFlags {
+    fn from(value: ImageAspectFlags) -> Self {
+        Self::from_raw(value.bits() as u32)
+    }
+}
+
+
+macro_rules! enum_repr {
+    {
+    $(
+        $( #[$attr:meta] )*
+        pub enum $enum_name:ident: $raw:ty {
+            $( $variant_name:ident = $raw_const:ident ),*
+        }
+    )*
+    } => {
+        $(
+        
+        $( #[$attr] )*
+        pub enum $enum_name {
+            $( $variant_name = <$raw>::$raw_const.as_raw() as isize ),*
+        }
+
+        impl From<$raw> for $enum_name {
+            fn from(value: $raw) -> Self {
+                match value {
+                    $( <$raw>::$raw_const => Self::$variant_name, )*
+
+                    _ => unreachable!("invalid raw value")
+                }
+            }
+        }
+
+        impl From<$enum_name> for $raw {
+            fn from(value: $enum_name) -> Self {
+                Self::from_raw( value as i32 )
+            }
+        }
+
+        )*
+    };
+}
+
+enum_repr!{
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub enum ComponentSwizzle: ash::vk::ComponentSwizzle {
+        Identity = IDENTITY,
+        Zero = ZERO,
+        One = ONE,
+        R = R,
+        G = G,
+        B = B
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub enum ImageViewType: ash::vk::ImageViewType {
+        Type1D = TYPE_1D,
+        Type2D = TYPE_2D,
+        Type3D = TYPE_3D,
+        Cube = CUBE,
+
+        Type1DArray = TYPE_1D_ARRAY,
+        Type2DArray = TYPE_2D_ARRAY,
+        CubeArray = CUBE_ARRAY
+    }
+}
+
+impl Default for ComponentSwizzle {
+    fn default() -> Self {
+        Self::Identity
+    }
+}
+
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ComponentMapping {
+    pub r: ComponentSwizzle,
+    pub g: ComponentSwizzle,
+    pub b: ComponentSwizzle,
+    pub a: ComponentSwizzle
+}
+
+impl From<ash::vk::ComponentMapping> for ComponentMapping {
+    fn from(value: ash::vk::ComponentMapping) -> Self {
+        Self {
+            r: value.r.into(),
+            g: value.g.into(),
+            b: value.b.into(),
+            a: value.a.into()
+        }
+    }
+}
+
+impl From<ComponentMapping> for ash::vk::ComponentMapping {
+    fn from(value: ComponentMapping) -> Self {
+        Self::builder()
+            .r(value.r.into())
+            .g(value.g.into())
+            .b(value.b.into())
+            .a(value.a.into())
+            .build()
+    }
+}
