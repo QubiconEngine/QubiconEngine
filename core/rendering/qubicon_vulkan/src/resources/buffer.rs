@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use core::num::NonZeroU32;
 use bitflags::bitflags;
 
 use super::{ MemoryRequirements, AllocHandle };
@@ -312,6 +313,58 @@ mod impl_buffer_type {
 
 
 use super::format;
+use format::formats_repr::FormatRepr;
+
+use crate::instance::physical_device::{ FormatFeatures, PhysicalDevice };
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BufferViewCreateInfo {
+    pub offset: u32,
+    pub range: NonZeroU32
+}
+
+impl BufferViewCreateInfo {
+    // TODO: Change TypedBuffer to UnbindedBuffer and remove generic
+    pub fn validate<F: FormatRepr>(&self, device: &PhysicalDevice, buffer: &TypedBuffer<F, impl Allocator>) {
+        let limits = &device.properties().limits;
+
+        let buffer_usage = buffer.usage_flags();
+        let format_props = device.format_properties(F::associated_format());
+        
+        let offset = (self.offset as DeviceSize) * F::size() as DeviceSize;
+        let range = (self.range.get() as DeviceSize) * F::size() as DeviceSize;
+
+
+        if offset + range > buffer.size() {
+            panic!("specified region is out of bounds ( offset + range > buffer.size() )");
+        }
+
+        if self.range.get() > limits.max_texel_buffer_elements {
+            panic!("too much elements specified(range > device_limits.max_texel_buffer_elements)")
+        }
+
+
+        if !buffer_usage.intersects(BufferUsageFlags::STORAGE_TEXEL_BUFFER & BufferUsageFlags::UNIFORM_TEXEL_BUFFER) {
+            panic!("buffer should have STORAGE_TEXEL_BUFFER or UNIFORM_TEXEL_BUFFER usage flags enabled");
+        }
+
+        if buffer_usage.contains(BufferUsageFlags::STORAGE_TEXEL_BUFFER) && !format_props.buffer_features.contains(FormatFeatures::STORAGE_TEXEL_BUFFER) {
+            panic!("buffer is created with STORAGE_TEXEL_BUFFER, but STORAGE_TEXEL_BUFFER aren`t enabled in FormatProperties.buffer_features");
+        }
+    
+        if buffer_usage.contains(BufferUsageFlags::UNIFORM_TEXEL_BUFFER) && !format_props.buffer_features.contains(FormatFeatures::UNIFORM_TEXEL_BUFFER) {
+            panic!("buffer is created with UNIFORM_TEXEL_BUFFER, but UNIFORM_TEXEL_BUFFER aren`t enabled in FormatProperties.buffer_features");
+        }
+
+
+        // texel buffer alignment feature is not set
+        if offset % limits.min_texel_buffer_offset_alignment != 0 {
+            unreachable!("calculated offset in bytes isn`t multiple of device_limits.min_texel_buffer_offset_alignment");
+        }
+    }
+}
+
 
 pub struct BufferView<'a> {
     buffer: &'a UnbindedBuffer,
