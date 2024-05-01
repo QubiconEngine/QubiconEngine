@@ -21,6 +21,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
     );
 
     let structs_iter = formats.iter().filter_map(| f | f.generate_struct_decl(&enum_ident));
+    let size_match_iter = formats.iter().filter_map(| f | f.generate_size_match_arm());
 
     quote! {
         pub mod formats_repr {
@@ -37,6 +38,18 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
             }
 
             #(#structs_iter)*
+        }
+
+        impl #enum_ident {
+            pub fn size(&self) -> Option<core::num::NonZeroUsize> {
+                let result = match self {
+                    #(#size_match_iter)*
+
+                    _ => return None
+                };
+
+                Some( result )
+            }
         }
     }.into()
 }

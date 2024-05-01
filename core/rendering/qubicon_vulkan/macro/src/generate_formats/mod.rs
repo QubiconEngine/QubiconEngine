@@ -92,6 +92,13 @@ impl Format {
 
         Some ( result )
     }
+
+    pub fn generate_size_match_arm(&self) -> Option<TokenStream> {
+        let _format_def_lit = &self.format_def_lit;
+        let _struct_name = Ident::new( &self.to_string(), self.format_def_lit.span() );
+        
+        None
+    }
 }
 
 
