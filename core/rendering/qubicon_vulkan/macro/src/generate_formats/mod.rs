@@ -2,7 +2,7 @@ use syn::Ident;
 use quote::quote;
 use core::fmt::Display;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{ TokenStream, Literal };
 
 
 mod attributes;
@@ -93,11 +93,18 @@ impl Format {
         Some ( result )
     }
 
-    pub fn generate_size_match_arm(&self) -> Option<TokenStream> {
-        let _format_def_lit = &self.format_def_lit;
-        let _struct_name = Ident::new( &self.to_string(), self.format_def_lit.span() );
+    // calculates size for formats without representation too
+    pub fn size(&self) -> usize {
+        self.channel_list.iter().map(| c | c.bits as usize).sum::<usize>() / 8
+    }
+
+    pub fn generate_size_match_arm(&self) -> TokenStream {
+        let format_def_lit = &self.format_def_lit;
+        let size = Literal::usize_suffixed(self.size());
         
-        None
+        quote! {
+            Self::#format_def_lit => core::num::NonZeroUsize::new(#size).unwrap(),
+        }
     }
 }
 

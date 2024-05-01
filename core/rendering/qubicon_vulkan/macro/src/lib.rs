@@ -21,7 +21,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
     );
 
     let structs_iter = formats.iter().filter_map(| f | f.generate_struct_decl(&enum_ident));
-    let size_match_iter = formats.iter().filter_map(| f | f.generate_size_match_arm());
+    let size_match_iter = formats.iter().map(| f | f.generate_size_match_arm());
 
     quote! {
         pub mod formats_repr {

@@ -1,7 +1,7 @@
 use quote::{ quote, ToTokens, TokenStreamExt };
 use proc_macro2::{ Ident, Literal, Span, TokenStream };
 
-use core::{ str::FromStr, fmt::Display };
+use core::{ str::FromStr, fmt::Display, ops::Deref };
 
 
 use super::*;
@@ -269,6 +269,14 @@ impl Display for ChannelList {
         }
 
         Ok(())
+    }
+}
+
+impl Deref for ChannelList {
+    type Target = [Channel];
+
+    fn deref(&self) -> &Self::Target {
+        &self.channels
     }
 }
 
