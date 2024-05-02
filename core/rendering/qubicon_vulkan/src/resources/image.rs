@@ -1049,3 +1049,63 @@ impl<T: std::fmt::Display> std::fmt::Display for Range<T> {
         write!(f, "{}..{}", self.start, self.end)
     }
 }
+
+
+
+// TODO: ImageSubresourceLayout for Linear images
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageSubresource {
+    pub aspect_mask: ImageAspectFlags,
+    pub mip_level: u32,
+    pub array_layer: u32
+}
+
+impl From<ImageSubresource> for ash::vk::ImageSubresource {
+    fn from(value: ImageSubresource) -> Self {
+        Self::builder()
+            .aspect_mask(value.aspect_mask.into())
+            .mip_level(value.mip_level)
+            .array_layer(value.array_layer)
+            .build()
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageSubresourceRange {
+    pub aspect_mask: ImageAspectFlags,
+    pub mip_levels: Range<u32>, // Cant have NonZero :(
+    pub array_layers: Range<u32>
+}
+
+impl From<ImageSubresourceRange> for ash::vk::ImageSubresourceRange {
+    fn from(value: ImageSubresourceRange) -> Self {
+        Self::builder()
+            .aspect_mask(value.aspect_mask.into())
+            .base_mip_level(value.mip_levels.start)
+            .level_count(value.mip_levels.end - value.mip_levels.start)
+            .base_array_layer(value.array_layers.start)
+            .layer_count(value.array_layers.end - value.array_layers.start)
+            .build()
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageSubresourceLayers {
+    pub aspect_mask: ImageAspectFlags,
+    pub mip_level: u32,
+    pub array_layers: Range<u32>
+}
+
+impl From<ImageSubresourceLayers> for ash::vk::ImageSubresourceLayers {
+    fn from(value: ImageSubresourceLayers) -> Self {
+        Self::builder()
+            .aspect_mask(value.aspect_mask.into())
+            .mip_level(value.mip_level)
+            .base_array_layer(value.array_layers.start)
+            .layer_count(value.array_layers.end - value.array_layers.start)
+            .build()
+    }
+}
