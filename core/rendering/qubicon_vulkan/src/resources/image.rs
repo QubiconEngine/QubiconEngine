@@ -976,3 +976,76 @@ impl From<ComponentMapping> for ash::vk::ComponentMapping {
             .build()
     }
 }
+
+
+
+use core::ops::{ self, Add, Sub };
+
+/// [Range] from [std]::[ops] dont implement [Copy], so there we are
+/// 
+/// [std]: std
+/// [ops]: std::ops
+/// [Range]: std::ops::Range
+/// [Copy]: std::marker::Copy
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Range<T> {
+    pub start: T,
+    pub end: T
+}
+
+impl<T> Range<T> {
+    pub const fn new(start: T, end: T) -> Self {
+        Self { start, end }
+    }
+}
+
+
+impl<T> From<ops::Range<T>> for Range<T> {
+    fn from(value: ops::Range<T>) -> Self {
+        Self::new(value.start, value.end)
+    }
+}
+
+impl<T> From<Range<T>> for ops::Range<T> {
+    fn from(value: Range<T>) -> Self {
+        value.start..value.end
+    }
+}
+
+impl<T: From<u8>> From<ops::RangeTo<T>> for Range<T> {
+    fn from(value: ops::RangeTo<T>) -> Self {
+        Self::new(0u8.into(), value.end)
+    }
+}
+
+
+impl<T> From<ops::RangeInclusive<T>> for Range<T>
+    where T: Copy + From<u8> + Add<Output = T>
+{
+    fn from(value: ops::RangeInclusive<T>) -> Self {
+        Self::new(*value.start(), *value.end() + 1u8.into())
+    }
+}
+
+impl<T> From<Range<T>> for ops::RangeInclusive<T>
+    where T: From<u8> + Sub<Output = T>
+{
+    fn from(value: Range<T>) -> Self {
+        value.start..=(value.end - 1u8.into())
+    }
+}
+
+impl<T> From<ops::RangeToInclusive<T>> for Range<T>
+    where T: From<u8> + Add<Output = T>
+{
+    fn from(value: ops::RangeToInclusive<T>) -> Self {
+        Self::new(0u8.into(), value.end + 1u8.into())
+    }
+}
+
+
+impl<T: std::fmt::Display> std::fmt::Display for Range<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}..{}", self.start, self.end)
+    }
+}
