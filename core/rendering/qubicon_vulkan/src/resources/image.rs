@@ -864,6 +864,11 @@ bitflags! {
         const DEPTH = 0b10;
         const STENCIL = 0b100;
         const METADATA = 0b1000;
+
+        // Additional flags, added in 1.1
+        //const PLANE_0 = 0x10;
+        //const PLANE_1 = 0x20;
+        //const PLANE_3 = 0x30;
     }
 }
 
@@ -1108,4 +1113,15 @@ impl From<ImageSubresourceLayers> for ash::vk::ImageSubresourceLayers {
             .layer_count(value.array_layers.end - value.array_layers.start)
             .build()
     }
+}
+
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageViewCreateInfo {
+    // create_flags
+    pub view_type: ImageViewType,
+    pub format: Format,
+    pub components: ComponentMapping,
+    pub subresource_range: ImageSubresourceRange
 }
