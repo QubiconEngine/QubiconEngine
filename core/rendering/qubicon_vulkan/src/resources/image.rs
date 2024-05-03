@@ -373,6 +373,10 @@ impl UnbindedImage {
         Ok ( result )
     }
 
+    pub fn device(&self) -> &Arc<Device> {
+        &self.device
+    }
+
     pub fn usage_flags(&self) -> ImageUsageFlags {
         self.usage
     }
@@ -869,6 +873,9 @@ bitflags! {
         //const PLANE_0 = 0x10;
         //const PLANE_1 = 0x20;
         //const PLANE_3 = 0x30;
+        
+        // And one from 1.3
+        // const NONE = 0;
     }
 }
 
@@ -945,6 +952,22 @@ enum_repr!{
     }
 }
 
+impl ImageViewType {
+    pub fn compatible_with_image_type(&self, img_ty: ImageType) -> bool {
+        matches!(
+            (self, img_ty),
+
+            (Self::Type1D,      ImageType::Type1D) |
+            (Self::Type1DArray, ImageType::Type1D) |
+            (Self::Type2D,      ImageType::Type2D) |
+            (Self::Type2DArray, ImageType::Type2D) |
+            (Self::Cube,        ImageType::Type2D) |
+            (Self::CubeArray,   ImageType::Type2D) |
+            (Self::Type3D,      ImageType::Type3D)
+        )
+    }
+}
+
 impl Default for ComponentSwizzle {
     fn default() -> Self {
         Self::Identity
@@ -1001,6 +1024,12 @@ pub struct Range<T> {
 impl<T> Range<T> {
     pub const fn new(start: T, end: T) -> Self {
         Self { start, end }
+    }
+}
+
+impl<T: Copy + Sub<Output = T>> Range<T> {
+    pub fn count(&self) -> T {
+        self.end - self.start
     }
 }
 
@@ -1089,9 +1118,9 @@ impl From<ImageSubresourceRange> for ash::vk::ImageSubresourceRange {
         Self::builder()
             .aspect_mask(value.aspect_mask.into())
             .base_mip_level(value.mip_levels.start)
-            .level_count(value.mip_levels.end - value.mip_levels.start)
+            .level_count(value.mip_levels.count())
             .base_array_layer(value.array_layers.start)
-            .layer_count(value.array_layers.end - value.array_layers.start)
+            .layer_count(value.array_layers.count())
             .build()
     }
 }
@@ -1110,7 +1139,7 @@ impl From<ImageSubresourceLayers> for ash::vk::ImageSubresourceLayers {
             .aspect_mask(value.aspect_mask.into())
             .mip_level(value.mip_level)
             .base_array_layer(value.array_layers.start)
-            .layer_count(value.array_layers.end - value.array_layers.start)
+            .layer_count(value.array_layers.count())
             .build()
     }
 }
@@ -1124,4 +1153,46 @@ pub struct ImageViewCreateInfo {
     pub format: Format,
     pub components: ComponentMapping,
     pub subresource_range: ImageSubresourceRange
+}
+
+impl ImageViewCreateInfo {
+    pub fn validate(&self, image: &UnbindedImage) {
+        let format_features = image.device().physical_device().format_properties(image.format());
+        // TODO: CubeCompatible check
+
+        if matches!(self.view_type, ImageViewType::Cube | ImageViewType::CubeArray) {
+            todo!("cubic image views")
+        }
+
+        // TODO: ImageType::Type3D and ImageCreateFlags::2DArrayCompatible check
+
+        if image.ty() == ImageType::Type3D && matches!(self.view_type, ImageViewType::Type2D | ImageViewType::Type2DArray) {
+            // TODO: Sparse check
+            
+            // 04970
+            if self.subresource_range.mip_levels.count() != 1 {
+                panic!("mip level count should be one, because image.ty() == ImageType::Type3D and self.view_type is Type2D or Type2DArray");
+            }
+        }
+
+        // 04972
+        if image.samples() == ImageSampleCountFlags::TYPE_1 && !matches!(self.view_type, ImageViewType::Type2D | ImageViewType::Type2DArray) {
+            panic!("")
+        }
+
+        { // 04441
+            let flags = ImageUsageFlags::SAMPLED | ImageUsageFlags::STORAGE  |
+                ImageUsageFlags::COLOR_ATTACHMENT | ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT |
+                ImageUsageFlags::INPUT_ATTACHMENT | ImageUsageFlags::TRANSIENT_ATTACHMENT;
+                // FragmentShadingRate and FragmentDensityMap
+                // Decoding and encoding stuff
+                // SAMPLE_WEIGHT and SAMPLE_BLOCK_MATCH
+            
+            if !image.usage_flags().intersects(flags) {
+                panic!("image must have usage containing at least one from valid image usage list({flags:?})");
+            }
+        }
+
+        // 02274
+    }
 }
