@@ -106,6 +106,17 @@ impl Format {
             Self::#format_def_lit => core::num::NonZeroUsize::new(#size).unwrap(),
         }
     }
+
+    pub fn generate_align_match_arm(&self) -> Option<TokenStream> {
+        let format_def_lit = &self.format_def_lit;
+        let align = Literal::u8_unsuffixed(self.pack?.align()?.get());
+
+        let result = quote! {
+            Self::#format_def_lit => core::num::NonZeroU8::new(#align).unwrap(),
+        };
+
+        Some( result )
+    }
 }
 
 

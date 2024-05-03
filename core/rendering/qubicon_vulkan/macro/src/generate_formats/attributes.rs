@@ -1,7 +1,7 @@
 use quote::{ quote, ToTokens, TokenStreamExt };
 use proc_macro2::{ Ident, Literal, Span, TokenStream };
 
-use core::{ str::FromStr, fmt::Display, ops::Deref };
+use core::{ str::FromStr, fmt::Display, ops::Deref, num::NonZeroU8 };
 
 
 use super::*;
@@ -46,16 +46,20 @@ impl Display for Pack {
 }
 
 impl Pack {
-    pub fn generate_align_attr(&self) -> Option<TokenStream> {
-        let align = match self {
-            Self::P8 => 1,
-            Self::P16 => 2,
-            Self::P32 => 4,
+    pub fn align(&self) -> Option<NonZeroU8> {
+        let result = match self {
+            Self::P8 => 1u8,
+            Self::P16 => 2u8,
+            Self::P32 => 4u8,
 
             Self::Block => return None
         };
 
-        let align = Literal::u8_unsuffixed(align);
+        Some( unsafe { NonZeroU8::new_unchecked(result) } )
+    }
+
+    pub fn generate_align_attr(&self) -> Option<TokenStream> {
+        let align = Literal::u8_unsuffixed(self.align()?.get());
 
         Some( quote! { #[repr(align(#align))] } )
     }
