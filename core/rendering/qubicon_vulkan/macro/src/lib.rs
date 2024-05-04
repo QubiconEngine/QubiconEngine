@@ -42,7 +42,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
         }
 
         impl #enum_ident {
-            pub fn size(&self) -> Option<core::num::NonZeroUsize> {
+            pub fn size(&self) -> Option<NonZeroDeviceSize> {
                 let result = match self {
                     #(#size_match_iter)*
 
@@ -52,7 +52,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 Some( result )
             }
 
-            pub fn align(&self) -> Option<core::num::NonZeroU8> {
+            pub fn align(&self) -> Option<NonZeroDeviceSize> {
                 let result = match self {
                     #(#align_match_iter)*
                     

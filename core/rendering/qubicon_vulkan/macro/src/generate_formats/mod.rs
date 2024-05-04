@@ -100,10 +100,10 @@ impl Format {
 
     pub fn generate_size_match_arm(&self) -> TokenStream {
         let format_def_lit = &self.format_def_lit;
-        let size = Literal::usize_suffixed(self.size());
+        let size = Literal::usize_unsuffixed(self.size());
         
         quote! {
-            Self::#format_def_lit => core::num::NonZeroUsize::new(#size).unwrap(),
+            Self::#format_def_lit => NonZeroDeviceSize::new(#size).unwrap(),
         }
     }
 
@@ -112,7 +112,7 @@ impl Format {
         let align = Literal::u8_unsuffixed(self.pack?.align()?.get());
 
         let result = quote! {
-            Self::#format_def_lit => core::num::NonZeroU8::new(#align).unwrap(),
+            Self::#format_def_lit => NonZeroDeviceSize::new(#align).unwrap(),
         };
 
         Some( result )
