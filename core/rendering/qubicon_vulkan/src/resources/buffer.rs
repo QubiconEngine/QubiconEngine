@@ -325,15 +325,16 @@ pub struct BufferViewCreateInfo {
 }
 
 impl BufferViewCreateInfo {
-    // TODO: Change TypedBuffer to UnbindedBuffer and remove generic
-    pub fn validate<F: FormatRepr>(&self, device: &PhysicalDevice, buffer: &TypedBuffer<F, impl Allocator>) {
+    pub fn validate(&self, format: format::Format, device: &PhysicalDevice, buffer: &UnbindedBuffer) -> Result<(), VkError> {
+        let format_size = format.size().ok_or(VkError::FormatNotSupported)?.get();
+        
         let limits = &device.properties().limits;
 
         let buffer_usage = buffer.usage_flags();
-        let format_props = device.format_properties(F::associated_format());
+        let format_props = device.format_properties(format);
         
-        let offset = (self.offset as DeviceSize) * F::size() as DeviceSize;
-        let range = (self.range.get() as DeviceSize) * F::size() as DeviceSize;
+        let offset = (self.offset as DeviceSize) * format_size;
+        let range = (self.range.get() as DeviceSize) * format_size;
 
 
         if offset + range > buffer.size() {
@@ -362,6 +363,8 @@ impl BufferViewCreateInfo {
         if offset % limits.min_texel_buffer_offset_alignment != 0 {
             unreachable!("calculated offset in bytes isn`t multiple of device_limits.min_texel_buffer_offset_alignment");
         }
+
+        Ok(())
     }
 }
 
