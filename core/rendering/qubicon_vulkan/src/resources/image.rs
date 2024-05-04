@@ -3,7 +3,7 @@ use core::num::NonZeroU32;
 use bitflags::bitflags;
 
 use super::{ MemoryRequirements, AllocHandle, format::Format };
-use crate::{ error::VkError, device::Device, instance::physical_device::PhysicalDevice, memory::alloc::{ Allocator, Allocation } };
+use crate::{ device::Device, error::VkError, instance::physical_device::PhysicalDevice, memory::alloc::{ Allocation, Allocator } };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -1146,6 +1146,8 @@ impl From<ImageSubresourceLayers> for ash::vk::ImageSubresourceLayers {
 
 
 
+use crate::instance::physical_device::FormatFeatures;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ImageViewCreateInfo {
     // create_flags
@@ -1157,7 +1159,14 @@ pub struct ImageViewCreateInfo {
 
 impl ImageViewCreateInfo {
     pub fn validate(&self, image: &UnbindedImage) {
-        let format_features = image.device().physical_device().format_properties(image.format());
+        let features = image.device().enabled_features();
+
+        let format_properties = image.device().physical_device().format_properties(image.format());
+        let format_features = match image.tiling() {
+            ImageTiling::Linear => format_properties.linear_tiling,
+            ImageTiling::Optimal => format_properties.optimal_tiling
+        };
+
         // TODO: CubeCompatible check
 
         if matches!(self.view_type, ImageViewType::Cube | ImageViewType::CubeArray) {
@@ -1193,6 +1202,107 @@ impl ImageViewCreateInfo {
             }
         }
 
-        // 02274
+        // 02273
+        if format_features.is_empty() {
+            panic!("format features should have at least one bit set");
+        }
+
+        {
+            macro_rules! do_panic {
+                ($usage_flags:literal, $format_flags:literal) => {
+                    panic!(concat!("image usage contains ", $usage_flags, ", but format features dont contain ", $format_flags))
+                };
+            }
+
+            // 02274
+            if image.usage_flags().contains(ImageUsageFlags::SAMPLED) && !format_features.contains(FormatFeatures::SAMPLED_IMAGE) {
+                do_panic!("SAMPLED flag", "SAMPLED_IMAGE flag");
+            }
+
+            // 02275
+            if image.usage_flags().contains(ImageUsageFlags::STORAGE) && !format_features.contains(FormatFeatures::STORAGE_IMAGE) {
+                do_panic!("STORAGE flag", "STORAGE_IMAGE flag");
+            }
+
+            // 08931
+            if image.usage_flags().contains(ImageUsageFlags::COLOR_ATTACHMENT) && !format_features.contains(FormatFeatures::COLOR_ATTACHMENT) {
+                do_panic!("COLOR_ATTACHMENT flag", "COLOR_ATTACHMENT flag");
+            }
+
+            // 02277
+            if image.usage_flags().contains(ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT) && !format_features.contains(FormatFeatures::DEPTH_STENCIL_ATTACHMENT) {
+                do_panic!("DEPTH_STENCIL_ATTACHMENT flag", "DEPTH_STENCIL_ATTACHMENT flag");
+            }
+        }
+
+        // 01478 and 01718
+        if self.subresource_range.mip_levels.end > image.mip_levels().get() {
+            panic!("specified invalid range of mip levels in subresource_range");
+        }
+
+        // TODO: 06724
+
+        // TODO: there should be additional conditions with ImageViewType check
+        match image.ty() {
+            ImageType::Type1D => {},
+            ImageType::Type2D => {
+                // 06724 and 06725.
+                if self.subresource_range.array_layers.end > image.array_layers().get() {
+                    panic!("specified invalid range of array layers in subresource_range");
+                }
+            },
+            ImageType::Type3D => {
+                // 02724 and 02725
+                // TODO: Add aditional checks with create flags 2D array compatible
+                if self.subresource_range.array_layers.end > image.extent().depth.get() {
+                    panic!("specified invalid range of array layers in subresource_range");
+                }
+            }
+        }
+
+        // TODO: 01761, 01583, 07072, 09487
+        // also maybe 01586, 07818, 01762
+
+        // maybe 06415 ?
+
+        // 01021
+        if !self.view_type.compatible_with_image_type(image.ty()) {
+            panic!("view type is incompatible with image type");
+        }
+
+        match self.view_type {
+            ImageViewType::Type1D | ImageViewType::Type2D | ImageViewType::Type3D => {
+                // 04973 and 04974
+                if self.subresource_range.array_layers.count() != 1 {
+                    panic!(
+                        "view type is {:?}, but specified array layers count({}) != 1",
+                        self.view_type,
+                        self.subresource_range.array_layers.count()
+                    );
+                }
+            },
+            ImageViewType::Cube => {
+                // 02960 and 02962
+                if self.subresource_range.array_layers.count() != 6 {
+                    panic!(
+                        "view type is ImageViewType::Cube, but specified array layers count({}) != 6",
+                        self.subresource_range.array_layers.count()
+                    )
+                }
+            },
+            ImageViewType::CubeArray => {
+                // 02961 and 02963
+                if self.subresource_range.array_layers.count() % 6 != 0 {
+                    panic!(
+                        "view type is ImageViewType::CubeArray, but specified array layers count({}) isn`t multiple of 6",
+                        self.subresource_range.array_layers.count()
+                    )
+                }
+            }
+
+            _ => {}
+        }
+
+        // TODO: aspect mask check
     }
 }
