@@ -23,6 +23,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
     let structs_iter = formats.iter().filter_map(| f | f.generate_struct_decl(&enum_ident));
     let size_match_iter = formats.iter().map(| f | f.generate_size_match_arm());
     let align_match_iter = formats.iter().map(| f | f.generate_align_match_arm());
+    let aspect_flags_match_iter = formats.iter().map(| f | f.generate_aspect_flags_match_arm());
 
     quote! {
         pub mod formats_repr {
@@ -31,9 +32,10 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
             pub trait FormatRepr: sealed::FormatRepr + BufferType + Sized {}
 
             mod sealed {
-                use super::#enum_ident;
+                use super::{ #enum_ident, ImageAspectFlags };
 
                 pub trait FormatRepr {
+                    fn aspect_flags() -> ImageAspectFlags;
                     fn associated_format() -> #enum_ident;
                 }
             }
@@ -60,6 +62,15 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 };
 
                 Some( result )
+            }
+
+            pub fn aspect_flags(&self) -> ImageAspectFlags {
+                match self {
+                    #(#aspect_flags_match_iter)*
+
+                    // TODO: Rework. It isn`t true for all cases
+                    _ => ImageAspectFlags::COLOR
+                }
             }
         }
     }.into()

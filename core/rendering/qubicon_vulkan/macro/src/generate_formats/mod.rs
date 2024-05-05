@@ -67,6 +67,7 @@ impl Format {
 
         let struct_name = Ident::new( &self.to_string(), self.format_def_lit.span() );
         let struct_fields = self.channel_list.generate_fields(self.space)?;
+        let aspect_flags = self.aspect_flags();
 
         let result = quote! {
             #align
@@ -78,6 +79,10 @@ impl Format {
             impl FormatRepr for #struct_name {}
 
             impl sealed::FormatRepr for #struct_name {
+                fn aspect_flags() -> ImageAspectFlags {
+                    #aspect_flags
+                }
+
                 fn associated_format() -> #enum_ident {
                     #enum_ident::#enum_variant
                 }
@@ -98,6 +103,35 @@ impl Format {
         self.channel_list.iter().map(| c | c.bits as usize).sum::<usize>() / 8
     }
 
+    pub fn aspect_flags(&self) -> TokenStream {
+        enum AspectType {
+            Color,
+            Depth,
+            Stencil
+        }
+
+        let mut aspect = AspectType::Color;
+
+        for channel in self.channel_list.iter() {
+            match channel.ty {
+                ChannelType::Red | ChannelType::Green | ChannelType::Blue | ChannelType::Alpha => {
+                    aspect = AspectType::Color
+                },
+
+                ChannelType::Depth => aspect = AspectType::Depth,
+                ChannelType::Stencil => aspect = AspectType::Stencil,
+
+                _ => {}
+            }
+        }
+
+        match aspect {
+            AspectType::Color => quote! { ImageAspectFlags::COLOR },
+            AspectType::Depth => quote! { ImageAspectFlags::DEPTH },
+            AspectType::Stencil => quote! { ImageAspectFlags::STENCIL }
+        }
+    }
+
     pub fn generate_size_match_arm(&self) -> TokenStream {
         let format_def_lit = &self.format_def_lit;
         let size = Literal::usize_unsuffixed(self.size());
@@ -116,6 +150,15 @@ impl Format {
         };
 
         Some( result )
+    }
+
+    pub fn generate_aspect_flags_match_arm(&self) -> TokenStream {
+        let format_def_lit = &self.format_def_lit;
+        let flags = self.aspect_flags();
+
+        quote! {
+            Self::#format_def_lit => #flags,
+        }
     }
 }
 

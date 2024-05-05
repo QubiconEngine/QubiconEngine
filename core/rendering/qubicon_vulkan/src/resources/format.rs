@@ -18,7 +18,7 @@ macro_rules! decl_formats_enum {
     };
 }
 
-use super::buffer::BufferType; // used inside GenerateFormats
+use super::{ buffer::BufferType, image::ImageAspectFlags }; // used inside GenerateFormats
 use crate::memory::NonZeroDeviceSize; // also used inside this macro
 
 use qubicon_vulkan_internal_macro::GenerateFormats;
