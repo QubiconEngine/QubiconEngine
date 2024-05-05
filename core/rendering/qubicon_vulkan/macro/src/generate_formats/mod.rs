@@ -79,13 +79,8 @@ impl Format {
             impl FormatRepr for #struct_name {}
 
             impl sealed::FormatRepr for #struct_name {
-                fn aspect_flags() -> ImageAspectFlags {
-                    #aspect_flags
-                }
-
-                fn associated_format() -> #enum_ident {
-                    #enum_ident::#enum_variant
-                }
+                const ASPECT_FLAGS: ImageAspectFlags = #aspect_flags;
+                const ASSOCIATED_FORMAT: #enum_ident = #enum_ident::#enum_variant;
             }
 
             unsafe impl BufferType for #struct_name {

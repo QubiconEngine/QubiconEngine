@@ -35,8 +35,15 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 use super::{ #enum_ident, ImageAspectFlags };
 
                 pub trait FormatRepr {
-                    fn aspect_flags() -> ImageAspectFlags;
-                    fn associated_format() -> #enum_ident;
+                    const ASPECT_FLAGS: ImageAspectFlags;
+                    const ASSOCIATED_FORMAT: #enum_ident;
+
+                    fn aspect_flags() -> ImageAspectFlags {
+                        Self::ASPECT_FLAGS
+                    }
+                    fn associated_format() -> #enum_ident {
+                        Self::ASSOCIATED_FORMAT
+                    }
                 }
             }
 
