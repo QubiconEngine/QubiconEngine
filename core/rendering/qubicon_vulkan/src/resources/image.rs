@@ -1362,6 +1362,12 @@ impl<'a> ImageView<'a> {
         Ok ( result )
     }
 
+    pub fn new(image: &'a Image<impl Allocator>, create_info: &ImageViewCreateInfo) -> Result<Self, VkError> {
+        create_info.validate(image);
+
+        unsafe { Self::new_unchecked(image, create_info) }
+    }
+
     pub fn view_type(&self) -> ImageViewType {
         self.view_type
     }
