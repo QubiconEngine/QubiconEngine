@@ -464,6 +464,14 @@ impl<A: Allocator> Image<A> {
         
         unsafe { Self::from_image_and_allocation_unchecked(image, allocator, allocation) }
     }
+
+    /// Shortcut to [ImageView]::[new]
+    /// 
+    /// [new]: crate::resources::image::ImageView::new
+    /// [ImageView]: crate::resources::image::ImageView
+    pub fn create_view<'a>(&'a self, create_info: &ImageViewCreateInfo) -> Result<ImageView<'a>, VkError> {
+        ImageView::new(self, create_info)
+    }
 }
 
 impl<A: Allocator> Drop for Image<A> {

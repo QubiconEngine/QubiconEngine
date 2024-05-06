@@ -234,6 +234,16 @@ impl<T: BufferType, A: Allocator> TypedBuffer<T, A> {
     }
 }
 
+impl<T: FormatRepr, A: Allocator> TypedBuffer<T, A> {
+    /// Shortcut to [BufferView]::[new]
+    /// 
+    /// [new]: crate::resources::buffer::BufferView::new
+    /// [BufferView]: crate::resources::buffer::BufferView
+    pub fn create_view<'a>(&'a self, create_info: &BufferViewCreateInfo) -> Result<BufferView<'a>, VkError> {
+        BufferView::new(self, create_info)
+    }
+}
+
 impl<T: BufferType, A: Allocator> core::ops::Deref for TypedBuffer<T, A> {
     type Target = Buffer<A>;
 
