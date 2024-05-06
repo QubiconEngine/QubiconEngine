@@ -1315,3 +1315,44 @@ impl ImageViewCreateInfo {
         }
     }
 }
+
+
+
+pub struct ImageView<'a> {
+    image: &'a UnbindedImage,
+
+    view_type: ImageViewType,
+    format: Format,
+    components: ComponentMapping,
+    subresource_range: ImageSubresourceRange,
+
+    view: ash::vk::ImageView
+}
+
+impl<'a> ImageView<'a> {
+    pub(crate) unsafe fn as_raw(&self) -> ash::vk::ImageView {
+        self.view
+    }
+
+    pub fn view_type(&self) -> ImageViewType {
+        self.view_type
+    }
+
+    pub fn format(&self) -> Format {
+        self.format
+    }
+
+    pub fn components(&self) -> ComponentMapping {
+        self.components
+    }
+
+    pub fn subresource_range(&self) -> &ImageSubresourceRange {
+        &self.subresource_range
+    }
+}
+
+impl Drop for ImageView<'_> {
+    fn drop(&mut self) {
+        unsafe { self.image.device().as_raw().destroy_image_view(self.view, None) }
+    }
+}
