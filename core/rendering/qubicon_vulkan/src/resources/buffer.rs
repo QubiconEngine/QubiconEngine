@@ -313,7 +313,8 @@ mod impl_buffer_type {
 
 
 use super::format;
-use crate::instance::physical_device::{ FormatFeatures, PhysicalDevice };
+use format::formats_repr::FormatRepr;
+use crate::instance::physical_device::FormatFeatures;
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -323,9 +324,10 @@ pub struct BufferViewCreateInfo {
 }
 
 impl BufferViewCreateInfo {
-    pub fn validate(&self, format: format::Format, device: &PhysicalDevice, buffer: &UnbindedBuffer) -> Result<(), VkError> {
+    pub fn validate(&self, format: format::Format, buffer: &UnbindedBuffer) -> Result<(), VkError> {
         let format_size = format.size().ok_or(VkError::FormatNotSupported)?.get();
         
+        let device = buffer.device().physical_device();
         let limits = &device.properties().limits;
 
         let buffer_usage = buffer.usage_flags();
@@ -410,7 +412,13 @@ impl<'a> BufferView<'a> {
         Ok ( result )
     }
 
+    pub fn new<F: FormatRepr>(buffer: &'a TypedBuffer<F, impl Allocator>, create_info: &BufferViewCreateInfo) -> Result<Self, VkError> {
+        let format = F::associated_format();
+        
+        create_info.validate(format, buffer)?;
 
+        unsafe { Self::new_unchecked(buffer, format, create_info) }
+    }
 }
 
 impl Drop for BufferView<'_> {
