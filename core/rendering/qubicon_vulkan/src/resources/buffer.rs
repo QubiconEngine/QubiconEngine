@@ -313,8 +313,6 @@ mod impl_buffer_type {
 
 
 use super::format;
-use format::formats_repr::FormatRepr;
-
 use crate::instance::physical_device::{ FormatFeatures, PhysicalDevice };
 
 
@@ -381,15 +379,18 @@ pub struct BufferView<'a> {
 
 impl<'a> BufferView<'a> {
     /// # Safety
-    /// **create_info** should be valid
-    pub unsafe fn new_unchecked<F: FormatRepr>(buffer: &'a TypedBuffer<F, impl Allocator>, create_info: &BufferViewCreateInfo) -> Result<Self, VkError> {
-        let offset = (create_info.offset as DeviceSize) * F::size() as DeviceSize;
-        let range = (create_info.range.get() as DeviceSize) * F::size() as DeviceSize;
+    /// * **create_info** should be valid
+    /// * **buffer** should be bound to memory
+    pub unsafe fn new_unchecked(buffer: &'a UnbindedBuffer, format: format::Format, create_info: &BufferViewCreateInfo) -> Result<Self, VkError> {
+        let format_size = format.size().ok_or(VkError::FormatNotSupported)?.get();
+        
+        let offset = (create_info.offset as DeviceSize) * format_size as DeviceSize;
+        let range = (create_info.range.get() as DeviceSize) * format_size as DeviceSize;
 
         let create_info = ash::vk::BufferViewCreateInfo::builder()
             .buffer(buffer.as_raw())
             //.flags(())
-            .format(F::associated_format().into())
+            .format(format.into())
             .offset(offset)
             .range(range)
             .build();
@@ -399,7 +400,7 @@ impl<'a> BufferView<'a> {
         let result = Self {
             buffer,
             
-            format: F::associated_format(),
+            format,
             offset,
             range,
 
@@ -408,6 +409,8 @@ impl<'a> BufferView<'a> {
         
         Ok ( result )
     }
+
+
 }
 
 impl Drop for BufferView<'_> {
