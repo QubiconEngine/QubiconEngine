@@ -1334,6 +1334,34 @@ impl<'a> ImageView<'a> {
         self.view
     }
 
+    /// # Safety
+    /// * **create_info** should be valid
+    /// * **image** should be bound to memory
+    /// (in swapchain for example there are images with memory, managed outside of app. UnbindedImage is there for this exact cases)
+    pub unsafe fn new_unchecked(image: &'a UnbindedImage, create_info: &ImageViewCreateInfo) -> Result<Self, VkError> {
+        let raw_create_info = ash::vk::ImageViewCreateInfo::builder()
+            .view_type(create_info.view_type.into())
+            .format(create_info.format.into())
+            .components(create_info.components.into())
+            .subresource_range(create_info.subresource_range.into())
+            .image(image.as_raw());
+
+        let view = image.device().as_raw().create_image_view(&raw_create_info, None)?;
+
+        let result = Self {
+            image,
+
+            view_type: create_info.view_type,
+            format: create_info.format,
+            components: create_info.components,
+            subresource_range: create_info.subresource_range,
+
+            view
+        };
+
+        Ok ( result )
+    }
+
     pub fn view_type(&self) -> ImageViewType {
         self.view_type
     }
