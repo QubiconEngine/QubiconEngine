@@ -3,7 +3,7 @@ use core::num::NonZeroU32;
 use bitflags::bitflags;
 
 use super::{ MemoryRequirements, AllocHandle };
-use crate::{ error::VkError, device::Device, memory::{ DeviceSize, alloc::{ Allocator, Allocation, MapGuard } } };
+use crate::{ error::VkError, device::Device, memory::{ DeviceSize, NonZeroDeviceSize, alloc::{ Allocator, Allocation, MapGuard } } };
 
 bitflags! {
     #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -374,12 +374,16 @@ pub struct BufferView<'a> {
 
     format: format::Format,
     offset: DeviceSize,
-    range: DeviceSize,
+    range: NonZeroDeviceSize,
 
     view: ash::vk::BufferView
 }
 
 impl<'a> BufferView<'a> {
+    pub(crate) unsafe fn as_raw(&self) -> ash::vk::BufferView {
+        self.view
+    }
+
     /// # Safety
     /// * **create_info** should be valid
     /// * **buffer** should be bound to memory
@@ -404,7 +408,7 @@ impl<'a> BufferView<'a> {
             
             format,
             offset,
-            range,
+            range: NonZeroDeviceSize::new_unchecked(range),
 
             view
         };
@@ -418,6 +422,30 @@ impl<'a> BufferView<'a> {
         create_info.validate(format, buffer)?;
 
         unsafe { Self::new_unchecked(buffer, format, create_info) }
+    }
+
+    pub fn format(&self) -> format::Format {
+        self.format
+    }
+
+    pub fn offset(&self) -> u32 {
+        let offset = self.raw_offset() / unsafe { self.format().size().unwrap_unchecked() }.get();
+
+        offset as u32
+    }
+
+    pub fn raw_offset(&self) -> DeviceSize {
+        self.offset
+    }
+
+    pub fn range(&self) -> NonZeroU32 {
+        let range = self.raw_range().get() / unsafe { self.format().size().unwrap_unchecked() }.get();
+
+        unsafe { NonZeroU32::new_unchecked(range as u32) }
+    }
+
+    pub fn raw_range(&self) -> NonZeroDeviceSize {
+        self.range
     }
 }
 
