@@ -1159,8 +1159,6 @@ pub struct ImageViewCreateInfo {
 
 impl ImageViewCreateInfo {
     pub fn validate(&self, image: &UnbindedImage) {
-        let features = image.device().enabled_features();
-
         let format_properties = image.device().physical_device().format_properties(image.format());
         let format_features = match image.tiling() {
             ImageTiling::Linear => format_properties.linear_tiling,
