@@ -1303,6 +1303,15 @@ impl ImageViewCreateInfo {
             _ => {}
         }
 
-        // TODO: aspect mask check
+        let image_aspect_flags = image.format.aspect_flags();
+
+        // 09594
+        if !image_aspect_flags.contains(self.subresource_range.aspect_mask) {
+            panic!(
+                "image format aspect flags({:?}) don`t contain subresource_range.aspect_mask({:?})",
+                image_aspect_flags,
+                self.subresource_range.aspect_mask
+            );
+        }
     }
 }
