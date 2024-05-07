@@ -1,7 +1,7 @@
 pub use create_info::*;
 
 use std::{ collections::HashMap, sync::{ Arc, atomic::{ AtomicU32, Ordering } } };
-use crate::{ error::VkError, instance::physical_device::{ DeviceFeatures, PhysicalDevice } };
+use crate::{ queues::Queue, error::VkError, instance::physical_device::{ DeviceFeatures, PhysicalDevice } };
 
 mod create_info;
 
@@ -86,6 +86,14 @@ impl Device {
         );
 
         Ok( result )
+    }
+
+    /// Shortcut for [Queue]::[new]
+    /// 
+    /// [Queue]: crate::queues::Queue
+    /// [new]: crate::queues::Queue::new
+    pub fn get_queue(self: &Arc<Self>, family_index: QueueFamilyIndex, queue_index: u32) -> Result<Queue, VkError> {
+        Queue::new(Arc::clone(self), family_index, queue_index)
     }
 
     pub fn enabled_features(&self) -> &DeviceFeatures {
