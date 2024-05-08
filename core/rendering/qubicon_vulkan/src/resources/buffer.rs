@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use core::num::NonZeroU32;
 use bitflags::bitflags;
+use core::{ mem::MaybeUninit, num::NonZeroU32 };
 
 use super::{ MemoryRequirements, AllocHandle };
 use crate::{ error::VkError, device::Device, memory::{ DeviceSize, NonZeroDeviceSize, alloc::{ Allocator, Allocation, MapGuard } } };
@@ -263,12 +263,12 @@ pub struct BufferMapGuard<'a, T: BufferType + ?Sized, M: MapGuard> {
 }
 
 impl<'a, T: BufferType + Sized, M: MapGuard> core::ops::Deref for BufferMapGuard<'a, T, M> {
-    type Target = T;
+    type Target = MaybeUninit<T>;
 
     fn deref(&self) -> &Self::Target {
         unsafe {
             self.map_guard.as_ptr()
-                .cast::<T>()
+                .cast::<MaybeUninit<T>>()
                 .as_ref()
                 .unwrap()
         }
@@ -278,7 +278,7 @@ impl<'a, T: BufferType + Sized, M: MapGuard> core::ops::Deref for BufferMapGuard
 impl<'a, T: BufferType + Sized, M: MapGuard> core::ops::Deref for BufferMapGuard<'a, [T], M>
     where [T]: BufferType
 {
-    type Target = [T];
+    type Target = [MaybeUninit<T>];
 
     fn deref(&self) -> &Self::Target {
         unsafe {
