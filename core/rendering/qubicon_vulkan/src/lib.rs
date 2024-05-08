@@ -1,7 +1,7 @@
 pub use error::Error;
 pub use instance::Instance;
 
-//pub mod queue;
+pub mod queues;
 pub mod device;
 pub mod memory;
 pub mod resources;
