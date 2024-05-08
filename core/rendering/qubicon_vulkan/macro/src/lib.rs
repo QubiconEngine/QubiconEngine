@@ -71,7 +71,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
         // this is a macro, so :]
         #[allow(unreachable_code)]
         impl #enum_ident {
-            pub fn size(&self) -> Option<NonZeroDeviceSize> {
+            pub const fn size(&self) -> Option<NonZeroDeviceSize> {
                 let result = match self {
                     #(#size_match_iter)*
 
@@ -81,7 +81,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 Some( result )
             }
 
-            pub fn align(&self) -> Option<NonZeroDeviceSize> {
+            pub const fn align(&self) -> Option<NonZeroDeviceSize> {
                 let result = match self {
                     #(#align_match_iter)*
                     
@@ -91,6 +91,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 Some( result )
             }
 
+            // isn`t const because BitOr isn`t const
             pub fn aspect_flags(&self) -> ImageAspectFlags {
                 match self {
                     #(#aspect_flags_match_iter)*
@@ -102,7 +103,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
 
 
 
-            pub fn alpha_bits(&self) -> Option<core::num::NonZeroU8> {
+            pub const fn alpha_bits(&self) -> Option<core::num::NonZeroU8> {
                 let result = match self {
                     #(#alpha_bits_iter)*
 
@@ -112,7 +113,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 Some( result )
             }
 
-            pub fn red_bits(&self) -> Option<core::num::NonZeroU8> {
+            pub const fn red_bits(&self) -> Option<core::num::NonZeroU8> {
                 let result = match self {
                     #(#red_bits_iter)*
 
@@ -122,7 +123,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 Some( result )
             }
 
-            pub fn green_bits(&self) -> Option<core::num::NonZeroU8> {
+            pub const fn green_bits(&self) -> Option<core::num::NonZeroU8> {
                 let result = match self {
                     #(#green_bits_iter)*
 
@@ -132,7 +133,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 Some( result )
             }
 
-            pub fn blue_bits(&self) -> Option<core::num::NonZeroU8> {
+            pub const fn blue_bits(&self) -> Option<core::num::NonZeroU8> {
                 let result = match self {
                     #(#blue_bits_iter)*
 
@@ -142,7 +143,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 Some( result )
             }
 
-            pub fn depth_bits(&self) -> Option<core::num::NonZeroU8> {
+            pub const fn depth_bits(&self) -> Option<core::num::NonZeroU8> {
                 let result = match self {
                     #(#depth_bits_iter)*
 
@@ -152,7 +153,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 Some( result )
             }
 
-            pub fn stencil_bits(&self) -> Option<core::num::NonZeroU8> {
+            pub const fn stencil_bits(&self) -> Option<core::num::NonZeroU8> {
                 let result = match self {
                     #(#stencil_bits_iter)*
 
@@ -162,7 +163,7 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                 Some( result )
             }
 
-            pub fn exponent_bits(&self) -> Option<core::num::NonZeroU8> {
+            pub const fn exponent_bits(&self) -> Option<core::num::NonZeroU8> {
                 let result = match self {
                     #(#exponent_bits_iter)*
 

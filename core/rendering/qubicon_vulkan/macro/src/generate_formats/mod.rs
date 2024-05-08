@@ -156,13 +156,22 @@ impl Format {
             .and_then(| ch | core::num::NonZeroU8::new(ch.bits))
     }
 
-    pub fn generate_size_match_arm(&self) -> TokenStream {
+    pub fn generate_size_match_arm(&self) -> Option<TokenStream> {
         let format_def_lit = &self.format_def_lit;
-        let size = Literal::usize_unsuffixed(self.size());
-        
-        quote! {
-            Self::#format_def_lit => NonZeroDeviceSize::new(#size).unwrap(),
+        let size = self.size();
+
+        // now code in quote will be totaly safe
+        if size == 0 {
+            return None;
         }
+
+        let size = Literal::usize_unsuffixed(size);
+        
+        let result = quote! {
+            Self::#format_def_lit => unsafe { NonZeroDeviceSize::new_unchecked(#size) },
+        };
+
+        Some( result )
     }
 
     pub fn generate_align_match_arm(&self) -> Option<TokenStream> {
@@ -170,7 +179,7 @@ impl Format {
         let align = Literal::u8_unsuffixed(self.pack?.align()?.get());
 
         let result = quote! {
-            Self::#format_def_lit => NonZeroDeviceSize::new(#align).unwrap(),
+            Self::#format_def_lit => unsafe { NonZeroDeviceSize::new_unchecked(#align) },
         };
 
         Some( result )
