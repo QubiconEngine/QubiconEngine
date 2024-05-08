@@ -4,6 +4,8 @@ mod generate_formats;
 use quote::quote;
 use proc_macro::TokenStream;
 
+use generate_formats::ChannelType;
+
 
 #[proc_macro_derive(GenerateFormats)]
 pub fn generate_formats(input: TokenStream) -> TokenStream {
@@ -25,6 +27,14 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
     let align_match_iter = formats.iter().map(| f | f.generate_align_match_arm());
     let aspect_flags_match_iter = formats.iter().map(| f | f.generate_aspect_flags_match_arm());
 
+    let alpha_bits_iter = formats.iter().filter_map(| f | f.generate_bits_per_channel_match_arm(ChannelType::Alpha));
+    let red_bits_iter = formats.iter().filter_map(| f | f.generate_bits_per_channel_match_arm(ChannelType::Red));
+    let green_bits_iter = formats.iter().filter_map(| f | f.generate_bits_per_channel_match_arm(ChannelType::Green));
+    let blue_bits_iter = formats.iter().filter_map(| f | f.generate_bits_per_channel_match_arm(ChannelType::Blue));
+    let depth_bits_iter = formats.iter().filter_map(| f | f.generate_bits_per_channel_match_arm(ChannelType::Depth));
+    let stencil_bits_iter = formats.iter().filter_map(| f | f.generate_bits_per_channel_match_arm(ChannelType::Stencil));
+    let exponent_bits_iter = formats.iter().filter_map(| f | f.generate_bits_per_channel_match_arm(ChannelType::Exponent));
+
     quote! {
         pub mod formats_repr {
             use super::*;
@@ -38,6 +48,14 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                     const ASPECT_FLAGS: ImageAspectFlags;
                     const ASSOCIATED_FORMAT: #enum_ident;
 
+                    const ALPHA_BITS: u8;
+                    const RED_BITS: u8;
+                    const GREEN_BITS: u8;
+                    const BLUE_BITS: u8;
+                    const DEPTH_BITS: u8;
+                    const STENCIL_BITS: u8;
+                    const EXPONENT_BITS: u8;
+
                     fn aspect_flags() -> ImageAspectFlags {
                         Self::ASPECT_FLAGS
                     }
@@ -50,6 +68,8 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
             #(#structs_iter)*
         }
 
+        // this is a macro, so :]
+        #[allow(unreachable_code)]
         impl #enum_ident {
             pub fn size(&self) -> Option<NonZeroDeviceSize> {
                 let result = match self {
@@ -78,6 +98,78 @@ pub fn generate_formats(input: TokenStream) -> TokenStream {
                     // TODO: Rework. It isn`t true for all cases
                     _ => ImageAspectFlags::COLOR
                 }
+            }
+
+
+
+            pub fn alpha_bits(&self) -> Option<core::num::NonZeroU8> {
+                let result = match self {
+                    #(#alpha_bits_iter)*
+
+                    _ => return None
+                };
+
+                Some( result )
+            }
+
+            pub fn red_bits(&self) -> Option<core::num::NonZeroU8> {
+                let result = match self {
+                    #(#red_bits_iter)*
+
+                    _ => return None
+                };
+
+                Some( result )
+            }
+
+            pub fn green_bits(&self) -> Option<core::num::NonZeroU8> {
+                let result = match self {
+                    #(#green_bits_iter)*
+
+                    _ => return None
+                };
+
+                Some( result )
+            }
+
+            pub fn blue_bits(&self) -> Option<core::num::NonZeroU8> {
+                let result = match self {
+                    #(#blue_bits_iter)*
+
+                    _ => return None
+                };
+
+                Some( result )
+            }
+
+            pub fn depth_bits(&self) -> Option<core::num::NonZeroU8> {
+                let result = match self {
+                    #(#depth_bits_iter)*
+
+                    _ => return None
+                };
+
+                Some( result )
+            }
+
+            pub fn stencil_bits(&self) -> Option<core::num::NonZeroU8> {
+                let result = match self {
+                    #(#stencil_bits_iter)*
+
+                    _ => return None
+                };
+
+                Some( result )
+            }
+
+            pub fn exponent_bits(&self) -> Option<core::num::NonZeroU8> {
+                let result = match self {
+                    #(#exponent_bits_iter)*
+
+                    _ => return None
+                };
+
+                Some( result )
             }
         }
     }.into()

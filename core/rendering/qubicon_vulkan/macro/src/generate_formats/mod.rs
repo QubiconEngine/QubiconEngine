@@ -8,7 +8,7 @@ use proc_macro2::{ TokenStream, Literal };
 mod attributes;
 mod type_resolver;
 
-use attributes::*;
+pub use attributes::*;
 
 
 #[derive(Debug, Clone)]
@@ -69,6 +69,19 @@ impl Format {
         let struct_fields = self.channel_list.generate_fields(self.space)?;
         let aspect_flags = self.aspect_flags();
 
+
+
+        let bits_per_channel = | ty: ChannelType | self.bits_per_channel(ty).map(| b | b.get()).unwrap_or(0);
+
+        let alpha_bits = bits_per_channel(ChannelType::Alpha);
+        let red_bits = bits_per_channel(ChannelType::Red);
+        let green_bits = bits_per_channel(ChannelType::Green);
+        let blue_bits = bits_per_channel(ChannelType::Blue);
+        let depth_bits = bits_per_channel(ChannelType::Depth);
+        let stencil_bits = bits_per_channel(ChannelType::Stencil);
+        let exponent_bits = bits_per_channel(ChannelType::Exponent);
+
+
         let result = quote! {
             #align
             #[derive(Clone, Copy, PartialEq)]
@@ -81,6 +94,14 @@ impl Format {
             impl sealed::FormatRepr for #struct_name {
                 const ASPECT_FLAGS: ImageAspectFlags = #aspect_flags;
                 const ASSOCIATED_FORMAT: #enum_ident = #enum_ident::#enum_variant;
+
+                const ALPHA_BITS: u8 = #alpha_bits;
+                const RED_BITS: u8 = #red_bits;
+                const GREEN_BITS: u8 = #green_bits;
+                const BLUE_BITS: u8 = #blue_bits;
+                const DEPTH_BITS: u8 = #depth_bits;
+                const STENCIL_BITS: u8 = #stencil_bits;
+                const EXPONENT_BITS: u8 = #exponent_bits;
             }
 
             unsafe impl BufferType for #struct_name {
@@ -127,6 +148,14 @@ impl Format {
         }
     }
 
+    pub fn bits_per_channel(&self, ty: ChannelType) -> Option<core::num::NonZeroU8> {
+        self.channel_list.iter()
+            .find(| ch | ch.ty == ty)
+            // there shouldn`t be any zeroes. unless some idiot didn`t 
+            // write or edit any Format variants
+            .and_then(| ch | core::num::NonZeroU8::new(ch.bits))
+    }
+
     pub fn generate_size_match_arm(&self) -> TokenStream {
         let format_def_lit = &self.format_def_lit;
         let size = Literal::usize_unsuffixed(self.size());
@@ -154,6 +183,17 @@ impl Format {
         quote! {
             Self::#format_def_lit => #flags,
         }
+    }
+
+    pub fn generate_bits_per_channel_match_arm(&self, ty: ChannelType) -> Option<TokenStream> {
+        let bits_per_channel = Literal::u8_unsuffixed(self.bits_per_channel(ty)?.get());
+        let format_def_lit = &self.format_def_lit;
+
+        let result = quote! {
+            Self::#format_def_lit => unsafe { core::num::NonZeroU8::new_unchecked(#bits_per_channel) },
+        };
+
+        Some( result )
     }
 }
 
