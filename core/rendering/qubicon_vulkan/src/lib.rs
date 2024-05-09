@@ -7,7 +7,7 @@ pub mod memory;
 pub mod resources;
 //pub mod descriptors;
 pub mod instance;
-//pub mod commands;
+pub mod commands;
 //pub mod shaders;
 pub mod error;
 //pub mod sync;
